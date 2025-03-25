@@ -3,6 +3,11 @@ import localFont from 'next/font/local'
 import './globals.css'
 import TanstackClientProvider from '@/components/providers/tanstack-client-provider'
 import { SupabaseProvider } from '@/utils/supabase/context'
+import { ThemeProvider } from "@/components/layout/theme-provider"
+import { SiteHeader } from "@/components/layout/site-header"
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { ProfileProvider } from "@/lib/profile-context"
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -16,8 +21,8 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: 'AI Fitness Trainer',
-  description: 'Personalized fitness training with AI assistance',
+  title: 'trAIner - Your Personal Fitness Assistant',
+  description: 'AI-powered fitness training and workout planning with personalized assistance',
 }
 
 export default function RootLayout({
@@ -26,11 +31,25 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <TanstackClientProvider>
           <SupabaseProvider>
-            {children}
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+              <ProfileProvider>
+                <SidebarProvider>
+                  <div className="relative flex min-h-screen flex-col">
+                    <SiteHeader />
+                    <div className="flex flex-1">
+                      <AppSidebar />
+                      <SidebarInset>
+                        <main className="flex-1 p-4 md:p-6">{children}</main>
+                      </SidebarInset>
+                    </div>
+                  </div>
+                </SidebarProvider>
+              </ProfileProvider>
+            </ThemeProvider>
           </SupabaseProvider>
         </TanstackClientProvider>
       </body>

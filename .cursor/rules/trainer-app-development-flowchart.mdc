@@ -1,0 +1,90 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+description: trAIner App Development Flowchart
+globs: 
+---
+
+# trAIner App Development Flow
+
+## Development Phases
+1. **Requirements Analysis**: Based on the Project Requirements Document
+2. **Tech Stack Selection**: Follow the Tech Stack Document specifications
+3. **Parallel Development Streams**:
+   - Frontend Development (React, V0 by Vercel, Tailwind)
+   - Backend Development (Node.js, Supabase)
+   - AI Agent Implementation (OpenAI API, Perplexity AI)
+
+## Frontend Development Flow
+1. **User Interface Components**:
+   - Auth & Profile UI
+   - Dashboard UI
+   - Workout Plan UI
+   - Nutrition & Progress UI
+2. **Design Principles**:
+   - Dark mode default with electric blue accents
+   - Responsive design with mobile-first approach
+   - Agent reasoning visualization
+   - Modern, clean sans-serif typography
+
+## Backend Development Flow
+1. **Database & Auth Setup**:
+   - User management with Supabase Auth
+   - Workout & Plan storage
+   - Progress & Analytics data
+2. **Security Considerations**:
+   - Row-level security in Supabase
+   - Secure API key storage
+   - Data privacy compliance
+
+## AI Agent Implementation Flow
+1. **Agent Architecture**:
+   - Research Agent (Perplexity AI)
+   - Workout Generation Agent (OpenAI)
+   - Plan Adjustment Agent (OpenAI)
+   - Nutrition Agent (OpenAI)
+2. **Key Patterns**:
+   - ReAct pattern for reasoning
+   - Reflection pattern for plan adjustments
+   - Memory systems for personalization
+
+## Integration Flow
+1. Frontend Integration
+2. Backend Integration
+3. Agent Integration
+4. Full Stack Integration
+
+## User Flow
+1. Onboarding & Authentication
+2. Profile Setup
+3. Dashboard
+4. Generate Workout Plan
+5. Review & Edit Plan
+6. Track Progress
+7. Check-in & Update
+8. Return to Dashboard
+
+## Testing Strategy
+1. Unit Testing
+2. Integration Testing
+3. Agent Testing
+4. End-to-End Testing
+5. Performance Testing
+
+## API Implementation
+Follow the API Reference Document for endpoint specifications, focusing on:
+1. Authentication routes
+2. Profile management
+3. Workout generation
+4. Plan adjustment
+5. Progress tracking
+6. Notification preferences
+
+## Key Technical Principles
+- Agent-based architecture
+- ReAct & Reflection patterns
+- Memory systems for personalization
+- Reasoning visualization
+- Dark mode UI with electric blue accents
