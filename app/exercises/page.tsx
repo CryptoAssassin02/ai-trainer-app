@@ -68,11 +68,17 @@ export default function ExercisesPage() {
 
   return (
     <div className="container py-8">
-      <h1 className="mb-8 text-3xl font-bold">Today's Workout</h1>
+      <h1 className="mb-8 text-3xl font-bold">Today&apos;s Workout</h1>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {exercises.map((exercise, index) => (
           <ExerciseCard key={index} {...exercise} />
         ))}
+      </div>
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <p className="mb-2 text-muted-foreground">No exercises found</p>
+        <p className="text-sm text-muted-foreground">
+          Let&apos;s add some exercises to your library
+        </p>
       </div>
     </div>
   )

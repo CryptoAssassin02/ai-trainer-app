@@ -7,19 +7,15 @@ import { WorkoutConsistencyChart } from "@/components/workout/workout-consistenc
 
 export default async function Dashboard() {
   const supabase = await createClient()
-
-  const { data, error } = await supabase.auth.getUser()
-  
-  if (error || !data?.user) {
-    redirect('/login')
-  }
+  const { data } = await supabase.auth.getUser()
+  const userEmail = data.user?.email || 'User'
 
   return (
     <div className="container py-8">
       <h1 className="mb-8 text-3xl font-bold">Progress Dashboard</h1>
       
       <div className="mb-8 rounded-lg bg-muted/50 p-4">
-        <h2 className="mb-2 text-xl font-medium">Welcome, {data.user.email}</h2>
+        <h2 className="mb-2 text-xl font-medium">Welcome, {userEmail}</h2>
         <p className="text-muted-foreground">
           Track your fitness progress and view your personalized recommendations
         </p>

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
@@ -34,6 +34,11 @@ const metricColors = {
   thighs: "#9E9EFF", // Purple
 }
 
+interface ChartDataPoint {
+  date: string;
+  [key: string]: string | number | undefined;
+}
+
 export function BodyMetricsChart() {
   const { userCheckIns, getCheckInHistory } = useWorkout()
   const { profile } = useProfile()
@@ -41,39 +46,10 @@ export function BodyMetricsChart() {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("weight")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [chartData, setChartData] = useState<any[]>([])
-
-  // Fetch check-in data on mount and when time period changes
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        // Fetch check-in data if not already available
-        if (userCheckIns.length === 0) {
-          await getCheckInHistory()
-        }
-        
-        // Process the data for the chart
-        processCheckInData()
-      } catch (err) {
-        console.error("Error fetching body metrics data:", err)
-        setError("Failed to load body metrics data")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [timePeriod, getCheckInHistory])
-
-  // When check-ins or selected metric changes, process the data
-  useEffect(() => {
-    processCheckInData()
-  }, [userCheckIns, selectedMetric, timePeriod])
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
 
   // Process check-in data for the selected time period and metric
-  const processCheckInData = () => {
+  const processCheckInData = useCallback(() => {
     if (userCheckIns.length === 0) {
       setChartData([])
       return
@@ -138,7 +114,33 @@ export function BodyMetricsChart() {
     })
 
     setChartData(formattedData)
-  }
+  }, [userCheckIns, selectedMetric, timePeriod])
+
+  // Fetch check-in data on mount and when time period changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        if (userCheckIns.length === 0) {
+          await getCheckInHistory()
+        }
+        processCheckInData()
+      } catch (err) {
+        console.error("Error fetching body metrics data:", err)
+        setError("Failed to load body metrics data")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [timePeriod, getCheckInHistory, userCheckIns.length, processCheckInData])
+
+  // When check-ins or selected metric changes, process the data
+  useEffect(() => {
+    processCheckInData()
+  }, [userCheckIns, selectedMetric, timePeriod, processCheckInData])
 
   // Calculate progress metrics from the real data
   const calculateProgress = () => {

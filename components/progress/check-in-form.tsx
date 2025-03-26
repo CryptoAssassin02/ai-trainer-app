@@ -57,32 +57,35 @@ const checkInFormSchema = z.object({
 
 type CheckInFormValues = z.infer<typeof checkInFormSchema>
 
+interface FormState {
+  isSubmitting: boolean;
+  isSuccess: boolean;
+  error: string | null;
+}
+
 export function CheckInForm() {
   const { logCheckIn } = useWorkout()
   const { profile } = useProfile()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [formState, setFormState] = useState<FormState>({
+    isSubmitting: false,
+    isSuccess: false,
+    error: null,
+  })
 
-  // Set default values
-  const defaultValues: Partial<CheckInFormValues> = {
-    date: new Date(),
-    mood: "good",
-    sleepQuality: "good",
-    energyLevel: 5,
-    stressLevel: 5,
-  }
-
-  // Initialize form
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(checkInFormSchema),
-    defaultValues,
+    defaultValues: {
+      date: new Date(),
+      mood: "good",
+      sleepQuality: "good",
+      energyLevel: 7,
+      stressLevel: 4,
+      notes: "",
+    },
   })
 
   const onSubmit = async (data: CheckInFormValues) => {
-    setLoading(true)
-    setError(null)
-    setSuccess(false)
+    setFormState({ isSubmitting: true, isSuccess: false, error: null })
     
     try {
       // Format data for API
@@ -108,17 +111,22 @@ export function CheckInForm() {
       const result = await logCheckIn(checkInData)
       
       if (result) {
-        setSuccess(true)
+        setFormState({ isSubmitting: false, isSuccess: true, error: null })
         // Reset the form
-        form.reset(defaultValues)
+        form.reset({
+          date: new Date(),
+          mood: "good",
+          sleepQuality: "good",
+          energyLevel: 7,
+          stressLevel: 4,
+          notes: "",
+        })
       } else {
         throw new Error("Failed to save check-in data")
       }
     } catch (err) {
       console.error("Error saving check-in:", err)
-      setError("Failed to save your check-in data. Please try again.")
-    } finally {
-      setLoading(false)
+      setFormState({ isSubmitting: false, isSuccess: false, error: "Failed to save your check-in data. Please try again." })
     }
   }
 
@@ -132,15 +140,15 @@ export function CheckInForm() {
 
   return (
     <div className="space-y-6">
-      {error && (
+      {formState.error && (
         <Alert variant="destructive">
           <CrossCircledIcon className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{formState.error}</AlertDescription>
         </Alert>
       )}
       
-      {success && (
+      {formState.isSuccess && (
         <Alert className="bg-green-50 text-green-900 border-green-200">
           <CheckCircledIcon className="h-4 w-4 text-green-600" />
           <AlertTitle>Success</AlertTitle>
@@ -472,14 +480,21 @@ export function CheckInForm() {
             />
           </div>
           
-          <Button type="submit" className="w-full md:w-auto" disabled={loading}>
-            {loading ? (
-              <>
-                <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : "Save Check-in"}
-          </Button>
+          <div className="flex flex-col gap-4 md:flex-row md:gap-6">
+            <Button variant="outline" type="button" onClick={() => form.reset()} className="w-full md:w-auto">
+              Reset
+            </Button>
+            <Button type="submit" className="w-full md:w-auto" disabled={formState.isSubmitting}>
+              {formState.isSubmitting ? (
+                <>
+                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Check-in"
+              )}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>

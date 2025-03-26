@@ -59,19 +59,11 @@ interface AIReasoningVisualizationProps {
 
 export function AIReasoningVisualization({ title, description, sections }: AIReasoningVisualizationProps) {
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({})
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
   const toggleStep = (stepId: string) => {
     setExpandedSteps((prev) => ({
       ...prev,
       [stepId]: !prev[stepId],
-    }))
-  }
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
     }))
   }
 

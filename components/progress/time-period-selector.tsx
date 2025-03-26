@@ -3,14 +3,19 @@ import { Button } from "@/components/ui/button"
 
 type TimePeriod = "1w" | "1m" | "3m" | "6m" | "1y" | "all"
 
+interface TimePeriodOption {
+  value: TimePeriod;
+  label: string;
+}
+
 interface TimePeriodSelectorProps {
-  selectedPeriod: TimePeriod
-  onChange: (period: TimePeriod) => void
-  className?: string
+  selectedPeriod: TimePeriod;
+  onChange: (period: TimePeriod) => void;
+  className?: string;
 }
 
 export function TimePeriodSelector({ selectedPeriod, onChange, className }: TimePeriodSelectorProps) {
-  const periods: { value: TimePeriod; label: string }[] = [
+  const periods: TimePeriodOption[] = [
     { value: "1w", label: "1W" },
     { value: "1m", label: "1M" },
     { value: "3m", label: "3M" },

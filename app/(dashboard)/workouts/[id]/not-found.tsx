@@ -9,7 +9,7 @@ export default function WorkoutPlanNotFound() {
         <FileQuestion className="h-12 w-12 text-muted-foreground" />
         <h2 className="text-2xl font-semibold">Workout Plan Not Found</h2>
         <p className="max-w-md text-muted-foreground">
-          The workout plan you're looking for doesn't exist or may have been removed.
+          The workout plan you&apos;re looking for doesn&apos;t exist or may have been removed.
         </p>
         <Link href="/workouts">
           <Button className="mt-4">

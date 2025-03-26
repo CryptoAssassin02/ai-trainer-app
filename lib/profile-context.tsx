@@ -119,7 +119,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     fetchUserProfile()
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         fetchUserProfile()
       } else if (event === 'SIGNED_OUT') {

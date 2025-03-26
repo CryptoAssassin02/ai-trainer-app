@@ -1,7 +1,7 @@
 import { ExerciseCard } from "@/components/workout/exercise-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, Clock, Dumbbell, Calendar } from "lucide-react"
+import { ChevronLeft, Clock, Dumbbell, Calendar } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 

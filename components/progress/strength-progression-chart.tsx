@@ -6,10 +6,15 @@ import { ChartContainer } from "@/components/ui/chart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TimePeriodSelector } from "@/components/progress/time-period-selector"
 import { CustomChartTooltip } from "@/components/ui/chart-tooltip"
-import { Badge } from "@/components/ui/badge"
 
 type TimePeriod = "1w" | "1m" | "3m" | "6m" | "1y" | "all"
 type Exercise = "benchPress" | "squat" | "deadlift" | "overheadPress" | "bentoverRow"
+
+interface ChartDataPoint {
+  date: string;
+  weight: number;
+  oneRepMax: number;
+}
 
 const exerciseOptions = [
   { value: "benchPress", label: "Bench Press" },
@@ -20,7 +25,7 @@ const exerciseOptions = [
 ]
 
 // Generate sample data with realistic progression
-const generateProgressionData = (exercise: Exercise, period: TimePeriod) => {
+const generateProgressionData = (exercise: Exercise, period: TimePeriod): ChartDataPoint[] => {
   // Base starting weights for different exercises (in lbs)
   const baseWeights = {
     benchPress: 135,
@@ -90,7 +95,7 @@ export function StrengthProgressionChart() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("3m")
   const [selectedExercise, setSelectedExercise] = useState<Exercise>("benchPress")
 
-  const data = generateProgressionData(selectedExercise, timePeriod)
+  const data: ChartDataPoint[] = generateProgressionData(selectedExercise, timePeriod)
 
   // Calculate progress metrics
   const firstWeight = data[0]?.weight || 0

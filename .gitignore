@@ -97,3 +97,5 @@ logs
 # Temp files
 /tmp
 /temp
+
+*storybook.log

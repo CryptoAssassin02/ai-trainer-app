@@ -63,21 +63,6 @@ interface WorkoutLogFormProps {
   planId?: string
 }
 
-// Define a type for exercises in workout schedule
-interface WorkoutExercise {
-  id: string | undefined;
-  name: string;
-  sets: number;
-  reps: number;
-  rest_seconds: number;
-}
-
-// Define a type for days in workout schedule
-interface WorkoutDay {
-  day: string;
-  exercises: WorkoutExercise[];
-}
-
 export function WorkoutLogForm({ planId }: WorkoutLogFormProps) {
   const { logWorkoutProgress, workoutPlans, fetchWorkoutPlan, selectedPlan } = useWorkout()
   const [loading, setLoading] = useState(false)

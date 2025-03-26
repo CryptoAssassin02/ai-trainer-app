@@ -4,11 +4,19 @@ import type * as React from "react"
 import type { TooltipProps } from "recharts"
 import { Card, CardContent } from "@/components/ui/card"
 
-interface ChartTooltipProps extends TooltipProps<any, any> {
-  className?: string
+interface TooltipPayloadItem {
+  name: string;
+  value: number | string;
+  color?: string;
+  stroke?: string;
+  unit?: string;
 }
 
-export function CustomChartTooltip({ active, payload, label, className, viewBox }: ChartTooltipProps) {
+interface ChartTooltipProps extends TooltipProps<number | string, string> {
+  payload?: TooltipPayloadItem[];
+}
+
+export function CustomChartTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null
   }
@@ -27,7 +35,7 @@ export function CustomChartTooltip({ active, payload, label, className, viewBox 
         <CardContent className="p-3">
           <p className="mb-2 font-medium text-sm text-white">{label}</p>
           <div className="space-y-2">
-            {payload.map((item: any, index: number) => (
+            {payload.map((item: TooltipPayloadItem, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color || item.stroke }} />
                 <span className="text-xs font-medium text-white">{item.name}:</span>

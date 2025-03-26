@@ -11,7 +11,7 @@ export default function ProgressPage() {
     <div className="container py-8">
       <h1 className="mb-2 text-3xl font-bold">Your Progress Tracking</h1>
       <p className="mb-8 text-muted-foreground">
-        Track your fitness journey and see how far you've come
+        Track your fitness journey and see how far you&apos;ve come
       </p>
 
       <Tabs defaultValue="overview" className="w-full">

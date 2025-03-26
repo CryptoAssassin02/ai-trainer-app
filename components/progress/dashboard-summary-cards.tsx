@@ -13,6 +13,15 @@ interface MetricCardProps {
   trendLabel?: string
 }
 
+interface DashboardMetric {
+  title: string
+  value: string | number
+  description: string
+  trend?: number
+  trendLabel?: string
+  icon: React.ReactNode
+}
+
 function MetricCard({ title, value, description, trend = 0, icon, trendLabel }: MetricCardProps) {
   return (
     <Card>
@@ -42,56 +51,62 @@ function MetricCard({ title, value, description, trend = 0, icon, trendLabel }: 
 }
 
 export function DashboardSummaryCards() {
+  const metrics: DashboardMetric[] = [
+    {
+      title: "Weekly Workouts",
+      value: "4/5",
+      description: "Completed this week",
+      trend: 5,
+      trendLabel: "vs last week",
+      icon: <Calendar />,
+    },
+    {
+      title: "Current Streak",
+      value: "12 days",
+      description: "Last missed: Jun 10",
+      trend: 20,
+      trendLabel: "longer than previous",
+      icon: <Flame />,
+    },
+    {
+      title: "Weight",
+      value: "178.5 lbs",
+      description: "Updated yesterday",
+      trend: -2.3,
+      trendLabel: "in last 30 days",
+      icon: <Scale />,
+    },
+    {
+      title: "Strength Score",
+      value: "315",
+      description: "Intermediate level",
+      trend: 8.5,
+      trendLabel: "in last 30 days",
+      icon: <Dumbbell />,
+    },
+    {
+      title: "Body Fat",
+      value: "16.8%",
+      description: "Athletic range",
+      trend: -5.2,
+      trendLabel: "in last 90 days",
+      icon: <Target />,
+    },
+    {
+      title: "Volume",
+      value: "24,850 lbs",
+      description: "Last workout",
+      trend: 12,
+      trendLabel: "vs previous",
+      icon: <TrendingUp />,
+    },
+  ]
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <MetricCard
-        title="Weekly Workouts"
-        value="4/5"
-        description="Completed this week"
-        trend={5}
-        trendLabel="vs last week"
-        icon={<Calendar />}
-      />
-      <MetricCard
-        title="Current Streak"
-        value="12 days"
-        description="Last missed: Jun 10"
-        trend={20}
-        trendLabel="longer than previous"
-        icon={<Flame />}
-      />
-      <MetricCard
-        title="Weight"
-        value="178.5 lbs"
-        description="Updated yesterday"
-        trend={-2.3}
-        trendLabel="in last 30 days"
-        icon={<Scale />}
-      />
-      <MetricCard
-        title="Strength Score"
-        value="315"
-        description="Intermediate level"
-        trend={8.5}
-        trendLabel="in last 30 days"
-        icon={<Dumbbell />}
-      />
-      <MetricCard
-        title="Body Fat"
-        value="16.8%"
-        description="Athletic range"
-        trend={-5.2}
-        trendLabel="in last 90 days"
-        icon={<Target />}
-      />
-      <MetricCard
-        title="Volume"
-        value="24,850 lbs"
-        description="Last workout"
-        trend={12}
-        trendLabel="vs previous"
-        icon={<TrendingUp />}
-      />
+      {metrics.map((metric, index) => (
+        <MetricCard key={index} {...metric} />
+      ))}
     </div>
   )
 }

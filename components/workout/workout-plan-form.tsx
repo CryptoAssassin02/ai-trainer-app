@@ -24,12 +24,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const fitnessLevels = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-]
-
 const fitnessGoals = [
   { id: "strength", label: "Strength" },
   { id: "muscle-gain", label: "Muscle Gain" },
