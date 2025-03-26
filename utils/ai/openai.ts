@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import { ChatCompletionCreateParamsBase, ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { useCallback } from "react";
 
 interface GenerateCompletionArgs {
     chat: ChatCompletionMessageParam[];
@@ -72,4 +73,29 @@ export async function generateCompletion(args: GenerateCompletionArgs): Promise<
             ? error
             : new Error("Failed to generate completion");
     }
+}
+
+/**
+ * Hook to provide access to OpenAI API functionality in React components
+ * @returns OpenAI API instance for making calls to OpenAI
+ */
+export function useOpenAI() {
+    const createOpenAIClient = useCallback(() => {
+        // Use environment variables to get API key
+        // This client will be used for browser-side operations
+        // NOTE: For production, you might want to use a server-side API route
+        // to protect your API key
+        const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error("OpenAI API key is not configured");
+        }
+        
+        return new OpenAI({
+            apiKey,
+            dangerouslyAllowBrowser: true, // Allow client-side usage
+        });
+    }, []);
+
+    // Return the OpenAI client instance
+    return createOpenAIClient();
 }

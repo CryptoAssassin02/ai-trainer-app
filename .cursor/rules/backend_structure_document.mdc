@@ -1,0 +1,180 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Backend Structure Document
+
+## Introduction
+
+The backend of the trAIner app is the engine that powers essential functions such as user authentication, personalized workout plan generation, and macro goal calculations. It implements an **agent-based architecture** that processes user data, connects with AI services through **standardized API interfaces**, and ensures secure data storage. By integrating technologies like Node.js, Supabase, and agent-based AI systems, the backend becomes both the backbone and the safeguard of the application, enabling smooth communication between users, AI providers (like OpenAI and Perplexity AI), and the frontend interface. This solid foundation helps provide a sleek, modern, and reliable service, even for a diverse audience ranging from beginners to advanced fitness enthusiasts.
+
+## Backend Architecture
+
+The backend architecture is designed with scalability, maintainability, and performance in mind. At its core, the system is built using Node.js which allows rapid development and seamless integration with other services. The design uses a **modular agent-based pattern** where each module functions as a specialized agent with specific capabilities, whether it's handling authentication, workout plan generation, or macro calculations. The use of Supabase adds managed authentication and database services with a focus on secure data management. **Standardized API interfaces** allow for consistent communication patterns across AI tools and services. By leveraging these technologies, the architecture can easily adapt to new modules, such as wearables integration or community features, ensuring that future enhancements can be added with minimal restructuring.
+
+## Database Management
+
+In this setup, Supabase serves as the primary database system, managing both user-specific data and anonymized entries in a general memory bank. The backend uses a mix of SQL and NoSQL practices, with structured data (user profiles, workout plans, check-in logs) stored in relational tables while system metadata and logs might be managed using more flexible data schemes. Data is organized by user profiles, fitness preferences, and generated workout plans, ensuring both ease of access and strong data integrity. **Vector storage capabilities areb implemented for agent memory systems**, allowing for efficient retrieval of relevant information based on user context. Emphasis is placed on data privacy and compliance, using encryption practices and access controls to securely store and retrieve sensitive information.
+
+## Database Schema Outline
+
+Below is a high-level outline of the tables in our Supabase database. These schema details help AI dev tools (and developers) precisely understand how data is structured.
+
+**users**
+- **id**: UUID (Primary key)
+- **email**: text (unique)
+- **password_hash**: text
+- **created_at**: timestamp
+
+**profiles**
+- **id**: UUID (Primary key, references `users.id`)
+- **height**: integer (store as centimeters or total inches,depending on user preference)
+- **weight**: integer or decimal
+- **age**: integer
+- **gender**: text (optional)
+- **preferences**: jsonb (e.g., exercise types equipment)
+- **goals**: jsonb
+- **updated_at**: timestamp
+
+**workouts**
+- **plan_id**: UUID (Primary key)
+- **user_id**: UUID (references `users.id`)
+- **plan_name**: text
+- **exercises**: jsonb (array of exercise objects)
+- **research_insights**: jsonb (array of short notes)
+- **reasoning**: text (AI reasoning summary)
+- **created_at**: timestamp
+
+**workout_logs**
+- **log_id**: UUID (Primary key)
+- **plan_id**: UUID (references `workouts.plan_id`)
+- **user_id**: UUID (references `users.id`)
+- **date**: date
+- **logged_exercises**: jsonb (details for sets/reps)
+- **notes**: text (optional)
+- **created_at**: timestamp
+
+**notifications**
+- **id**: UUID (Primary key)
+- **user_id**: UUID (references `users.id`)
+- **email_notifications**: boolean
+- **push_notifications**: boolean
+- **sms_notifications**: boolean
+- **preferred_channels**: jsonb
+- **updated_at**: timestamp
+
+> **Note**: The data types (e.g., integer vs. decimal) can be adjusted based on how your AI dev tools prefer to store them. Also, some columns (like `updated_at` or `created_at`) might be auto-managed by Supabase.
+
+**agent_memory**
+- **id**: UUID (Primary key)
+- **user_id**: UUID (references `users.id`)
+- **embedding**: vector (an array of floats or a specific vector data type if using Supabase vector extension)
+- **content**: text or jsonb (the text or structured data for the memory)
+- **created_at**: timestamp
+
+> This table stores per-user embeddings or memory data for the AI's "reflection" or extended context.
+
+**analytics_events**
+- **event_id**: UUID (Primary key)
+- **user_id**: UUID (references `users.id`), nullable if we allow truly anonymous events
+- **event_type**: text (e.g., "PLAN_GENERATED", "WORKOUT_LOGGED")
+- **timestamp**: timestamp (when the event occurred)
+- **metadata**: jsonb (optional payload, e.g., "screen_name", "planId", "log details")
+- **created_at**: timestamp
+
+> **Notes**:
+> 1. **Privacy**: If we want to fully anonymize data, we may store only a hashed or null `user_id`. Alternatively, if we need user-level tracking, RLS can apply so that only admins can see analytics.
+> 2. **Volume**: This table can grow quickly. Consider partitioning by date or using a dedicated analytics warehouse if event volume becomes large.
+> 3. **Integration**: This is optional for the MVP. If we require real-time analytics dashboards, we can integrate a streaming pipeline or replicate events to an external analytics system (e.g., Plausible, PostHog).
+
+## Data Retention and Cleanup Policy
+
+To ensure that stored data does not grow unbounded and to respect user privacy, we will implement the following retention guidelines:
+
+1. **Workout Logs**: Retain detailed logs (exercises, sets/reps) for 12 months. Logs older than 12 months are archived to a separate "workout_logs_archive" table for potential future analytics. Users can request permanent deletion of older logs.
+
+2. **Agent Memory (Vector Storage)**: Retain embeddings and user-specific AI context for 6 months from the last user activity date. After 6 months of inactivity, we either delete or anonymize these entries. This prevents unbounded growth while preserving relevant context for active users.
+
+3. **User Profile and Personal Data**: Remain stored indefinitely while the user account is active. If a user deletes their account or is inactive for 12+ months, we trigger a "cleanup job" that redacts or deletes personally identifiable information, honoring our privacy policy.
+
+4. **Manual Overrides**: Admins (or automated tasks) can override these defaults for compliance with special legal or auditing requirements.
+
+5. **Implementation Notes**:
+- Supabase can use scheduled tasks or external cron jobs to move data from main tables to archive tables (or delete them) based on timestamps.
+- For vector data in `agent_memory`, consider periodically re-indexing the table to remove stale entries for performance.
+
+## API Design and Endpoints
+
+The APIs are designed following a RESTful approach, providing clear endpoints for each function of the app. The authentication endpoints are secured via Supabase Auth and include mechanisms for signup, login, and token validation. Dedicated endpoints handle profile setup, workout plan generation, macro calculation, and progress tracking. For workout plan generation, the backend uses **agent-based patterns** where the **Research Agent** connects to Perplexity AI to source research-based exercises and strategies, while the **Workout Generation Agent** uses OpenAI to create personalized workout plans by combining this research with user data. Agent communication is standardized through **consistent API interfaces**, ensuring clear communication across different AI services. Additional endpoints manage file exports and imports in multiple formats (XLSX, PDF, CSV, Google Sheets) while clear error messages and robust error handling techniques ensure smooth communication between the frontend and backend.
+
+## Hosting Solutions
+
+The backend is hosted on cloud-based services, allowing for secure, scalable, and cost-effective deployment. Given the reliance on Supabase and modern deployment practices, the app benefits from the robust cloud infrastructure where server resources can be dynamically allocated based on demand. This setup supports high reliability with data replication, automatic backups, and a guaranteed uptime, making it a dependable choice for critical operations like user authentication and real-time workout plan generation. The cloud-based approach also facilitates easy scaling as the user base grows and additional features are added.
+
+## Infrastructure Components
+
+Several key infrastructure components work together to enhance performance and deliver a fluid user experience. Load balancers distribute incoming requests efficiently, ensuring that no single server is overwhelmed during peak times. Caching mechanisms reduce latency by storing frequently accessed data closer to the application layer, while a content delivery network (CDN) is utilized to serve static assets quickly. **Memory systems for agents** implement efficient retrieval mechanisms to ensure that relevant user data is always available to the AI systems. These components interact seamlessly, forming an efficient network of services that minimize response times and optimize the overall reliability of the backend system.
+
+## Security Measures
+
+Security is a top priority in the trAIner app backend. It employs strong authentication and authorization practices through Supabase Auth, ensuring that every user's session is properly validated. The backend implements data encryption protocols both in transit and at rest, safeguarding sensitive user information and compliance with regulations like GDPR and CCPA. **Agent access control** ensures that AI components only have access to the specific data they need for their functions. Furthermore, regular security audits and error management practices are in place to quickly identify and mitigate any potential vulnerabilities. The layered security strategy not only protects user data but also builds trust in the platform's privacy commitments.
+
+## Monitoring and Maintenance
+
+The health and performance of the backend are continuously monitored using a suite of tools that track system metrics, API performance, and error logs in real-time. **Agent performance metrics** track the quality of AI-generated content and user satisfaction with recommendations. Automated alerts and dashboards are configured to provide early warnings of issues such as downtime or performance bottlenecks. Regular updates and maintenance routines ensure that dependencies, security patches, and performance optimizations are applied promptly. This proactive approach means that the backend remains robust, secure, and responsive as both the user base and feature set expand.
+
+## Development vs. Production Supabase Configuration
+
+During **development** and **testing**, we bypass or disable row-level security (RLS) policies to simplify our iteration process. This avoids permission blocks or complex policy setups that can slow down local testing.
+
+In **production**, however, RLS is fully **enabled**, and our policies strictly enforce that users can only access or modify their own records. We configure this in the Supabase dashboard:
+- Each table (e.g., `workouts`, `workout_logs`) has a row-level security policy restricting access based on `user_id`.
+- We never bypass RLS in production to ensure data privacy and compliance.
+
+> **Additional Data Privacy Note**: If you store AI agent memory or user-specific embeddings in the `agent_memory` table, be mindful that row-level security must also apply in production so that users cannot access each other's AI data.
+> Bypassing RLS locally is acceptable, but always re-enable it in production to prevent data leakage.
+
+We also maintain **separate environment variables** for dev vs. production:
+- `SUPABASE_URL` and `SUPABASE_ANON_KEY` for production
+- `SUPABASE_URL_DEV` and `SUPABASE_ANON_KEY_DEV` for local development
+- Our server code checks `NODE_ENV` to decide which credentials to load.
+
+> **Important**: Always confirm that your production environment has RLS policies enabled. During local dev, you may temporarily disable them or use simplified policies for convenience.
+
+## Additional API Design & Security Details
+
+To ensure our Node.js backend remains consistent and secure, we define these structural and security guidelines:
+
+1. **Folder Structure:**
+- /routes folder for REST endpoints (for example, /routes/workouts.js, /routes/profile.js).
+- /middlewares folder for cross-cutting concerns like authentication checks, SSRF protection, rate limiting.
+- /controllers or /services folder for business logic that the routes call.
+
+2. **API Versioning:**
+- Each route file should export endpoints under a prefix such as /v1. If breaking changes occur, we add a /v2 folder.
+
+3. **Error Response Standard:**
+- Use a helper (for example, errorResponse(res, code, message)) to consistently format JSON errors with status: "error", an errorCode, and a textual message.
+- For successful operations, use successResponse(res, data, message?).
+
+4. **SSRF Mitigation:**
+- Any external HTTP requests made by the AI agents (e.g., ResearchAgent, WorkoutGenerationAgent, etc.) must pass through a validation function that checks domain whitelists or inspects URLs for suspicious patterns.
+- We may use specialized libraries or custom logic to ensure user-provided URLs do not lead to internal network requests.
+
+5. **Rate Limiting:**
+- For expensive endpoints like workout plan generation, configure a rate limiting middleware at 10 requests per hour per user, or as business needs dictate."
+
+6. **Environment Variables:**
+- Store all credentials (for example, Supabase keys, AI API keys) in .env or environment variables. The code should never hard-code secrets. Provide usage instructions so AI dev tools know how to read them.
+
+7. **Consistent Logging & Monitoring:**
+- Use a logging library such as Winston or Pino for route-level logs. This aids debugging and performance monitoring.
+- Logs should never expose personal user data or raw tokens.
+
+By adhering to these guidelines, our backend remains maintainable, consistent with REST conventions, and ready for additional modules or version increments handled by AI-driven development.
+
+## Conclusion and Overall Backend Summary
+
+The trAIner app backend is meticulously designed to meet the demands of an AI-powered fitness application. By implementing an **agent-based architecture** and integrating Node.js and Supabase, the system offers a robust, secure, and scalable foundation. The thoughtful architecture, which incorporates efficient API endpoints, dynamic hosting solutions,
+**standardized API interfaces**, and multiple layers of infrastructure components, ensures high performance and reliability. With an emphasis on **memory systems**, **reasoning patterns**, and **agent reflection**, the backend supports both current functionality and future enhancements of the app, solidifying its role as a vital component in delivering personalized fitness experiences.

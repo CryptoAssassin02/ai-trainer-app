@@ -1,0 +1,102 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Frontend Guideline Document
+
+## Introduction
+
+The frontend of the trAIner AI Fitness App is the user's window into a dynamic world of personalized workout plans and nutritional tracking. The app is designed to cater to a wide range of fitness enthusiasts, from beginners to highly advanced users. A seamless, secure, and intuitive experience is at the heart of the design. The guidelines laid out here reflect the practical applications of a modern, flexible design, centered on user authentication, personalized profiles, and **agent-based AI customization**. This document aims to provide a clear understanding of the architecture, design principles, and technologies we are using without overwhelming technical jargon.
+
+## Frontend Architecture
+
+Our frontend architecture is built with React, which serves as the backbone for building an interactive and responsive user interface. We are leveraging the power of **V0 by Vercel** for component generation and **Cursor** for advanced code completion and AI assistance. The application is hosted and deployed via Vercel, offering fast and reliable global content delivery. This setup supports scalability and maintainability, as our component-based architecture allows individual pieces of the application to be updated or scaled independently, thereby boosting performance and ensuring rapid deployment of features. **Agent visualization components** allow users to see the AI's reasoning process during workout generation, building trust and understanding.
+
+## Design Principles
+
+The design philosophy behind the trAIner AI Fitness App is centered on usability, accessibility, and responsiveness. We emphasize intuitive navigation and clean layouts that cater to various fitness enthusiasts. The interface is designed to be modern and polished, with an approach that blends sleek dark mode aesthetic using a near-black background with off-white text and vibrant electric blue accents. **Agent reasoning is visualized** through step-by-step displays that show how workout plans are generated, helping users understand the personalization process. Every design decision is made with the user experience in mind, making sure that the interface adapts elegantly to different devices and screen sizes. We prioritize an accessible design that can be used easily by all, regardless of technical expertise.
+
+### Responsive & Mobile-First Approach
+
+While the frontend already emphasizes a modern, responsive design, we will specifically adopt a **mobile-first strategy**:
+
+1. **Tailwind Breakpoints**: Structure all layout components using Tailwind’s responsive classes (e.g., `sm:`, `md:`, `lg:`) to ensure graceful scaling from small (mobile) to large (desktop) screens.
+2. **Minimal Initial Load**: Optimize the first meaningful paint for mobile devices. This includes deferred loading of heavy components and code splitting for non-critical features.
+3. **Touch-Friendly Interactions**: Ensure tap targets (buttons, links) are large enough and spaced suitably for finger-based interactions on smartphones. 
+4. **Mobile-Optimized Navigation**: The hamburger menu remains persistent in the header for small screens, providing quick access to the main dashboard, plan generation, or logs. 
+5. **Testing**: Perform manual and automated checks (using responsive design mode in browsers or tools like BrowserStack) to confirm UI integrity across a range of screen sizes, from ~320px up to large desktops.
+
+## Styling and Theming
+
+The project uses a robust styling approach that integrates modern CSS practices with frameworks and pre-processors to ensure consistency and ease-of-maintenance. Our styling leverages **Tailwind CSS** for utility-first styling that maintains consistency across components. In addition to style rules, our theming system ensures the uniform application of our signature dark mode theme, using near-black colors for backgrounds, off-white for text, and electric blue accents to attract attention where needed. This consistent styling across every component reinforces the modern, sleek look that is central to our brand identity.
+
+## Component Structure
+
+The application is organized as a collection of reusable, well-defined components. Each component encapsulates its own structure, logic, and styling, making it both easy to maintain and extend. **Agent interface components** display reasoning steps, action plans, and reflection insights in a user-friendly way. The component-based architecture allows for the rapid reuse of elements such as buttons, forms, and interactive panels, ensuring that each update or modification can be isolated without affecting the rest of the application. This modular structure not only limits the scope of potential bugs but also speeds up future development by enabling a plug-and-play approach for new features or design refinements.
+
+## State Management
+
+The trAIner AI Fitness App handles state through a combination of React's Context API complemented by carefully selected state management patterns. The context is used judiciously to manage shared data, while ensuring that each component has localized state where possible. **Agent state management** tracks the progress of AI operations and ensures a smooth user experience during complex processes like workout generation. This hybrid approach helps to keep state changes predictable and traceable, ensuring that user interactions such as profile updates, workout editing, and dynamic notifications are responsive and coherent throughout the application. The state management system is designed with performance in mind, ensuring data remains in sync without unnecessary re-renders or slowdowns.
+
+## Routing and Navigation
+
+Handling navigation in our app is crucial for maintaining a fluid user experience. The routing within the application is managed by React Router, which allows for dynamic and nested routes reflecting the app's hierarchical structure. The navigation system is designed to be intuitive, guiding users smoothly through secure authentication pages, personalized dashboards, workout editing screens, macro goal tracking, and export/import functionalities. Overseeing transitions without full page reloads, this routing system preserves the context of user activity, making the management of a complex set of features feel seamless and natural.
+
+## Performance Optimization
+
+Achieving an optimal performance is vital for user engagement. The project incorporates several strategies such as lazy loading and code splitting to ensure that complex pages and heavy components do not affect the initial load times. **Agent operations are optimized** to run efficiently without blocking the user interface, with background processing for complex AI tasks. Critical assets like CSS and JavaScript bundles are minified and efficiently served by Vercel's global edge network. By optimizing images, leveraging modern caching strategies, and handling asynchronous data loads gracefully, we ensure that the app delivers quick responsiveness and a smooth overall experience, even as the number of features continues to grow.
+
+### Offline / Low Connectivity Support
+
+Although trAIner relies on real-time AI calls for plan generation, we will introduce a minimal offline-friendly design:
+
+1. **Caching of Key Data**: Use browser storage (IndexedDB or localStorage) to cache the user’s last workout plan and profile details. If the user goes offline, they can still view their most recent plan.
+
+2. **Queued Actions**: For basic logs (e.g., completed sets/reps), store these locally if there is no connectivity. Once the user is back online, automatically sync the data to Supabase.
+
+3. **Fallback UIs**: Display an “Offline Mode” banner if requests to the AI or the server fail. The user can at least review previously loaded data and macros until they reconnect.
+
+4. **Progressive Enhancement**: This offline approach is not mandatory for the MVP, but the architecture will be flexible enough to adopt service workers or a PWA-like approach if strong offline usage emerges in the future.
+
+## Testing and Quality Assurance
+
+To maintain high standards of reliability and ease of use, comprehensive testing is a core component of our development process. The frontend is covered by a suite of tests including unit tests for individual components, integration tests to ensure that different parts of the app work together correctly, and end-to-end tests that simulate user interactions. **Agent behavior testing** ensures that AI features produce consistent, high-quality results across different user scenarios. Tools like Jest and testing libraries specific to React are employed to automate these tests, ensuring that both new and existing features meet our quality standards. These testing methodologies help catch issues early in the development cycle and guarantee a robust, bug-free user experience.
+
+## API Interaction and Error Handling”
+
+Given that our front end needs to communicate with the RESTful endpoints (see the “API Requirements” and “API Input/Output Specifications” in other docs), we will follow these guidelines:
+
+1. **Universal API Client:**
+- We will create a single, reusable HTTP client (for example, using fetch or axios) in a file like apiClient.js.
+- This client automatically attaches the user’s JWT token (stored in local or session storage) to every request header, for instance Authorization: Bearer <jwt>.
+
+2. **Error Handling:**
+- When the server returns 4xx or 5xx, the client intercepts the response and displays a user-friendly message.
+- For example, a 400 might show “Please check your form inputs,” while a 401 triggers a logout and redirect to the login page.
+
+2. **Data Flow Example:**
+- Generate Workout Plan:
+```js
+  import apiClient from './apiClient';
+
+  async function generateWorkoutPlan(payload) {
+    const response = await apiClient.post('/v1/workouts', payload);
+    return response.data;
+  }
+```
+- On success, the Redux or Context state is updated with the new plan. On error, a toast or modal is displayed.
+
+4. **Local Caching:**
+- For certain data (like static exercise libraries), we can implement caching by storing results in React state or local storage to reduce repeated API calls.
+- If the server supports ETag or Last-Modified, we rely on those headers for client-side caching.
+
+5. **Integration with Components:**
+- Each React component that needs data (for example, Dashboard, Profile) should use a custom hook or container approach to call the relevant endpoint on mount.
+- Errors bubble up to a top-level error boundary or appear inline as user notifications.
+
+By centralizing API interactions and standardizing error handling, we ensure consistent user experiences across all components and facilitate maintenance by AI dev tools.
+
+## Conclusion and Overall Frontend Summary
+
+The frontend guidelines for the trAIner AI Fitness App have been created with an eye toward delivering an accessible, secure, and high-performance user interface. By incorporating React with **V0 for component generation** and **Cursor for AI assistance**, combined with a modern styling and theming approach using **Tailwind CSS**, we ensure that our app meets the demands of a diverse fitness audience. Every aspect of the frontend architecture, from component structures and state management to routing and performance optimizations, has been thoughtfully considered to deliver a seamlessly interactive experience. The **agent-based architecture** with **visualization of AI reasoning** creates transparency and builds user trust in the personalized recommendations. The attention to detail in our testing and the rigorous application of design principles underscore our commitment to creating a platform that not only looks great but also evolves with user needs and future technological integrations.

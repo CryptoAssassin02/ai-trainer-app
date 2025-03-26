@@ -12,6 +12,16 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Fitness app specific utility classes */
+  .workout-card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:border-electric-blue/40;
+  }
+  .metric-value {
+    @apply font-semibold text-xl text-electric-blue;
+  }
+  .metric-label {
+    @apply text-sm text-muted-foreground;
+  }
 }
 
 @layer base {
@@ -49,41 +59,51 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --electric-blue: 211 100% 62%; /* Electric blue color: #3E9EFF */
   }
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --background: 240 10% 7%; /* Near-black: #121212 */
+    --foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
+    --card: 240 10% 9%;
+    --card-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
+    --popover: 240 10% 9%;
+    --popover-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
+    --primary: 0 0% 96%; /* Off-white: #F5F5F5 */
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 211 100% 62%; /* Electric blue: #3E9EFF */
+    --accent-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
+    --ring: 211 100% 62%; /* Electric blue: #3E9EFF */
+    --chart-1: 211 100% 62%; /* Electric blue: #3E9EFF */
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 240 10% 5%; /* Darker than main background */
+    --sidebar-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
+    --sidebar-primary: 211 100% 62%; /* Electric blue: #3E9EFF */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 0 0% 96%; /* Off-white: #F5F5F5 */
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 211 100% 62%; /* Electric blue: #3E9EFF */
+    --electric-blue: 211 100% 62%; /* Electric blue color: #3E9EFF */
   }
+}
+
+/* Define fitness app specific chart colors */
+:root {
+  --color-workouts: var(--electric-blue);
+  --color-target: rgba(255, 255, 255, 0.3);
+  --chart-primary: var(--electric-blue);
+  --chart-secondary: rgba(255, 255, 255, 0.3);
 }
 
 @layer base {

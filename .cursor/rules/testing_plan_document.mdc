@@ -1,0 +1,471 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Testing Plan Document
+
+## Overview
+
+This document outlines the comprehensive testing strategy for the trAIner AI Fitness App. Testing is a critical component of the development process, ensuring that the application functions correctly, securely, and efficiently. This plan details what, when, and how to test, as well as which AI tools to use for assistance during different testing stages.
+
+## Testing Philosophy
+
+The testing approach follows these key principles:
+
+1. **Test-Driven Development**: Critical components should have tests written before implementation.
+2. **Progressive Testing**: Moving from simple unit tests to more complex integration and end-to-end tests.
+3. **Agent Quality Testing**: Specific testing for AI agent outputs to ensure quality and consistency.
+4. **Security First**: Security testing is integrated at all levels, not added as an afterthought.
+5. **User-Centered Testing**: Testing scenarios based on real user journeys and feedback.
+
+## Test Types and AI Tool Assistance
+
+### Unit Testing [Cursor]
+
+Unit tests verify that individual components and functions work as expected in isolation.
+
+**When to Implement**:
+- After creating each new component or function
+- When fixing bugs
+- When refactoring existing code
+
+**Testing Framework**:
+- Jest for React components and JavaScript utilities
+- React Testing Library for component testing
+
+**AI Assistance**:
+- Use Cursor to generate unit test templates based on component functionality
+- Have Claude/ChatGPT/Grok review test coverage and suggest edge cases
+
+**Example Implementation**:
+```javascript
+// Using Cursor to generate a unit test for the WorkoutPlan component
+describe('WorkoutPlan component', () => {
+  test('renders workout plan correctly', () => {
+    const plan = {
+      title: 'Test Plan',
+      exercises: [
+        { name: 'Squats', sets: 3, reps: 10 }
+      ]
+    };
+
+    render(<WorkoutPlan plan={plan} />);
+    expect(screen.getByText('Test Plan')).toBeInTheDocument();
+    expect(screen.getByText('Squats')).toBeInTheDocument();
+  });
+});
+
+```
+
+### Integration Testing [Cursor]
+
+Integration tests verify that multiple components or systems work correctly together.
+
+**Testing With a Local or Ephemeral Supabase**:
+
+For integration tests, it’s recommended to point to a **dedicated Supabase test project** or an ephemeral database. Because row-level security (RLS) can cause difficulties during automated testing, it is often disabled or simplified in this environment.
+
+- **Local Development**: We might define `SUPABASE_URL_TEST` and `SUPABASE_ANON_KEY_TEST` environment variables in `.env.test`.
+
+- **Row-Level Security**:
+  - Turn it **off** during local/integration tests to avoid permission blocks for test data creation.
+  - Re-enable or fully enforce it in staging/production environments.
+
+This approach ensures a clean test environment each run without risking production data or blocked test scenarios.
+
+**When to Implement**:
+
+- After connecting frontend components to API services
+- When implementing agent interactions
+- After integrating with third-party services
+
+**Testing Framework**:
+
+- Jest with Supertest for API endpoints
+- React Testing Library for multi-component interactions
+
+**AI Assistance**:
+
+- Use Cursor to generate integration test templates
+- Have Claude/ChatGPT/Grok help identify potential integration points that need testing
+
+**Example Implementation**:
+
+```javascript
+// Using Cursor to generate an integration test for workout generation
+describe('Workout Generation Flow', () => {
+  test('generates workout plan from user preferences', async () => {
+    const userPreferences = {
+      fitnessLevel: 'intermediate',
+      goals: ['strength'],
+      equipment: ['dumbbells']
+    };
+
+    const res = await request(app)
+      .post('/api/workout/generate')
+      .send(userPreferences);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('plan');
+    expect(res.body.plan.exercises.length).toBeGreaterThan(0);
+  });
+});
+```
+
+### Agent Testing [Cursor + LLMs]
+
+Agent tests verify that the AI agents produce high-quality, consistent, and appropriate outputs.
+
+**When to Implement**:
+
+- After implementing each agent
+- When changing agent prompts or models
+- After making significant updates to the agent functionality
+
+**Testing Approach**:
+
+- Create reference test cases with expected outputs
+- Use automated checks for basic validation
+- Use LLMs (Claude/ChatGPT/Grok) for quality evaluation
+
+**AI Assistance**:
+
+- Use Cursor to create the testing framework
+- Use LLMs to evaluate output quality against criteria
+
+**Example Implementation**:
+
+```javascript
+// Using Cursor to generate agent tests
+describe('WorkoutGenerationAgent', () => {
+  test('generates appropriate plan for beginner user', async () => {
+    const agent = new WorkoutGenerationAgent(openaiClient);
+    const userProfile = {
+      fitnessLevel: 'beginner',
+      goals: ['weight_loss'],
+      restrictions: ['knee_pain']
+    };
+
+    const plan = await agent.generatePlan(researchData, userProfile);
+
+    // Automated checks
+    expect(plan.difficultyLevel).toBe('beginner');
+    expect(plan.exercises.some(e => e.impactsKnees)).toBe(false);
+
+    // Save output for manual/LLM review
+    saveOutputForReview(plan, 'workout_plan_beginner');
+  });
+});
+
+```
+
+### End-to-End Testing [Bolt.new]
+
+End-to-end tests verify that the entire application works correctly from the user's perspective.
+
+**Testing With a Local or Ephemeral Supabase**:
+
+For E2E tests, it’s recommended to point to a **dedicated Supabase test project** or an ephemeral database. Because row-level security (RLS) can cause difficulties during automated testing, it is often disabled or simplified in this environment.
+
+- **Local Development**: We might define `SUPABASE_URL_TEST` and `SUPABASE_ANON_KEY_TEST` environment variables in `.env.test`.
+
+- **Row-Level Security**:
+  - Turn it **off** during local/integration tests to avoid permission blocks for test data creation.
+  - Re-enable or fully enforce it in staging/production environments.
+
+This approach ensures a clean test environment each run without risking production data or blocked test scenarios.
+
+**When to Implement**:
+
+- After completing major features
+- Before deployment to production
+- As part of regression testing
+
+**Testing Framework**:
+
+- Cypress or Playwright for browser-based testing
+- Focus on critical user journeys
+
+**AI Assistance**:
+
+- Use Bolt.new to generate E2E test scripts for key user flows
+- Have Claude/ChatGPT/Grok suggest important test scenarios
+
+**Example Implementation**:
+
+Bolt.new create an end-to-end test for user signup and workout plan generation using Cypress
+
+### Security Testing [Cursor + LLMs]
+
+Security tests verify that the application is protected against common vulnerabilities.
+
+**When to Implement**:
+
+- After implementing authentication
+- When handling sensitive user data
+- Before deployment to production
+
+**Testing Approach**:
+
+- Focus on authentication and data protection
+- Use security checklists as guidance
+- Implement basic security tests for critical vulnerabilities
+
+**AI Assistance**:
+
+- Use Cursor to generate security test templates
+- Use Claude/ChatGPT/Grok to review security practices
+
+**Example Implementation**:
+
+```javascript
+// Using Cursor to generate security tests
+describe('Authentication Security', () => {
+  test('prevents access to protected routes without valid token', async () => {
+    const res = await request(app)
+      .get('/api/user/profile')
+      .set('Authorization', 'Bearer invalid_token');
+
+    expect(res.status).toBe(401);
+  });
+});
+```
+
+### Analytics Testing
+
+With the introduction of basic analytics, we will incorporate tests to verify:
+
+1. **Event Triggering**  
+  - Check that critical user actions (e.g., generating a workout plan, logging workouts) dispatch the correct analytics events.
+  - Ensure the event payloads contain only the minimal required data (no sensitive info).
+
+2. **Opt-In/Opt-Out Mechanisms**  
+  - If the user has disabled analytics, confirm that no usage events are sent or stored.
+  - Test different user scenarios (new sign-up, existing user toggling analytics off/on).
+
+3. **Data Integrity**  
+  - Validate that the analytics endpoint (or collector) correctly receives and processes events without causing errors or performance bottlenecks.
+  - Confirm that partial network failures or missing data fields result in graceful handling (e.g., queueing events for retry or discarding them safely).
+
+4. **Reporting & Dashboards**  
+  - If we provide any internal dashboards or aggregated metrics, test that they reflect accurate counts and time windows.
+  - Verify role-based access control if analytics data is restricted to admin views.
+
+**AI Assistance**  
+- Tools like Cursor can auto-generate integration tests for the analytics calls.  
+- LLMs (Claude, ChatGPT, etc.) can review event schemas to spot potential privacy or design issues.
+
+By introducing analytics tests, we ensure that usage tracking is reliable, respects user privacy, and does not negatively impact performance or user experience.
+
+### Medical/Fitness Safety Testing
+
+Because the app generates workout and nutritional guidance, we will include a dedicated round of “Medical/Fitness Safety Testing” to validate that:
+
+1. **Restriction Handling**: The AI plan generator respects user-declared injuries (e.g., knee pain) or medical conditions. Test cases will confirm that risky exercises are replaced or omitted.
+
+2. **Basic Guidelines**: The recommended sets/reps or intensity align with generally accepted fitness guidelines, especially for beginners. We create a reference table of safe ranges (e.g., no 1RM lifts for a first-time user).
+
+3. **Messaging & Disclaimers**: The UI must display disclaimers that users should consult a medical professional before starting a new program. Confirm disclaimers appear in user flows and that no plan is generated without acknowledging these disclaimers.
+
+4. **Edge Cases**: 
+  - Rapid Weight Loss Goals: The app must not produce dangerously restrictive macro recommendations.
+  - Overtraining Risk: The AI should not produce 7-day/week advanced-intensity splits for novices.
+
+We will store agent outputs from these test scenarios for manual and AI-based review, ensuring the trAIner app’s suggestions remain within safe guidelines.
+
+### Performance Testing [Cursor]
+
+Performance tests verify that the application performs efficiently under various conditions.
+
+**When to Implement**:
+
+- After completing core functionality
+- Before scaling to more users
+- When optimizing resource usage
+
+**Testing Approach**:
+
+- Focus on agent response times
+- Test database query performance
+- Verify frontend load times for key pages
+
+**AI Assistance**:
+
+- Use Cursor to generate performance test templates
+- Use browser dev tools and Lighthouse for frontend performance
+
+**Example Implementation**:
+
+```javascript
+// Using Cursor to generate performance tests
+describe('Agent Performance', () => {
+  test('workout generation completes within acceptable time', async () => {
+    const start = Date.now();
+
+    await agent.generateWorkoutPlan(userProfile);
+
+    const duration = Date.now() - start;
+    expect(duration).toBeLessThan(5000); // 5 seconds maximum
+  });
+});
+
+```
+
+#### Load and Stress Testing
+
+In addition to basic performance checks, we will conduct **load and stress tests** to ensure the system can sustain higher concurrency or sudden spikes in requests. This includes:
+
+1. **Tooling**: Use frameworks like **k6** or **JMeter** to simulate hundreds or thousands of concurrent users hitting key endpoints (e.g., generating a workout plan, logging workouts).
+
+2. **Scenarios**: 
+  - **Spike Testing**: Ramp up traffic quickly to observe how the system behaves under extreme surges (e.g., from 10 requests/sec to 100 requests/sec).
+  - **Soak Testing**: Maintain a moderate load for an extended period (multiple hours) to detect memory leaks or agent performance degradation.
+
+3. **Metrics to Monitor**:
+  - Average and peak response times for the AI plan generation endpoints.
+  - Error rates (HTTP 5xx or AI timeout).
+  - Supabase DB resource usage (connections, CPU, etc.).
+
+4. **Thresholds**: We aim for < 2 seconds average response time under normal load and < 5 seconds under spike loads. We also define acceptable error rates (< 2% for brief spikes).
+
+These load/stress tests will be integrated into pre-release QA or periodically scheduled. Cursor can help auto-generate test scripts for different concurrency levels, and our monitoring tools (e.g., Datadog) will help interpret the results.
+
+### Contract Testing and Mocking
+
+In addition to the standard test types, we will include contract testing to ensure our documented API endpoints match the actual implementation. This is especially important because we rely on AI tooling to generate new endpoints, and we want to prevent drift between our project documents (including OpenAPI specs) and the actual code.
+
+**Testing Approach**:
+1. **OpenAPI Spec Reference**: We will maintain an OpenAPI spec (see the dedicated API documentation). Tools like Pact or Postman contract tests can compare requests/responses against this spec.
+2. **Mock Servers**: For external AI services (OpenAI, Perplexity) and notifications (e.g., Twilio, Firebase), we will use local mock servers (like Mockoon or Postman’s built-in mock servers) during integration tests. This ensures we can run tests without incurring external costs or depending on network availability.
+3. **Continuous Integration**: Contract tests and mock integration tests will run as part of our CI pipeline, catching any unintentional API schema changes before they break other components.
+
+**Example Implementation**:
+- We define expected request/response pairs in a contract (for instance, POST /v1/workouts requires a JSON body with fitnessLevel, goals, etc.). If the generated code changes that shape, the contract test fails.
+- For external calls, our mock servers will simulate typical AI responses (“Here is your generated plan…”) or error scenarios, enabling robust coverage of agent error handling without calling real external APIs.
+
+## Testing Prioritization and Schedule
+-----------------------------------
+
+As a solo developer with AI assistance, it's important to prioritize testing efforts. Here's a recommended approach:
+
+### Priority 1: Critical Functionality (Implement First)
+
+- Unit tests for core components
+- Integration tests for authentication and workout generation
+- Basic agent output validation
+
+### Priority 2: User Experience (Implement Second)
+
+- End-to-end tests for primary user flows
+- Agent quality evaluation
+- UI component testing
+
+### Priority 3: Performance and Security (Implement Third)
+
+- Security testing for authentication and data protection
+- Performance testing for agent response times
+- Edge case handling
+
+### Suggested Testing Schedule
+
+|     Test Type     |            When to Implement            | AI Tool Assistance |
+| ----------------- | --------------------------------------- | ------------------ |
+| Unit Tests        | During implementation of each component |      Cursor        |
+| Integration Tests | After connecting frontend to backend    |      Cursor        |
+| Agent Tests       | After implementing each agent           |   Cursor + LLMs    |
+| E2E Tests         | After completing major features         |     Bolt.new       |
+| Security Tests    | Before deployment                       |   Cursor + LLMs    |
+| Performance Tests | Before scaling                          |      Cursor        |
+
+## Responsibilities & AI Tool Utilization
+--------------------------------------
+
+As a solo developer, you'll leverage AI tools to assist with different aspects of testing:
+
+- **Cursor**: Generating unit tests and integration tests for code components
+- **Bolt.new**: Creating end-to-end test scripts and API validation tests
+- **Claude/ChatGPT/Grok**: Evaluating agent outputs, reviewing test coverage, and suggesting test cases
+- **Testing Frameworks**: Automating test execution through Jest, Cypress, etc.
+
+This AI-assisted approach allows you to implement comprehensive testing across all required areas without needing separate specialized teams. The key is to systematically work through each test type, using the appropriate AI tool for assistance while maintaining overall quality control yourself.
+
+## Test Coverage Targets
+---------------------
+
+Given the limited resources of a solo developer, these are realistic test coverage targets:
+
+- **Unit Test Coverage**: Focus on critical components (60-70% coverage)
+- **Integration Test Coverage**: All main API endpoints and key user flows
+- **Agent Test Coverage**: One comprehensive test case for each agent operation
+- **E2E Test Coverage**: User signup, workout generation, and plan modification
+
+## Agent-Specific Testing
+----------------------
+
+Given the importance of AI agents in the application, implement a simplified but effective testing approach:
+
+### Simple Regression Testing for Agents
+
+Create a small set of reference test cases with known inputs and expected output patterns. Run these tests whenever making significant changes to agent functionality.
+
+### Output Evaluation Checklist
+
+For each agent output, check:
+
+- **Correctness**: Does the output meet the basic requirements?
+- **Safety**: Is the output free from problematic content?
+- **Format**: Is the output structured as expected?
+- **Response Time**: Was the output generated within an acceptable timeframe?
+
+Use LLMs to help evaluate these aspects by prompting them with specific review criteria.
+
+## Simplified CI/CD Integration
+----------------------------
+
+Implement a basic CI/CD pipeline that automates testing:
+
+1. **Pre-commit Testing**:
+  - Run unit tests locally before committing changes
+
+2. **GitHub Actions**:
+    - Set up automated testing for pull requests
+    - Focus on unit and integration tests
+    - Run security scans on critical components
+
+3. **Deployment Checks**:
+    - Run a simplified set of end-to-end tests before deployment
+    - Verify the application works in the production environment after deployment
+
+##Tools and Resources
+-------------------
+
+### Testing Tools and AI Assistance
+
+#### Cursor
+- Generate Jest test templates
+- Implement integration tests
+- Create agent testing frameworks
+
+#### Bolt.new
+- Generate end-to-end test scripts
+- Create API validation tests
+
+#### Claude/ChatGPT/Grok
+- Review test coverage
+- Evaluate agent outputs
+- Suggest test cases and security practices
+
+### Reference Materials
+- [Jest Documentation](mdc:https:/jestjs.io/docs/getting-started)
+- [React Testing Library](mdc:https:/testing-library.com/docs/react-testing-library/intro)
+- [Cypress Documentation](mdc:https:/docs.cypress.io/guides/overview/why-cypress)
+- [OWASP Top Ten](mdc:https:/owasp.org/www-project-top-ten)
+- [Web Performance Testing](mdc:https:/web.dev/measure-performance)
+
+## Conclusion
+----------
+
+This revised testing plan provides a practical approach to ensuring the quality, security, and performance of the trAIner AI Fitness App for a solo developer with AI assistance. By focusing on priority areas and using the appropriate AI tools for help with test generation and evaluation, you can achieve comprehensive test coverage without the need for a full development team. This approach ensures that the application delivers a great user experience while remaining maintainable and scalable.
+
+This is the complete Testing Plan Document formatted consistently in Markdown from start to finish. All sections maintain proper Markdown formatting even after code blocks. You can copy and paste this directly into TextEdit on your Mac.

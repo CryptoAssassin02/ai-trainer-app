@@ -1,0 +1,325 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Implementation plan
+
+## Phase 1: Environment Setup [Cursor]
+
+1. Verify that Node.js is installed by running `node -v` in the terminal (Project Overview: Core Technologies).
+2. Install Node.js if it is not present using the latest LTS version (Project Overview: Core Technologies).
+3. Initialize a Git repository in the project root and create `main` and `dev` branches (Project Overview: Purpose).
+4. **[Cursor]** Set up the CodeGuide Starter Pro kit:
+```bash
+npx create-next-app@latest trainer -e https://github.com/codeguide/starter-pro
+cd trainer
+npm install
+```
+5. **[Cursor]** Configure Supabase access by setting up environment variables; create a configuration file at `/backend/config/supabase.js`.
+7. **Validation**: Confirm Node.js installation with `node -v` and list Git branches using `git branch`.
+
+## Phase 2: Frontend Development [V0 by Vercel]
+
+1. **[V0]** Initialize a new React project inside the `/frontend` directory (Tech Stack: Frontend).
+2. **[V0]** Configure the Tailwind CSS theme to use a dark mode default theme with near-black background (#121212), off-white/light gray text (#F5F5F5), and electric blue (#3E9EFF) accents.
+3. **[V0]** Create a main layout component that includes a dark mode theme and responsive design:
+```
+v0 generate a responsive layout component with dark mode using Tailwind and React with a near-black background, off-white text, and electric blue accents
+```
+4. **[V0]** Create a header/navbar component featuring the app name, logo, and hamburger menu:
+```
+v0 generate a navbar component with hamburger menu and logo placeholder using Tailwind and React with dark mode styling
+```
+5. **[V0]** Create individual page components for Home, Dashboard, GenerateWorkoutPlan, WorkoutLogs, and Profile:
+```
+v0 generate a dashboard component for a fitness app with workout metrics, progress charts, and upcoming workouts using Tailwind and React
+```
+6. **[Cursor]** Set up routing using React Router to navigate between pages.
+7. **[V0]** Develop the Home page with a hero section, tagline, call-to-action buttons, and sections for features:
+```
+v0 generate a home page for an AI fitness app with hero section, features, and call-to-action buttons using Tailwind and React
+```
+8. **[V0]** Build a workout plan generation component that will interface with the backend AI services:
+```
+v0 generate a workout plan generation form with fields for fitness level, goals, and preferences using Tailwind and React
+```
+9. **[V0]** Create UI components for displaying agent reasoning:
+```
+v0 generate a component that visualizes AI reasoning steps for workout generation with thought, action, and observation panels using Tailwind and React
+```
+10. **[V0]** Create a user profile component that allows editing of user details and syncs with Supabase Auth.
+```
+### **Imperial vs. Metric Implementation:**
+- Add a user preference field (e.g., 'Imperial' or 'Metric') during onboarding/profile creation.
+- Store the user's chosen unit system in the Supabase database or user profile.
+- Convert all displayed measurements (e.g., weight, height) at runtime based on the user's preference, using simple helper utilities for unit conversion.
+- This approach treats unit selection as a design detail, allowing the app to ask up front and display accordingly.
+```
+11. **[V0]** Develop the export/import feature interface that supports XLSX, PDF, CSV, and Google Sheets formats.
+12. **[V0]** Build a notifications settings component allowing users to choose their preferred notification method.
+13. **Validation**: Run the development server (`npm start` or equivalent) and manually verify that each page and component renders correctly and routing functions as expected.
+
+## Phase 3: Backend Development [Cursor + Bolt.new]
+
+1. **[Cursor]** Initialize a new Node.js project inside the `/backend` directory using `npm init` (Tech Stack: Backend).
+2. **[Cursor]** Install and configure Express in `/backend/server.js` to serve as the main server file.
+3. **[Bolt.new]** Set up the Supabase connection for authentication and database operations:
+```
+bolt.new create supabase auth implementation for fitness app with user profiles
+```
+3a. **Import the Database Schema**:
+- Reference the "Database Schema Outline" in the Backend Structure Document
+- If using Supabase migrations, run `supabase db push` (or the migration mechanism of your choice)
+```
+3b. **Dev vs. Production RLS Setup**
+- In local development and testing environments, **disable** or loosen row-level security (RLS) to avoid permission blocks.
+- In **production** (or staging with real data), you must **re-enable** full RLS policies to protect user records.
+- For more details, see the new "Development vs. Production Supabase Configuration subsection in the Backend Structure Document.
+```
+bolt.new create supabase auth implementation for fitness app with user profiles
+```
+4. **[Bolt.new]** Create authentication routes for user sign-up and login that use Supabase Auth:
+```
+bolt.new create auth routes using express and supabase with jwt authentication
+```
+5. **Validation**: Test the authentication endpoints using Postman or a similar tool to ensure proper JWT generation and user handling.
+6. **[Bolt.new]** Create a profile management endpoint to handle storing and updating user information:
+```
+bolt.new create user profile routes for fitness app using express and supabase
+```
+7. **[Cursor]** Develop agent implementation for workout generation:
+```javascript
+// Implement the ReAct pattern for workout generation
+const openaiAPI = require('openai');
+const perplexityAPI = require('./services/perplexity-api');
+
+// Initialize API clients
+const openaiClient = new openaiAPI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+const perplexityClient = new perplexityAPI({
+  apiKey: process.env.PERPLEXITY_API_KEY
+});
+
+// Implement workout generation agent
+async function generateWorkoutPlan(userProfile, preferences) {
+  // ReAct pattern implementation
+  // ...
+}
+```
+8. **[Cursor]** Create a macro calculation endpoint that computes user macros based on the provided demographics and preferences.
+9. **[Cursor]** Build an endpoint for progress tracking and bi-weekly check-ins.
+10. **[Cursor]** Implement export/import endpoints to support XLSX, PDF, CSV, and Google Sheets functionalities.
+11. **[Cursor]** Develop notification endpoints that record and deliver notifications via user-preferred channels.
+12. **[Cursor]** Implement data privacy and security measures, ensuring encryption in transit (HTTPS) and encryption at rest; enforce JWT verification on protected routes.
+13. **Validation [Cursor]**: Write unit tests for each API endpoint using Jest and Supertest and run them to check for a 100% pass rate.
+14. **[Cursor]** Create or update the "Generate Workout Plan" endpoint (POST /v1/workouts) to:
+- Accept additional fields from the request body, including "exerciseTypes", "workoutFrequency", and "restrictions" for advanced sets.
+- Modify the response format to support "repsOrRange" (allowing rep ranges or special set techniques like drop sets or rest pause sets, for example).
+- Incorporate logic to handle user preferences (metric vs. imperial) if relevant to plan creation (e.g., adjusting recommended weights).
+```
+15. **[Cursor]** Implement a new endpoint for logging completed workouts (POST /v1/workouts/log) that:
+- Records each exercise, sets completed, reps performed, and any relevant user notes.
+- Associates the log entry with a "planId" (if the user is following a specific plan) and a "date".
+- Ensures the data model supports future analytics or progress tracking.
+```
+16. [Cursor] Update the existing profile endpoints or data model to store:
+- The user's chosen height format for imperial vs. metric (e.g., separate "feet" and "inches" or a single "centimeters" field).
+- Any newly added demographic fields that need to be considered for plan generation, such as advanced set preferences or specialized goals.
+```
+### Validation [Backend Updates]:
+- Use Postman or another tool to confirm the new "Generate Workout Plan" endpoint accepts all expanded fields and returns advanced set details in "repsOrRange"
+- Verify the new workout logging endpoint properly saves logs in the database, ensuring each set's weight and reps are stored.
+
+## Phase 4: Agent Implementation [Cursor]
+
+1. **[Cursor]** Implement the Research Agent using Perplexity AI:
+```javascript
+class ResearchAgent {
+  constructor(perplexityClient) {
+    this.perplexityClient = perplexityClient;
+  }
+
+  async researchExercises(muscleGroups, fitnessLevel, equipment) {
+    // ReAct pattern implementation
+    // ...
+  }
+}
+```
+2. **[Cursor]** Implement the Workout Generation Agent using OpenAI:
+```javascript
+class WorkoutGenerationAgent {
+  constructor(openaiClient) {
+    this.openaiClient = openaiClient;
+  }
+
+  async generatePlan(researchData, userProfile) {
+    // ReAct pattern with reasoning visualization
+    // ...
+  }
+}
+```
+3. **[Cursor]** Implement the Plan Adjustment Agent for workout modifications:
+```javascript
+class PlanAdjustmentAgent {
+  constructor(openaiClient) {
+    this.openaiClient = openaiClient;
+  }
+
+  async adjustPlan(currentPlan, userFeedback) {
+    // Reflection pattern implementation
+    // ...
+  }
+}
+```
+4. **[Cursor]** Implement the Nutrition Agent for macro calculations:
+```javascript
+class NutritionAgent {
+  constructor(openaiClient) {
+    this.openaiClient = openaiClient;
+  }
+
+  async calculateMacros(userProfile, activityLevel, goals) {
+    // Reasoning pattern implementation
+    // ...
+  }
+}
+```
+5. **[Cursor]** Implement agent memory systems for storing and retrieving relevant user data:
+```javascript
+class AgentMemorySystem {
+  constructor(supabaseClient) {
+    this.supabaseClient = supabaseClient;
+  }
+
+  async storeMemory(userId, memoryType, content) {
+    // Vector storage implementation
+    // ...
+  }
+
+  async retrieveRelevantMemories(userId, currentContext) {
+    // Vector search implementation
+    // ...
+  }
+}
+```
+6. **Validation**: Test each agent individually with sample user profiles and verify the output quality.
+7. **[Cursor]** Enhance the WorkoutGenerationAgent to incorporate Perplexity AI research:
+- Before final plan creation, the agent calls the ResearchAgent (using Perplexity AI) to gather relevant exercise insights based on user demographics, fitness level, equipment access, preferences, and goals.
+- The final plan from OpenAI should include a "researchInsights" or similar field that summarizes the relevant research findings used to justify exercise selections.
+```
+8. **[Cursor] Adjust the reflection and reasoning output for advanced sets:
+- Ensure the agent's plan includes notes for special set structures (e.g., supersets, cluster sets, rest-pause sets, etc.), storing them in the "notes" or "repsOrRange" field so the user sees the advanced techniques recommended.
+- If user feedback or preferences (like "no advanced sets") exist, the agent should omit those from the final plan.
+```
+9. **Validation [Agent Updates]:**
+- Test the agent flow end-to-end: Confirm that when a user's preferences include advanced sets or certain equipment, the ResearchAgent fetches relevant data and the OpenAI-based plan merges it correctly into the final output.
+
+## Phase 5: Integration [Bolt.new + Cursor]
+
+1. **[Bolt.new]** Create a service to wrap API calls to the backend endpoints:
+```
+bolt.new create frontend api service for workout and nutrition endpoints
+```
+2. **[Cursor]** Integrate the frontend authentication flow by storing the JWT token from Supabase in local storage and sending it with API requests.
+3. **[Cursor]** Connect the profile page in the frontend to the corresponding backend endpoint to support real-time profile updates.
+4. **[V0 + Cursor]** Connect the workout generation component with the agent implementation:
+```
+v0 generate a component that displays workout generation progress with reasoning steps
+```
+5. **[Cursor]** Connect the export/import interface on the frontend with the corresponding backend endpoints.
+6. **[Cursor]** Incorporate the notification settings component in the frontend to fetch and update user preferences with `/backend/routes/notifications.js` (Notifications).
+7. **[V0 + Cursor]** Update the frontend workout plan generation form:
+- Include new inputs for "exerciseTypes", "workoutFrequency", or advanced set preferences.
+- Ensure the request body matches the expanded backend endpoint (POST /v1/workouts).
+8. **[V0 + Cursor]** Create or modify a "WorkoutLogger" component:
+- Allows the user to log sets, reps, and weights for each exercise from the plan.
+- Calls the new endpoint (POST /v1/workouts/log) to persist these logs.
+- Displays a success or error message upon completion.
+9. **Validation**: Perform an end-to-end test by simulating the complete workflow: user sign-up, profile update, workout plan generation, macro calculation, and notification preference setting.
+
+## Phase 6: Deployment [Cursor]
+
+1. **[Cursor]** Deploy the frontend React application to Vercel by configuring the project repository in the Vercel dashboard and setting the default dark mode (Tech Stack: Frontend).
+2. **[Cursor]** Deploy the Node.js backend server using a cloud solution (e.g., as a serverless function on Vercel or a separate Node deployment) and configure environment variables for Supabase and API keys (Backend Development).
+3. **[Cursor]** Set up environment variables on the deployment platforms for both frontend and backend (Tech Stack: Backend & Frontend).
+3a. **Confirm RLS in Production**
+- Ensure row-level security is **enabled** for all tables in your Supabase production project.
+- Confirm your environment variables (SUPABASE_URL, SUPABASE_ANON_KEY) match production credentials.
+- Any agent memory or user data must be protected by RLS so that only the correct user can read or update it.
+(3b) **Production Hardening Steps**
+
+Before finalizing each production deployment, we will implement these hardening tasks:
+- **Dependency Check**: Use an automated security tool (e.g., npm audit, Snyk) to detect vulnerabilities in Node.js packages. Immediately address high-severity issues before release.
+- **Secrets Management**: Ensure all environment variables (Supabase keys, AI API keys, JWT secrets) are stored in secure vaults (e.g., GitHub Actions Encrypted Secrets, Vercel Project Environment Variables) and never committed to Git.
+- **Backup & Rollback Strategy**: Establish a backup job for the Supabase database and keep at least 7 days of daily snapshots. Document a clear rollback procedure if a new deployment introduces critical failures.
+- **Enhanced Monitoring**: Integrate system monitoring (Datadog, New Relic, or similar) to track CPU, memory, error rates, and latencies in real time. Configure alerts for anomalies or usage spikes.
+- **Security Logging**: Enable more verbose logging in production for authentication attempts, agent call failures, and sensitive admin actions. Store logs in a write-once medium (e.g., object storage) for later auditing.
+
+Implementing these steps ensures the platform is ready for real-world traffic and can handle unexpected usage or security challenges.
+
+4. **[Cursor]** Configure CI/CD workflows using GitHub Actions that run tests on commit and automatically deploy to Vercel (Development Tools: Cursor, Vercel).
+5. **[Cursor]** Integrate monitoring and logging tools (such as Sentry) for both the frontend and backend to track errors and performance (Data Privacy/Security).
+6. **Validation**: Conduct production end-to-end tests (using tools like Cypress) to ensure full connectivity, performance, and security compliance.
+
+## Phase 7: Agent Monitoring and Optimization [Cursor]
+
+1. **[Cursor]** Implement agent performance monitoring:
+```javascript
+class AgentMonitor {
+  constructor() {
+    this.metrics = {};
+  }
+
+  trackAgentPerformance(agentName, operation, duration, outputQuality) {
+    // Track agent performance metrics
+    // ...
+  }
+
+  generatePerformanceReport() {
+    // Generate agent performance report
+    // ...
+  }
+}
+```
+2. **[Cursor]** Implement agent response optimization based on user feedback:
+```javascript
+class AgentOptimizer {
+  constructor(openaiClient) {
+    this.openaiClient = openaiClient;
+  }
+
+  async optimizeAgentResponse(previousResponses, userFeedback) {
+    // Response optimization implementation
+    // ...
+  }
+}
+```
+3. **[Cursor]** Set up A/B testing framework for comparing different agent prompting strategies.
+4. **[Cursor]** Implement agent feedback collection and analysis system.
+5. **Validation**: Analyze agent performance metrics and verify improvement over time.
+
+## Phase 8: AI & Notification Integration [Bolt.new + Cursor + v0]
+
+1. **[Bolt.new]** Set up an email notification system:
+```
+bolt.new create an email notification service using nodemailer for workout reminders
+```
+2. **[Cursor]** Integrate push notifications support using a service like Firebase Cloud Messaging.
+2a. Implement SMS Notifications
+- Choose an SMS provider (e.g., Twilio).
+- Set up environment variables for credentials in /backend/config/sms.js (or similar).
+- Create a dedicated SMS notification service (e.g., /backend/services/smsService.js) to send SMS workout reminders.
+- Check user preferences for SMS opt-in before sending notifications.
+```
+3. **[V0]** Create an in-app notifications component to display alerts received from the backend:
+```
+v0 generate an in-app notification component with different severity levels and dismissable alerts using Tailwind and React
+```
+Create a dedicated in-app notifications feed or panel in the React frontend that listens for new notifications from the backend's notification endpoint, displaying them in real time using websockets or periodic polling.
+```
+4. **Validation**: Trigger test notifications for email, mobile push, and in-app channels to verify proper delivery and logging.
+5. **[Cursor]** Final review: Audit the data encryption processes in the backend and verify that user-specific data is securely separated from the general memory bank (Data Privacy/Security).}
