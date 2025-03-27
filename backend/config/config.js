@@ -1,8 +1,5 @@
-const dotenv = require('dotenv');
 const winston = require('winston');
-
-// Load environment variables
-dotenv.config();
+const env = require('./env');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -18,7 +15,7 @@ const logger = winston.createLogger({
 });
 
 // Add console transport in development
-if (process.env.NODE_ENV !== 'production') {
+if (!env.server.isProduction) {
   logger.add(new winston.transports.Console({
     format: winston.format.simple()
   }));

@@ -1,21 +1,70 @@
+/**
+ * @fileoverview API Routes Index
+ * Aggregates all route handlers for the application
+ */
+
 const express = require('express');
+const os = require('os');
+const { env } = require('../config');
+
 const router = express.Router();
 
-// TODO: Import route modules when implemented
-// const authRoutes = require('./auth');
-// const workoutRoutes = require('./workouts');
-// const profileRoutes = require('./profiles');
-// const macrosRoutes = require('./macros');
+// Health check route
+router.get('/health', (req, res) => {
+  const uptime = process.uptime();
+  const uptimeFormatted = {
+    days: Math.floor(uptime / 86400),
+    hours: Math.floor((uptime % 86400) / 3600),
+    minutes: Math.floor((uptime % 3600) / 60),
+    seconds: Math.floor(uptime % 60)
+  };
 
-// Health check route (in addition to the one in server.js)
-router.get('/status', (req, res) => {
-  res.json({ status: 'API is running' });
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: env.server.nodeEnv,
+    server: {
+      uptime: uptimeFormatted,
+      nodeVersion: process.version,
+      memoryUsage: process.memoryUsage(),
+      cpuLoad: os.loadavg(),
+      platform: process.platform,
+      arch: process.arch
+    }
+  });
 });
 
-// TODO: Register route modules when implemented
-// router.use('/auth', authRoutes);
-// router.use('/workouts', workoutRoutes);
-// router.use('/profiles', profileRoutes);
-// router.use('/macros', macrosRoutes);
+// Import route modules
+const authRoutes = require('./auth');
+// TODO: Import additional route modules when implemented
+// const workoutRoutes = require('./workout');
+// const profileRoutes = require('./profile');
 
-module.exports = router; 
+// Register routes
+function registerRoutes(app) {
+  // API version prefix
+  const apiRouter = express.Router();
+  
+  // Mount health check at root level
+  app.use(router);
+
+  // Register route modules
+  apiRouter.use('/auth', authRoutes);
+  // TODO: Register additional route modules when implemented
+  // apiRouter.use('/workouts', workoutRoutes);
+  // apiRouter.use('/profile', profileRoutes);
+
+  // Mount versioned API routes
+  app.use('/v1', apiRouter);
+
+  // 404 handler for undefined routes
+  app.use((req, res) => {
+    res.status(404).json({
+      status: 'error',
+      message: 'Route not found',
+      path: req.originalUrl
+    });
+  });
+}
+
+module.exports = registerRoutes; 
