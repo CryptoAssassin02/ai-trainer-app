@@ -25,6 +25,37 @@ class ApiError extends Error {
 class ValidationError extends ApiError {
   constructor(message = 'Validation failed', details = null) {
     super(message, 400, details);
+    
+    // Ensure errors is properly formatted as an array of {field, message} objects
+    if (details) {
+      // If details is already an array, ensure each item has field and message
+      if (Array.isArray(details)) {
+        this.errors = details.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return {
+              field: item.field || 'unknown',
+              message: item.message || String(item)
+            };
+          } else {
+            return { field: 'unknown', message: String(item) };
+          }
+        });
+      } 
+      // If details is a single object with field, create an array with it
+      else if (typeof details === 'object' && details !== null && details.field) {
+        this.errors = [{
+          field: details.field, 
+          message: details.message || message
+        }];
+      } 
+      // For string or other primitive details, create a generic error
+      else {
+        this.errors = [{ field: 'unknown', message: String(details) }];
+      }
+    } else {
+      // No details provided, create a generic error with the message
+      this.errors = [{ field: 'unknown', message }];
+    }
   }
 }
 
@@ -113,8 +144,12 @@ const formatErrorResponse = (error) => {
     message: error.message
   };
   
+  // Add ValidationError's errors array if present
+  if (error instanceof ValidationError && error.errors) {
+    response.errors = error.errors;
+  }
   // Add error details if available
-  if (error.details) {
+  else if (error.details) {
     if (Array.isArray(error.details)) {
       response.errors = error.details;
     } else {

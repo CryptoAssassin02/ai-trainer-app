@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { env, logger } = require('../config');
+const { createSupabaseClient, isDevelopment, isTest } = require('../config/supabase');
 
 /**
  * @typedef {Object} QueryOptions
@@ -36,24 +37,7 @@ function getSupabaseClient() {
 
   try {
     logger.info('Initializing Supabase client');
-    supabaseInstance = createClient(
-      env.supabase.url,
-      env.supabase.anonKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false
-        },
-        db: {
-          schema: 'public'
-        },
-        global: {
-          headers: {
-            'x-application-name': 'trAIner-backend'
-          }
-        }
-      }
-    );
+    supabaseInstance = createSupabaseClient(false); // Use the environment-specific config
     logger.info('Supabase client initialized successfully');
     return supabaseInstance;
   } catch (error) {
@@ -73,24 +57,7 @@ function getSupabaseAdminClient() {
 
   try {
     logger.info('Initializing Supabase admin client');
-    supabaseAdminInstance = createClient(
-      env.supabase.url,
-      env.supabase.serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false
-        },
-        db: {
-          schema: 'public'
-        },
-        global: {
-          headers: {
-            'x-application-name': 'trAIner-backend-admin'
-          }
-        }
-      }
-    );
+    supabaseAdminInstance = createSupabaseClient(true); // Use service role
     logger.info('Supabase admin client initialized successfully');
     return supabaseAdminInstance;
   } catch (error) {
@@ -364,16 +331,32 @@ async function rawQuery(sql, params = []) {
   
   return withRetry(async () => {
     try {
-      const { data, error } = await client.rpc('exec_sql', { 
-        sql_query: sql,
-        params
-      });
+      // Use direct Postgres connection instead of RPC function
+      const { Pool } = require('pg');
       
-      if (error) {
-        throw error;
+      // Create connection string if DATABASE_URL is not provided
+      function createConnectionString() {
+        // Extract project reference from the Supabase URL
+        const supabaseUrl = new URL(env.supabase.url);
+        const projectRef = supabaseUrl.hostname.split('.')[0];
+        
+        // Format: postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres
+        return `postgresql://postgres:${env.supabase.serviceRoleKey}@${projectRef}.supabase.co:5432/postgres`;
       }
       
-      return data;
+      const pool = new Pool({
+        connectionString: env.supabase.databaseUrl || createConnectionString()
+      });
+      
+      const pgClient = await pool.connect();
+      
+      try {
+        const result = await pgClient.query(sql, params);
+        return result.rows;
+      } finally {
+        pgClient.release();
+        await pool.end();
+      }
     } catch (error) {
       throw handleSupabaseError(error, operationName);
     }

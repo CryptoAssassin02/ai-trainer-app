@@ -107,7 +107,32 @@ const requireRole = (roles) => {
  * Shorthand for requireRole('admin')
  */
 const requireAdmin = (req, res, next) => {
-  return requireRole('admin')(req, res, next);
+  // Check if user is authenticated
+  if (!req.user) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Authentication required',
+      error: 'User not authenticated'
+    });
+  }
+  
+  // Check if user is an admin
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // Log access denial
+  logger.warn('Authorization failed: Admin access required', {
+    userId: req.user.id || req.user.sub,
+    userRole: req.user.role,
+    url: req.originalUrl
+  });
+  
+  return res.status(403).json({
+    status: 'error',
+    message: 'Authorization failed',
+    error: 'Admin access required'
+  });
 };
 
 /**
@@ -154,7 +179,7 @@ const requireOwnership = (getResourceOwnerId) => {
       return res.status(403).json({
         status: 'error',
         message: 'Authorization failed',
-        error: 'You do not have permission to access this resource'
+        error: 'Resource access denied'
       });
     } catch (error) {
       logger.error('Error in ownership verification', {
@@ -164,7 +189,7 @@ const requireOwnership = (getResourceOwnerId) => {
       
       return res.status(500).json({
         status: 'error',
-        message: 'Server error during authorization check',
+        message: 'Server error',
         error: 'Failed to verify resource ownership'
       });
     }

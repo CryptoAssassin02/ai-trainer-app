@@ -22,7 +22,7 @@ router.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: env.server.nodeEnv,
+    environment: env.env,
     server: {
       uptime: uptimeFormatted,
       nodeVersion: process.version,
@@ -36,9 +36,10 @@ router.get('/health', (req, res) => {
 
 // Import route modules
 const authRoutes = require('./auth');
+const healthRoutes = require('./v1/health');
+const profileRoutes = require('./profile');
 // TODO: Import additional route modules when implemented
 // const workoutRoutes = require('./workout');
-// const profileRoutes = require('./profile');
 
 // Register routes
 function registerRoutes(app) {
@@ -50,9 +51,10 @@ function registerRoutes(app) {
 
   // Register route modules
   apiRouter.use('/auth', authRoutes);
+  apiRouter.use('/health', healthRoutes);
+  apiRouter.use('/profile', profileRoutes);
   // TODO: Register additional route modules when implemented
   // apiRouter.use('/workouts', workoutRoutes);
-  // apiRouter.use('/profile', profileRoutes);
 
   // Mount versioned API routes
   app.use('/v1', apiRouter);

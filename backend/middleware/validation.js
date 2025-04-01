@@ -84,11 +84,10 @@ const userSchemas = {
     name: Joi.string()
       .min(2)
       .max(100)
-      .required()
+      .optional()
       .messages({
         'string.min': 'Name must be at least 2 characters long',
-        'string.max': 'Name cannot exceed 100 characters',
-        'any.required': 'Name is required'
+        'string.max': 'Name cannot exceed 100 characters'
       })
   }),
   
@@ -105,6 +104,18 @@ const userSchemas = {
       .required()
       .messages({
         'any.required': 'Password is required'
+      }),
+    rememberMe: Joi.boolean()
+      .default(false)
+  }),
+  
+  // Refresh token schema
+  refresh: Joi.object({
+    refreshToken: Joi.string()
+      .required()
+      .messages({
+        'any.required': 'Refresh token is required',
+        'string.empty': 'Refresh token cannot be empty'
       })
   }),
   
@@ -226,24 +237,27 @@ const workoutSchemas = {
 
 // Profile schemas
 const profileSchemas = {
-  // Create profile schema
+  // Create profile schema - with detailed validation for all required fields
   create: Joi.object({
-    height: Joi.object({
-      value: Joi.number().positive().required(),
-      unit: Joi.string().valid('cm', 'ft').required()
-    }).required(),
-    weight: Joi.object({
-      value: Joi.number().positive().required(),
-      unit: Joi.string().valid('kg', 'lb').required()
-    }).required(),
-    age: Joi.number()
-      .integer()
-      .min(13)
+    name: Joi.string()
+      .min(2)
       .max(100)
       .required()
       .messages({
+        'string.min': 'Name must be at least 2 characters long',
+        'string.max': 'Name cannot exceed 100 characters',
+        'any.required': 'Name is required'
+      }),
+    age: Joi.number()
+      .integer()
+      .min(13)
+      .max(120)
+      .required()
+      .messages({
+        'number.base': 'Age must be a number',
+        'number.integer': 'Age must be a whole number',
         'number.min': 'Age must be at least 13 years',
-        'number.max': 'Age cannot exceed 100 years',
+        'number.max': 'Age cannot exceed 120 years',
         'any.required': 'Age is required'
       }),
     gender: Joi.string()
@@ -253,6 +267,46 @@ const profileSchemas = {
         'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say',
         'any.required': 'Gender is required'
       }),
+    height: Joi.alternatives()
+      .try(
+        // Metric (single number in cm)
+        Joi.number().positive(),
+        // Imperial (feet and inches)
+        Joi.object({
+          feet: Joi.number().integer().min(0).required().messages({
+            'number.base': 'Feet must be a number',
+            'number.integer': 'Feet must be a whole number',
+            'number.min': 'Feet cannot be negative',
+            'any.required': 'Feet is required for imperial height'
+          }),
+          inches: Joi.number().min(0).max(11.99).required().messages({
+            'number.base': 'Inches must be a number',
+            'number.min': 'Inches cannot be negative',
+            'number.max': 'Inches must be less than 12',
+            'any.required': 'Inches is required for imperial height'
+          })
+        })
+      )
+      .required()
+      .messages({
+        'alternatives.types': 'Height must be a positive number for metric units, or an object with feet and inches for imperial units',
+        'any.required': 'Height is required'
+      }),
+    weight: Joi.number()
+      .positive()
+      .required()
+      .messages({
+        'number.base': 'Weight must be a number',
+        'number.positive': 'Weight must be positive',
+        'any.required': 'Weight is required'
+      }),
+    unitPreference: Joi.string()
+      .valid('metric', 'imperial')
+      .required()
+      .messages({
+        'any.only': 'Unit preference must be either metric or imperial',
+        'any.required': 'Unit preference is required'
+      }),
     activityLevel: Joi.string()
       .valid('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active')
       .required()
@@ -260,45 +314,166 @@ const profileSchemas = {
         'any.only': 'Activity level must be one of: sedentary, lightly_active, moderately_active, very_active, extremely_active',
         'any.required': 'Activity level is required'
       }),
-    dietaryPreferences: Joi.array()
+    fitnessGoals: Joi.array()
       .items(Joi.string())
-      .default([]),
+      .default([])
+      .messages({
+        'array.base': 'Fitness goals must be an array'
+      }),
     healthConditions: Joi.array()
       .items(Joi.string())
       .default([])
+      .messages({
+        'array.base': 'Health conditions must be an array'
+      }),
+    equipment: Joi.array()
+      .items(Joi.string())
+      .default([])
+      .messages({
+        'array.base': 'Equipment must be an array'
+      }),
+    experienceLevel: Joi.string()
+      .valid('beginner', 'intermediate', 'advanced')
+      .default('beginner')
+      .messages({
+        'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
+      })
   }),
   
-  // Update profile schema
+  // Update profile schema - allows partial updates with the same validation rules
   update: Joi.object({
-    height: Joi.object({
-      value: Joi.number().positive().required(),
-      unit: Joi.string().valid('cm', 'ft').required()
-    }),
-    weight: Joi.object({
-      value: Joi.number().positive().required(),
-      unit: Joi.string().valid('kg', 'lb').required()
-    }),
+    name: Joi.string()
+      .min(2)
+      .max(100)
+      .messages({
+        'string.min': 'Name must be at least 2 characters long',
+        'string.max': 'Name cannot exceed 100 characters'
+      }),
     age: Joi.number()
       .integer()
       .min(13)
-      .max(100),
+      .max(120)
+      .messages({
+        'number.base': 'Age must be a number',
+        'number.integer': 'Age must be a whole number',
+        'number.min': 'Age must be at least 13 years',
+        'number.max': 'Age cannot exceed 120 years'
+      }),
     gender: Joi.string()
-      .valid('male', 'female', 'other', 'prefer_not_to_say'),
+      .valid('male', 'female', 'other', 'prefer_not_to_say')
+      .messages({
+        'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say'
+      }),
+    height: Joi.alternatives()
+      .try(
+        // Metric (single number in cm)
+        Joi.number().positive(),
+        // Imperial (feet and inches)
+        Joi.object({
+          feet: Joi.number().integer().min(0).required().messages({
+            'number.base': 'Feet must be a number',
+            'number.integer': 'Feet must be a whole number',
+            'number.min': 'Feet cannot be negative',
+            'any.required': 'Feet is required for imperial height'
+          }),
+          inches: Joi.number().min(0).max(11.99).required().messages({
+            'number.base': 'Inches must be a number',
+            'number.min': 'Inches cannot be negative',
+            'number.max': 'Inches must be less than 12',
+            'any.required': 'Inches is required for imperial height'
+          })
+        })
+      )
+      .messages({
+        'alternatives.types': 'Height must be a positive number for metric units, or an object with feet and inches for imperial units'
+      }),
+    weight: Joi.number()
+      .positive()
+      .messages({
+        'number.base': 'Weight must be a number',
+        'number.positive': 'Weight must be positive'
+      }),
+    unitPreference: Joi.string()
+      .valid('metric', 'imperial')
+      .messages({
+        'any.only': 'Unit preference must be either metric or imperial'
+      }),
     activityLevel: Joi.string()
-      .valid('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active'),
-    dietaryPreferences: Joi.array()
-      .items(Joi.string()),
+      .valid('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active')
+      .messages({
+        'any.only': 'Activity level must be one of: sedentary, lightly_active, moderately_active, very_active, extremely_active'
+      }),
+    fitnessGoals: Joi.array()
+      .items(Joi.string())
+      .messages({
+        'array.base': 'Fitness goals must be an array'
+      }),
     healthConditions: Joi.array()
       .items(Joi.string())
-  }).min(1)
+      .messages({
+        'array.base': 'Health conditions must be an array'
+      }),
+    equipment: Joi.array()
+      .items(Joi.string())
+      .messages({
+        'array.base': 'Equipment must be an array'
+      }),
+    experienceLevel: Joi.string()
+      .valid('beginner', 'intermediate', 'advanced')
+      .messages({
+        'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
+      })
+  }).min(1).messages({
+    'object.min': 'At least one field is required for profile update'
+  }),
+  
+  // Profile preferences schema - for updating only preference-related fields
+  preferences: Joi.object({
+    unitPreference: Joi.string()
+      .valid('metric', 'imperial')
+      .messages({
+        'any.only': 'Unit preference must be either metric or imperial'
+      }),
+    fitnessGoals: Joi.array()
+      .items(Joi.string())
+      .messages({
+        'array.base': 'Fitness goals must be an array'
+      }),
+    equipment: Joi.array()
+      .items(Joi.string())
+      .messages({
+        'array.base': 'Equipment must be an array'
+      }),
+    experienceLevel: Joi.string()
+      .valid('beginner', 'intermediate', 'advanced')
+      .messages({
+        'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
+      }),
+    notificationPreferences: Joi.object({
+      email: Joi.boolean().default(true),
+      push: Joi.boolean().default(true),
+      frequency: Joi.string().valid('daily', 'weekly', 'monthly', 'none').default('weekly')
+    }).messages({
+      'object.base': 'Notification preferences must be an object'
+    })
+  }).min(1).messages({
+    'object.min': 'At least one preference field is required'
+  })
 };
 
 // Export middleware and schemas
 module.exports = {
   validate,
+  userSchemas,
+  workoutSchemas,
+  profileSchemas,
   schemas: {
     user: userSchemas,
     workout: workoutSchemas,
     profile: profileSchemas
-  }
+  },
+  // Expose individual profile schemas for direct import
+  validateProfile: profileSchemas.create,
+  validatePartialProfile: profileSchemas.update,
+  validateProfilePreferences: profileSchemas.preferences
 }; 

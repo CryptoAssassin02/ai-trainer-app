@@ -6,6 +6,9 @@ import { TextDecoder, TextEncoder } from 'util';
 // Import and setup MSW server
 import { server } from './__mocks__/msw';
 
+// Polyfill for fetch API in Node environment for Jest tests
+import 'whatwg-fetch';
+
 // Mock the window.matchMedia function used in responsive components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

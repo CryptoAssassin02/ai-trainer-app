@@ -1,54 +1,51 @@
 /**
  * @fileoverview Authentication Routes
- * Handles user authentication endpoints
+ * Handles user authentication endpoints according to API Reference Document
  */
 
 const express = require('express');
 const router = express.Router();
-const { validate, schemas } = require('../middleware/validation');
+const { validate, userSchemas } = require('../middleware/validation');
 const { authenticate } = require('../middleware/auth');
-const authController = require('../controllers/auth.controller');
+const { authLimiters } = require('../middleware/rateLimit');
+const authController = require('../controllers/auth');
 
-// Register a new user
+// POST /v1/auth/signup - Create a new user account
 router.post(
-  '/register',
-  validate(schemas.user.register),
-  authController.register
+  '/signup',
+  authLimiters.signup,
+  validate(userSchemas.register),
+  authController.signup
 );
 
-// Login user
+// POST /v1/auth/login - Authenticate user and get tokens
 router.post(
   '/login',
-  validate(schemas.user.login),
+  authLimiters.login,
+  validate(userSchemas.login),
   authController.login
 );
 
-// Logout user (revoke refresh token)
+// POST /v1/auth/refresh - Refresh access token
+router.post(
+  '/refresh',
+  authLimiters.refresh,
+  validate(userSchemas.refresh),
+  authController.refreshToken
+);
+
+// GET /v1/auth/session - Validate current session
+router.get(
+  '/session',
+  authenticate,
+  authController.validateSession
+);
+
+// POST /v1/auth/logout - Logout user and invalidate tokens
 router.post(
   '/logout',
   authenticate,
   authController.logout
-);
-
-// Refresh access token
-router.post(
-  '/refresh-token',
-  authController.refreshToken
-);
-
-// Get current user profile
-router.get(
-  '/me',
-  authenticate,
-  authController.getCurrentUser
-);
-
-// Update user password
-router.put(
-  '/password',
-  authenticate,
-  validate(schemas.user.updateProfile),
-  authController.updatePassword
 );
 
 module.exports = router; 

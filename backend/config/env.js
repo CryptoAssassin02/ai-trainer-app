@@ -8,7 +8,9 @@ const path = require('path');
 const Joi = require('joi');
 
 // Load environment variables from .env file
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Or use absolute path for certainty:
+// dotenv.config({ path: '/Users/dylanloberg/ai-trainer-app/backend/.env' });
 
 // Schema for environment variable validation
 const envSchema = Joi.object()
@@ -20,8 +22,41 @@ const envSchema = Joi.object()
     
     // Supabase
     SUPABASE_URL: Joi.string().required(),
+    SUPABASE_PROJECT_REF: Joi.string().required(),
     SUPABASE_ANON_KEY: Joi.string().required(),
     SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
+    DATABASE_PASSWORD: Joi.string().required(),
+    
+    // Database Connection Components
+    DB_HOST: Joi.string().required(),
+    DB_PORT: Joi.number().default(5432),
+    DB_NAME: Joi.string().default('postgres'),
+    DB_USER: Joi.string().default('postgres'),
+    
+    // Pooler Connection Components
+    POOLER_HOST: Joi.string().required(),
+    POOLER_SESSION_PORT: Joi.number().default(5432),
+    POOLER_TRANSACTION_PORT: Joi.number().default(6543),
+    POOLER_USER: Joi.string().required(),
+    
+    // Connection Strings
+    DATABASE_URL: Joi.string().required(),
+    DATABASE_URL_SERVICE_ROLE: Joi.string().required(),
+    DATABASE_URL_POOLER_SESSION: Joi.string().required(),
+    DATABASE_URL_POOLER_TRANSACTION: Joi.string().required(),
+    
+    // SSL Configuration
+    NODE_TLS_REJECT_UNAUTHORIZED: Joi.string().allow('0', '1').default('1'),
+    SSL_MODE: Joi.string().valid('require', 'prefer', 'disable').default('require'),
+    
+    // Migration Configuration
+    MIGRATIONS_DIR: Joi.string().default('./backend/migrations'),
+    
+    // DNS Testing Fallback
+    DB_IP_ADDRESS: Joi.string().allow('').optional(),
+    
+    // Connection Timeout
+    CONNECTION_TIMEOUT: Joi.number().default(30000),
     
     // Auth
     JWT_SECRET: Joi.string().required().min(32),
@@ -58,8 +93,41 @@ module.exports = {
   
   supabase: {
     url: env.SUPABASE_URL,
+    projectRef: env.SUPABASE_PROJECT_REF,
     anonKey: env.SUPABASE_ANON_KEY,
-    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY
+    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    databasePassword: env.DATABASE_PASSWORD,
+    
+    // Database direct connection components
+    dbHost: env.DB_HOST,
+    dbPort: env.DB_PORT,
+    dbName: env.DB_NAME,
+    dbUser: env.DB_USER,
+    
+    // Pooler connection components
+    poolerHost: env.POOLER_HOST,
+    poolerSessionPort: env.POOLER_SESSION_PORT,
+    poolerTransactionPort: env.POOLER_TRANSACTION_PORT,
+    poolerUser: env.POOLER_USER,
+    
+    // Connection strings
+    databaseUrl: env.DATABASE_URL,
+    databaseUrlServiceRole: env.DATABASE_URL_SERVICE_ROLE,
+    databaseUrlPoolerSession: env.DATABASE_URL_POOLER_SESSION,
+    databaseUrlPoolerTransaction: env.DATABASE_URL_POOLER_TRANSACTION,
+    
+    // SSL configuration
+    sslRejectUnauthorized: env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? false : true,
+    sslMode: env.SSL_MODE,
+    
+    // DNS fallback
+    dbIpAddress: env.DB_IP_ADDRESS,
+    
+    connectionTimeout: parseInt(env.CONNECTION_TIMEOUT) || 30000
+  },
+  
+  migrations: {
+    directory: env.MIGRATIONS_DIR
   },
   
   auth: {

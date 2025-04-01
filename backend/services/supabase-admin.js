@@ -1,16 +1,20 @@
 /**
  * @fileoverview Supabase Admin Service
  * 
- * ⚠️ SECURITY WARNING ⚠️
- * This module uses the Supabase service role key, which has FULL DATABASE ACCESS.
- * This key bypasses Row Level Security (RLS) and should NEVER be used in client-side code.
- * Only use this service for trusted server-side operations that require admin privileges.
- * Always implement proper authorization checks before performing admin operations.
- * All admin operations should be logged for security auditing.
+ * This file provides admin-level operations for Supabase database management.
+ * These functions require the service role key and should only be used in server-side code.
+ * 
+ * SECURITY WARNING: These functions bypass row-level security (RLS) policies.
+ * Only use them for administrative tasks that genuinely require elevated permissions.
+ * Always validate authentication and authorization before executing admin operations.
  */
 
 const { createClient } = require('@supabase/supabase-js');
-const { env, logger } = require('../config');
+const { logger } = require('../config');
+const { env } = require('../config');
+const { createSupabaseClient, isProduction } = require('../config/supabase');
+const { createConnectionString, getPoolConfig } = require('../utils/supabase');
+const { Pool } = require('pg');
 
 // Singleton instance for Supabase admin client
 let supabaseAdminInstance = null;
@@ -26,7 +30,7 @@ function validateServerEnvironment() {
     throw error;
   }
 
-  if (process.env.NODE_ENV === 'production' && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (isProduction() && !env.supabase.serviceRoleKey) {
     const error = new Error('Service role key is missing in production environment');
     logger.error(error);
     throw error;
@@ -69,22 +73,8 @@ function getSupabaseAdmin() {
 
   try {
     logger.info('Initializing Supabase admin client');
-    supabaseAdminInstance = createClient(
-      env.supabase.url,
-      env.supabase.serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false
-        },
-        global: {
-          headers: {
-            'x-application-name': 'trAIner-backend-admin',
-            'x-admin-operation': 'true'
-          }
-        }
-      }
-    );
+    // Use our new configuration helper with service role enabled
+    supabaseAdminInstance = createSupabaseClient(true);
     logger.info('Supabase admin client initialized successfully');
     return supabaseAdminInstance;
   } catch (error) {
@@ -263,48 +253,26 @@ async function migrateData(migrations, context = {}) {
     throw new Error('Migrations must be a non-empty array');
   }
   
-  const admin = getSupabaseAdmin();
-  const results = [];
+  // Use the new postgres-based migrations utility instead
+  logger.info('Using postgres-based migrations utility');
+  logger.warn('This function is deprecated. Use the migrations utility directly instead.');
   
   try {
-    // Execute each migration in sequence
-    for (const migration of migrations) {
-      const { name, sql, params = [] } = migration;
-      
-      if (!name || !sql) {
-        throw new Error('Each migration must have a name and sql property');
-      }
-      
-      logger.info(`Running migration: ${name}`);
-      
-      // Run the migration SQL
-      const { data, error } = await admin.rpc('exec_sql', {
-        sql_query: sql,
-        params
-      });
-      
-      if (error) {
-        throw new Error(`Migration "${name}" failed: ${error.message}`);
-      }
-      
-      results.push({
-        name,
-        success: true,
-        result: data
-      });
-      
-      logger.info(`Migration "${name}" completed successfully`);
-    }
+    // Import the migrations utility
+    const { runMigrations } = require('../utils/migrations');
+    
+    // Run the migrations
+    const result = await runMigrations();
     
     // Log the operation
     logAdminOperation('migrateData', {
-      migrationCount: migrations.length,
-      migrationNames: migrations.map(m => m.name)
+      migrationCount: result.executed ? result.executed.length : 0,
+      migrationNames: result.executed ? result.executed.map(m => m.name) : []
     }, context);
     
     return {
       success: true,
-      migrations: results
+      migrations: result.executed || []
     };
   } catch (error) {
     logger.error('Migration failed:', error);
@@ -329,7 +297,6 @@ async function manageTables(tableConfig, context = {}) {
     throw new Error('Operation and table name are required');
   }
   
-  const admin = getSupabaseAdmin();
   let sql = '';
   
   try {
@@ -397,25 +364,33 @@ async function manageTables(tableConfig, context = {}) {
         throw new Error(`Unknown table operation: ${operation}`);
     }
     
-    // Execute the SQL
-    const { error } = await admin.rpc('exec_sql', {
-      sql_query: sql
+    // Execute the SQL using the direct postgres connection
+    const pool = new Pool({
+      connectionString: env.supabase.databaseUrl || createConnectionString({ mode: 'transaction' }),
+      ...getPoolConfig('transaction')
     });
     
-    if (error) throw error;
+    const client = await pool.connect();
     
-    // Log the operation
-    logAdminOperation('manageTables', {
-      operation,
-      table,
-      sql
-    }, context);
-    
-    return {
-      success: true,
-      operation,
-      table
-    };
+    try {
+      await client.query(sql);
+      
+      // Log the operation
+      logAdminOperation('manageTables', {
+        operation,
+        table,
+        sql
+      }, context);
+      
+      return {
+        success: true,
+        operation,
+        table
+      };
+    } finally {
+      client.release();
+      await pool.end();
+    }
   } catch (error) {
     logger.error(`Table operation ${operation} failed for ${table}:`, error);
     throw error;

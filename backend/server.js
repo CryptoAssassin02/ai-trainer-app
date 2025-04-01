@@ -86,6 +86,9 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
+// Call startServer to actually start the server
+startServer();
+
 // Export the app and start function
 module.exports = {
   app,

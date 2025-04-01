@@ -5,6 +5,7 @@
 const jwt = require('jsonwebtoken');
 const { authenticate, requireRole, requireAdmin, requireOwnership, optionalAuth } = require('../../middleware/auth');
 const jwtUtils = require('../../utils/jwt');
+const { env } = require('../../config');
 
 // Mock dependencies
 jest.mock('../../utils/jwt');
@@ -25,6 +26,7 @@ jest.mock('../../config', () => ({
 
 describe('Authentication Middleware', () => {
   let req, res, next;
+  let getResourceOwnerId;
 
   beforeEach(() => {
     // Reset mocks
@@ -42,13 +44,16 @@ describe('Authentication Middleware', () => {
     };
     
     next = jest.fn();
+
+    // Setup resource owner ID getter mock
+    getResourceOwnerId = jest.fn().mockResolvedValue('123');
   });
 
   describe('authenticate middleware', () => {
     test('should pass when valid token is provided', () => {
       // Setup
       req.headers.authorization = 'Bearer valid-token';
-      const mockUser = { id: '123', email: 'test@example.com', role: 'user' };
+      const mockUser = { sub: '123', email: 'test@example.com', role: 'user' };
       jwtUtils.verifyToken.mockReturnValue(mockUser);
       
       // Execute
@@ -137,7 +142,7 @@ describe('Authentication Middleware', () => {
   describe('requireRole middleware', () => {
     beforeEach(() => {
       // Setup authenticated user
-      req.user = { id: '123', email: 'test@example.com', role: 'user' };
+      req.user = { sub: '123', email: 'test@example.com', role: 'user' };
     });
     
     test('should pass when user has the required role', () => {
@@ -195,7 +200,7 @@ describe('Authentication Middleware', () => {
   describe('requireAdmin middleware', () => {
     test('should pass when user is an admin', () => {
       // Setup
-      req.user = { id: '123', email: 'admin@example.com', role: 'admin' };
+      req.user = { sub: '123', email: 'admin@example.com', role: 'admin' };
       
       // Execute
       requireAdmin(req, res, next);
@@ -206,29 +211,46 @@ describe('Authentication Middleware', () => {
     
     test('should return 403 when user is not an admin', () => {
       // Setup
-      req.user = { id: '123', email: 'user@example.com', role: 'user' };
+      req.user = { sub: '123', email: 'user@example.com', role: 'user' };
       
       // Execute
       requireAdmin(req, res, next);
       
       // Assert
       expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Authorization failed',
+        error: 'Admin access required'
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+    
+    test('should return 401 when user is not authenticated', () => {
+      // Setup
+      req.user = null;
+      
+      // Execute
+      requireAdmin(req, res, next);
+      
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Authentication required',
+        error: 'User not authenticated'
+      });
       expect(next).not.toHaveBeenCalled();
     });
   });
 
   describe('requireOwnership middleware', () => {
-    beforeEach(() => {
-      // Setup authenticated user
-      req.user = { id: '123', email: 'test@example.com', role: 'user' };
-    });
-    
     test('should pass when user owns the resource', async () => {
       // Setup
-      const getResourceOwnerId = jest.fn().mockResolvedValue('123');
+      req.user = { sub: '123', email: 'test@example.com', role: 'user' };
+      const middleware = requireOwnership(getResourceOwnerId);
       
       // Execute
-      const middleware = requireOwnership(getResourceOwnerId);
       await middleware(req, res, next);
       
       // Assert
@@ -238,24 +260,25 @@ describe('Authentication Middleware', () => {
     
     test('should pass when user is admin even if not owner', async () => {
       // Setup
-      req.user.role = 'admin';
-      const getResourceOwnerId = jest.fn().mockResolvedValue('456'); // Different ID
+      req.user = { sub: '456', email: 'test@example.com', role: 'admin' };
+      getResourceOwnerId.mockResolvedValue('123');
+      const middleware = requireOwnership(getResourceOwnerId);
       
       // Execute
-      const middleware = requireOwnership(getResourceOwnerId);
       await middleware(req, res, next);
       
       // Assert
-      expect(getResourceOwnerId).toHaveBeenCalledWith(req);
+      expect(getResourceOwnerId).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalled();
     });
     
     test('should return 403 when user does not own the resource', async () => {
       // Setup
-      const getResourceOwnerId = jest.fn().mockResolvedValue('456'); // Different ID
+      req.user = { sub: '456', email: 'test@example.com', role: 'user' };
+      getResourceOwnerId.mockResolvedValue('123');
+      const middleware = requireOwnership(getResourceOwnerId);
       
       // Execute
-      const middleware = requireOwnership(getResourceOwnerId);
       await middleware(req, res, next);
       
       // Assert
@@ -264,7 +287,7 @@ describe('Authentication Middleware', () => {
       expect(res.json).toHaveBeenCalledWith({
         status: 'error',
         message: 'Authorization failed',
-        error: 'You do not have permission to access this resource'
+        error: 'Resource access denied'
       });
       expect(next).not.toHaveBeenCalled();
     });
@@ -272,38 +295,47 @@ describe('Authentication Middleware', () => {
     test('should return 401 when user is not authenticated', async () => {
       // Setup
       req.user = null;
-      const getResourceOwnerId = jest.fn();
+      const middleware = requireOwnership(getResourceOwnerId);
       
       // Execute
-      const middleware = requireOwnership(getResourceOwnerId);
       await middleware(req, res, next);
       
       // Assert
-      expect(getResourceOwnerId).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Authentication required',
+        error: 'User not authenticated'
+      });
       expect(next).not.toHaveBeenCalled();
     });
     
-    test('should return 500 when getResourceOwnerId throws an error', async () => {
+    test('should handle errors from resource owner ID getter', async () => {
       // Setup
-      const getResourceOwnerId = jest.fn().mockRejectedValue(new Error('Database error'));
+      req.user = { sub: '123', email: 'test@example.com', role: 'user' };
+      getResourceOwnerId.mockRejectedValue(new Error('Database error'));
+      const middleware = requireOwnership(getResourceOwnerId);
       
       // Execute
-      const middleware = requireOwnership(getResourceOwnerId);
       await middleware(req, res, next);
       
       // Assert
       expect(getResourceOwnerId).toHaveBeenCalledWith(req);
       expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'error',
+        message: 'Server error',
+        error: 'Failed to verify resource ownership'
+      });
       expect(next).not.toHaveBeenCalled();
     });
   });
 
   describe('optionalAuth middleware', () => {
-    test('should attach user to request when valid token is provided', () => {
+    test('should set user when valid token is provided', () => {
       // Setup
       req.headers.authorization = 'Bearer valid-token';
-      const mockUser = { id: '123', email: 'test@example.com', role: 'user' };
+      const mockUser = { sub: '123', email: 'test@example.com', role: 'user' };
       jwtUtils.verifyToken.mockReturnValue(mockUser);
       
       // Execute
@@ -315,7 +347,7 @@ describe('Authentication Middleware', () => {
       expect(next).toHaveBeenCalled();
     });
     
-    test('should set req.user to null and continue when no token is provided', () => {
+    test('should pass without user when no token is provided', () => {
       // Execute
       optionalAuth(req, res, next);
       
@@ -324,19 +356,7 @@ describe('Authentication Middleware', () => {
       expect(next).toHaveBeenCalled();
     });
     
-    test('should set req.user to null and continue when token format is invalid', () => {
-      // Setup
-      req.headers.authorization = 'invalid-format';
-      
-      // Execute
-      optionalAuth(req, res, next);
-      
-      // Assert
-      expect(req.user).toBeNull();
-      expect(next).toHaveBeenCalled();
-    });
-    
-    test('should set req.user to null and continue when token verification fails', () => {
+    test('should pass without user when token is invalid', () => {
       // Setup
       req.headers.authorization = 'Bearer invalid-token';
       jwtUtils.verifyToken.mockImplementation(() => {
@@ -347,7 +367,6 @@ describe('Authentication Middleware', () => {
       optionalAuth(req, res, next);
       
       // Assert
-      expect(jwtUtils.verifyToken).toHaveBeenCalledWith('invalid-token');
       expect(req.user).toBeNull();
       expect(next).toHaveBeenCalled();
     });

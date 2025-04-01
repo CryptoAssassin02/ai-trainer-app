@@ -380,8 +380,10 @@ describe('WorkoutContext', () => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     })
     
-    // Workout name should be updated
-    expect(screen.getByTestId('workout-name-workout-1')).toHaveTextContent('Updated Workout')
+    // Use a more robust waitFor to ensure the update has been applied
+    await waitFor(() => {
+      expect(screen.getByTestId('workout-name-workout-1')).toHaveTextContent('Updated Workout')
+    }, { timeout: 2000 })
   })
   
   it('deletes a workout when deleteWorkout is called', async () => {
@@ -406,9 +408,11 @@ describe('WorkoutContext', () => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     })
     
-    // Workout should be removed
-    expect(screen.queryByTestId('workout-workout-1')).not.toBeInTheDocument()
-    expect(screen.queryAllByTestId(/^workout-workout-/)).toHaveLength(0)
+    // Use a more robust waitFor to ensure the element is removed
+    await waitFor(() => {
+      expect(screen.queryByTestId('workout-workout-1')).not.toBeInTheDocument()
+      expect(screen.queryAllByTestId(/^workout-workout-/)).toHaveLength(0)
+    }, { timeout: 2000 })
   })
   
   it('updates progress when updateProgress is called', () => {
