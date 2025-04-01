@@ -23,8 +23,8 @@ jest.mock('next/navigation', () => ({
   })),
 }))
 
-// Mock Supabase client
-jest.mock('@/lib/supabase/browser', () => ({
+// Mock Supabase client using relative path with extension
+jest.mock('../../../lib/supabase/browser.ts', () => ({
   createClient: jest.fn(() => ({
     auth: {
       signUp: jest.fn().mockImplementation(({ email, password }) => {
