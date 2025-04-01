@@ -1,0 +1,328 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# trAIner App Flow Document
+
+## Introduction
+
+trAIner is an all-in-one AI fitness app that helps users create personalized workout plans and macro goals tailored to their unique demographics, fitness levels, and preferences. The app implements an **agent-based architecture** that combines secure authentication, modern design ideas, and advanced AI integrations to offer users a seamless and evolving fitness journey. It uses Supabase for authentication and data storage, Perplexity AI for gathering exercise research, and the OpenAI API to generate custom workout plans using **ReAct and reflection patterns**. Whether the user is a beginner or an advanced fitness enthusiast, the app ensures that every step of their fitness planning is guided and adaptable through **intelligent agent reasoning and memory systems**.
+
+## Onboarding and Sign-In/Sign-Up
+
+When a new user first visits trAIner, they are greeted by a modern landing page that features the app's sleek design, dark mode as the default, and vibrant electric blue accents. The landing page provides clear call-to-action buttons prompting the user to sign up or log in. For those who are new, the sign-up process is straightforward: users are asked to provide their name, email, and a password. All this information is securely handled by Supabase authentication routines to ensure safety and privacy. Returning users simply enter their email and password to access their account. In addition, if a user forgets their password, there is an easy-to-find recovery option that allows them to reset their password via a secure email link. This initial process lays the foundation for a secure and user-friendly experience right from the start.
+
+Additionally, we offer a "Remember Me" option during login. If enabled, the frontend stores a refresh token (provided by Supabase Auth) in local storage or a secure cookie, enabling longer-lived sessions. Users remain logged in until they explicitly log out or the refresh token expires, creating a more convenient user experience. The app’s “Session Check” logic automatically attempts to refresh an expired JWT with the stored refresh token, preventing unexpected sign-outs.
+
+## Main Dashboard or Home Page
+
+After successfully logging in, users are taken to a dynamic dashboard that serves as the central hub of the application. The dashboard displays a consistent header with the app's logo and a hamburger menu that makes navigation easy. On the main page, users can see key metrics that are relevant to their fitness journey, including upcoming workouts, workout logs, macro progress, and overall goal tracking. The layout is designed with clear sections, and visual elements like charts and graphs help to quickly communicate progress and insights. The intuitive design ensures that users can move effortlessly from the home view to other areas of the app, such as generating workout plans or editing their personal profiles.
+
+## Detailed Feature Flows and Page Transitions
+
+From the main dashboard, users have the option to generate a new workout plan once they have completed their profile setup. When a user clicks the "Generate Workout Plan" button, the app launches a **two-step AI-embedded process using agent-based planning**. First, the **Research Agent** powered by Perplexity AI conducts research by scanning reputable fitness sources and best practices, and then the **Workout Generation Agent** powered by OpenAI API uses that research along with the user's demographics, fitness preferences, and goals to generate a detailed and personalized workout plan **with reasoning steps visible to users**. Once generated, the workout plan is displayed on a dedicated review page where users can read through each exercise recommendation and understand the underlying techniques such as supersets, drop sets, and rest-pause sets. 
+
+If the user wishes to make changes, they are provided with a hybrid editing interface. They can manually adjust individual components like exercise type, repetitions, or workout days, or they can simply use natural language descriptions to ask the AI to make specific adjustments. The **Plan Adjustment Agent** uses reflection capabilities to understand the user's feedback and make intelligent modifications. As users edit and refine their workout routine, all changes are immediately updated on the dashboard and saved persistently in the Supabase database, ensuring that their progress is continually captured in the **long-term memory system**.
+
+In addition to workout plans, the app also integrates a macro goal and nutritional tracking feature. Based on the user's input in their profile, the **Nutrition Agent** automatically calculates macros by taking into account factors like age, gender, height, and weight, as well as adjusting for workout frequency. This macro information is then clearly displayed alongside workout metrics within the dashboard. Over time, users are encouraged to check in on their progress with bi-weekly updates. A dedicated progress check-in page allows users to input workout details, body measurements, and other metrics that are then compared with their original goals. This progress data helps in refining future workout plans and ensures that the app dynamically adapts to users' changing fitness needs through the **agent's memory and reflection capabilities**.
+
+Furthermore, the app provides export and import functionality to allow users to manage their workout plans outside the app. Users can export their personalized plans in several common formats such as XLSX, PDF, CSV, or even directly to Google Sheets, so that they can share or review their data offline. If needed, users can also import workout plans back into the app. The import functionality is designed to parse the data correctly and update the dashboard with any modifications, ensuring seamless transitions between external tools and the trAIner app interface.
+
+A robust notification system is implemented to keep the user engaged and informed. Once their preferences are set, users receive reminders and alerts which may take the form of mobile push notifications, email reminders, or in-app messages, depending on what they choose. These notifications remind users when it is time to complete their workouts, log progress, or even alert them when a workout plan is about to end. Every notification is designed to help keep the fitness journey on track without overwhelming the user.
+
+## API Input/Output Specifications
+
+To ensure clarity for both developers and AI-driven tooling, this section details the exact data exchanged between the frontend and backend for each key user flow. These specifications should guide the implementation of the REST endpoints and help the AI dev tools generate correct code.
+
+### 1. User Onboarding and Sign-In/Sign-Up
+
+**Flow:** A new user signs up or an existing user logs in.
+
+**Endpoint:** POST /v1/auth/signup (for sign-up), POST /v1/auth/login (for login)
+
+**Request Body (Sign-Up):**
+```json
+{
+  "name": "<string> - User's full name",
+  "email": "<string> - User's email address",
+  "password": "<string> - Chosen password"
+}
+```
+**Response (Sign-Up):**
+```json
+{
+  "userId": "<string> - The newly created user's unique ID",
+  "message": "Account created successfully."
+}
+```
+**Request Body (Login):**
+```json
+{
+  "email": "<string>",
+  "password": "<string>"
+}
+```
+**Response (Login):**
+```json
+{
+  "userId": "<string> - The existing user's unique ID",
+  "jwtToken": "<string> - Authentication token for subsequent requests",
+  "message": "Login successful."
+}
+```
+**Error Cases:**
+- 400 if any field is missing or improperly formatted.
+- 409 if user already exists (sign-up). 
+- 401 if invalid email/password (login).
+
+### 2. Profile Setup or Update
+
+**Flow:** After logging in, the user can provide or update demographics, fitness preferences, and goals.
+
+**Endpoint:** POST /v1/profile
+
+**Request Body:**
+```json
+{
+  "userId": "<string> - from the JWT or request context",
+
+  // Height input depends on the user's 'units' preference:
+  // - If 'metric': the app expects a single number for height in centimeters.
+  // - If 'imperial': the app expects separate values for feet and inches, which the app
+  //   then converts to total inches internally.
+  // Example if 'imperial': { "feet": 5, "inches": 11 }
+  // Example if 'metric': 180
+  "height": {
+    "value": "<number>", 
+    "units": "<string> - e.g. 'cm' for metric, or 'ft/in' for imperial"
+  },
+
+  "weight": "<number> - in kg if 'metric', or in lbs if 'imperial'",
+  "age": "<number>",
+  "gender": "<string> - optional, e.g., 'male', 'female', 'other'",
+  "preferences": {
+    "units": "<string> - 'metric' or 'imperial'",
+    "exerciseTypes": ["<string> (e.g. 'cardio', 'strength', 'HIIT', 'yoga')",
+        "..."],
+    "equipment": ["<string> (e.g. 'dumbbells', 'barbell', 'kettlebell')",
+        “…”],
+    "workoutFrequency": "<string> (e.g. '3x per week', 'daily', '5x per week')",
+  },
+  "goals": ["<string> (e.g. 'weight_loss', 'muscle_gain', 'endurance')",
+      “…”],
+}
+```
+**Response:**
+```json
+{
+  "status": "success",
+  "updatedProfile": {
+    "userId": "<string>",
+    "height": "<number>",
+    "weight": "<number>",
+    "age": "<number>",
+    "gender": "<string>",
+    "preferences": { },
+    "goals": [ ]
+  },
+  "message": "Profile updated successfully."
+}
+```
+> For the exact fields and data types stored in Supabase, see the "Database Schema Outline" in the Backend Structure Document.
+
+**Error Cases:**
+- 400 if required fields are missing.
+- 401 if authentication token is missing or invalid.
+
+### 3. Generate a New Workout Plan
+
+**Flow:** From the main dashboard, the user clicks “Generate Workout Plan.” Behind the scenes, the app performs two steps:
+
+1) The Research Agent (powered by Perplexity AI) uses all user-supplied data (profile demographics, preferences, goals, etc.) to search for research-backed exercises that align with the user’s needs.
+2) The Workout Generation Agent (powered by OpenAI) takes this research data, along with the user’s input, and produces the final personalized plan.
+
+**Endpoint:** POST /v1/workouts
+
+**Request Body:**
+```json
+{
+  "userId": "<string>",
+  "fitnessLevel": "<string> - e.g. 'beginner', 'intermediate', 'advanced'",
+  "goals": ["<string> (e.g. 'weight_loss', 'muscle_gain', 'endurance')",
+    “…”],
+  "equipment": ["<string> (e.g. 'dumbbells', 'barbell', 'kettlebell')",
+    “…”],
+  "restrictions": ["<string>", "..."],
+  "exerciseTypes": ["<string> (e.g. 'cardio', 'strength', 'HIIT', 'yoga')",
+    "..."],
+  "workoutFrequency": "<string> (e.g. '3x per week', 'daily', '5x per week')",
+}
+```
+**Response:**
+```json
+{
+  "planId": "<string>",
+  "planName": "<string>",
+  "exercises": [
+    {
+      "name": "<string>",
+      "sets": <number>,
+      "repsOrRange": "<string> - e.g. '8-10', '6-8', etc.",
+      "notes": "<string> - e.g. 'drop set', 'superset with X'"
+    }
+  ],
+  "researchInsights": [
+    "<string> - e.g. short bullet summarizing relevant studies or exercise notes from Perplexity"
+  ],
+  "reasoning": "<string> - brief summary of how the final plan was constructed"
+}
+```
+**Error Cases:**
+- 400 if the input is incomplete (e.g., missing fitnessLevel)
+- 401 if not authenticated.
+- 429 if rate limited or if the AI-based plan generation or research is at capacity.
+
+### 4. Adjust an Existing Workout Plan
+
+**Flow:** The user wants to revise an existing plan.
+
+**Endpoint:** POST /v1/workouts/{planId}
+
+**Request Body (Sample):**
+```json
+{
+  "userId": "<string>",
+  "adjustments": {
+    "exercisesToAdd": [ ],
+    "exercisesToRemove": [ ],
+    "notesOrPreferences": "<string>"
+  }
+}
+```
+**Response:**
+```json
+{
+  "planId": "<string>",
+  "updatedExercises": [ ],
+  "reflection": "<string> - AI's reasoning or notes explaining changes"
+}
+```
+**Error Cases:**
+- 404 if planId not found.
+- 401 if user unauthorized.
+- 400 if the adjustments are invalid.
+
+### 5. Macro Goal Calculation and Progress Check-Ins
+
+**Flow:** The user logs progress or requests updated macros.
+
+**Endpoint:** POST /v1/macros/calculate
+
+**Request Body:**
+```json
+{
+  "userId": "<string>",
+  "weight": "<number>",
+  "workoutFrequency": "<string>",
+  "progressMetrics": {
+    "bodyFat": "<number> - optional, in percentage",
+    "measurements": {
+      "waist": "<number>",
+      "chest": "<number>"
+    }
+  }
+}
+```
+**Response:**
+```json
+{
+  "recommendedDailyCalories": "<number>",
+  "recommendedMacros": {
+    "protein": "<number>",
+    "carbs": "<number>",
+    "fat": "<number>"
+  },
+  "message": "Macros updated successfully."
+}
+```
+**Error Cases:**
+- 400 if any required field is missing or invalid.
+- 401 if not authenticated.
+
+### 6. Log Completed Workout
+
+**Flow:** The user logs daily workout data (weights lifted, sets, reps, etc.).
+
+**Endpoint:** POST /v1/workouts/log
+
+**Request Body:**
+```json
+{
+  "userId": "<string>",
+  "planId": "<string> - which workout plan they are following",
+  "date": "<string> - e.g. '2023-08-15' in YYYY-MM-DD format",
+  "loggedExercises": [
+    {
+      "exerciseName": "<string>",
+      "setsCompleted": [
+        {
+          "weightUsed": "<number> - in kg or lbs, depending on user preference",
+          "repsCompleted": <number>
+        }
+      ]
+    }
+  ],
+  "notes": "<string> - optional user notes or how they felt about the session"
+}
+```
+**Response:**
+```json
+{
+  "logId": "<string> - unique identifier for this logged workout session",
+  "message": "Workout log saved successfully."
+}
+```
+**Error Cases:**
+- 400 if required fields are missing or invalid.
+- 401 if user is not authenticated.
+- 404 if planId does not exist (if relevant).
+
+### 7. Notification Settings
+
+**Flow:** The user sets preferences for email, push, or SMS notifications.
+
+**Endpoint:** POST /v1/notifications/preferences
+
+**Request Body:**
+```json
+{
+  "userId": "<string>",
+  "emailNotifications": <boolean>,
+  "pushNotifications": <boolean>,
+  "smsNotifications": <boolean>,
+  "preferredChannels": ["<string>", "..."]
+}
+```
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Notification preferences updated."
+}
+```
+**Error Cases:**
+- 401 if token invalid.
+- 400 if the data is malformed.
+
+## Settings and Account Management
+
+Within the app, users have access to a settings area where they can manage their account information and personal preferences. This section allows users to update details such as their personal demographics, fitness preferences, or even modify their workout and nutritional goals. They can also adjust notification settings to choose their preferred channels for receiving alerts. This section is designed to be accessible from the primary navigation, ensuring that users can quickly make changes and see the effects reflected in the other areas of the app. Additionally, options for logging out or deleting the account itself are available, which are seamlessly integrated to maintain a secure and user-friendly experience. Once users finish updating their settings, they can effortlessly return to the main dashboard to continue their fitness journey.
+
+## Error States and Alternate Paths
+
+trAIner is designed to handle a variety of error states and alternative paths without causing disruption to the user experience. When users enter invalid data during sign-up or profile updates, clear and simple error messages are displayed near the respective forms, explaining what went wrong and how to fix it. If there is a network or connectivity issue, the app provides fallback pages that notify the user of the problem and offer options to retry or check their connection. Similarly, if users attempt actions that are not permitted, such as making unauthorized changes or migrating data in an unsupported format, the app guides them with instructions and friendly alerts. This proactive error management system ensures that occasional issues do not break the seamless flow of the application and that users are always informed about the next steps to regain normal functionality.
+
+## Conclusion and Overall App Journey
+
+The trAIner app offers a complete and coherent fitness journey beginning with a modern landing page that invites new users to sign up with reliable security measures in place. Once logged in, the user is immersed in a dynamic dashboard that serves as the central hub for all activities, from generating and editing personalized workout plans to tracking progress through periodic check-ins. The experience is enriched by **AI-driven agent features** that blend user input with exercise research and natural language processing for plan edits, ensuring that every workout and macro goal remains relevant over time. The **agent-based architecture** with **memory systems** and **reasoning capabilities** allows for a truly personalized experience that adapts to each user's unique fitness journey. Alongside these core features, detailed settings and robust error management ensure that the app is both adaptable and resilient. In the end, users experience a fluid and engaging journey that supports them in achieving their fitness goals with precision and intelligence, creating a lasting and empowering relationship with their personal wellness activities.

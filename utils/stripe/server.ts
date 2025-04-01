@@ -2,7 +2,7 @@
 
 import Stripe from 'stripe';
 import { stripe } from '@/utils/stripe/config';
-import { createClerkSupabaseClientSsr } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { createOrRetrieveCustomer, supabaseAdmin } from '@/utils/supabase/admin';
 import {
     getURL,
@@ -10,7 +10,6 @@ import {
     calculateTrialEndUnixTimestamp
 } from '@/utils/helpers';
 import { Tables } from '@/types/database.types';
-import { auth, currentUser } from '@clerk/nextjs/server';
 
 type Price = Tables<'prices'>;
 
@@ -22,14 +21,15 @@ export async function checkoutWithStripe(
 ) {
     try {
         // Get the user from Supabase auth
-        const user = await currentUser()
+        const supabase = await createClient();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            throw new Error('Could not get user session.');
+        }
 
         if (referralId) {
             console.log("checkout with referral id:", referralId)
-        }
-
-        if (!user) {
-            throw new Error('Could not get user session.');
         }
 
         // Retrieve or create the customer in Stripe
@@ -37,7 +37,7 @@ export async function checkoutWithStripe(
         try {
             customer = await createOrRetrieveCustomer({
                 uuid: user.id || '',
-                email: user?.primaryEmailAddress?.emailAddress || '',
+                email: user.email || '',
                 referral: referralId
             });
         } catch (err) {
@@ -125,11 +125,8 @@ export async function checkoutWithStripe(
 
 export async function createStripePortal(currentPath: string) {
     try {
-        const supabase = await createClerkSupabaseClientSsr();
-        const {
-            error,
-            data: { user }
-        } = await supabase.auth.getUser();
+        const supabase = await createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
 
         if (!user) {
             if (error) {
@@ -187,9 +184,10 @@ export async function createStripePortal(currentPath: string) {
 
 export async function createBillingPortalSession() {
     try {
-        const user = await currentUser()
+        const supabase = await createClient();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-        if (!user) {
+        if (userError || !user) {
             throw new Error("No User")
         }
 
@@ -202,7 +200,7 @@ export async function createBillingPortalSession() {
         // Create a billing portal session
         const session = await stripe.billingPortal.sessions.create({
             customer: customer?.stripe_customer_id!,
-            return_url: getURL('/settings'), // URL to redirect after the session
+            return_url: getURL('/account'), // URL to redirect after the session
         });
 
         // Return the session URL

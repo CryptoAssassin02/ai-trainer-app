@@ -43,12 +43,17 @@ const config: Config = {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
+				'electric-blue': 'hsl(var(--electric-blue))',
+				'near-black': '#121212',
+				'off-white': '#F5F5F5',
 				chart: {
 					'1': 'hsl(var(--chart-1))',
 					'2': 'hsl(var(--chart-2))',
 					'3': 'hsl(var(--chart-3))',
 					'4': 'hsl(var(--chart-4))',
-					'5': 'hsl(var(--chart-5))'
+					'5': 'hsl(var(--chart-5))',
+					'primary': 'var(--chart-primary)',
+					'secondary': 'var(--chart-secondary)'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

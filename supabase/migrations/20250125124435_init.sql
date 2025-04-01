@@ -10,6 +10,45 @@ create type "public"."pricing_type" as enum ('one_time', 'recurring');
 
 create type "public"."subscription_status" as enum ('trialing', 'active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'unpaid', 'paused');
 
+-- Create refresh_tokens table for token management
+create table "public"."refresh_tokens" (
+    "id" uuid not null default gen_random_uuid(),
+    "user_id" text not null,
+    "token" text not null,
+    "status" text not null default 'active',
+    "created_at" timestamp with time zone not null default timezone('utc'::text, now()),
+    "expires_at" timestamp with time zone not null,
+    "last_used_at" timestamp with time zone,
+    "revoked_at" timestamp with time zone,
+    "metadata" jsonb,
+    constraint "refresh_tokens_pkey" primary key ("id"),
+    constraint "refresh_tokens_token_key" unique ("token"),
+    constraint "refresh_tokens_status_check" check (status in ('active', 'revoked', 'expired'))
+);
+
+-- Enable RLS for refresh_tokens
+alter table "public"."refresh_tokens" enable row level security;
+
+-- Create policy to allow users to see only their own refresh tokens
+create policy "users_can_view_own_refresh_tokens"
+    on "public"."refresh_tokens"
+    for select
+    to authenticated
+    using (auth.uid() = user_id::uuid);
+
+-- Create policy to allow service role to manage refresh tokens
+create policy "service_role_can_manage_refresh_tokens"
+    on "public"."refresh_tokens"
+    for all
+    to service_role
+    using (true)
+    with check (true);
+
+-- Create index for token lookups
+create index "refresh_tokens_token_idx" on "public"."refresh_tokens" ("token");
+create index "refresh_tokens_user_id_idx" on "public"."refresh_tokens" ("user_id");
+create index "refresh_tokens_status_idx" on "public"."refresh_tokens" ("status");
+
 create table "public"."customers" (
     "id" text not null,
     "stripe_customer_id" text

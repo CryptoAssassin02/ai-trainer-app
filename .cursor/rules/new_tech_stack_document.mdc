@@ -1,0 +1,149 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Tech Stack Document for trAIner
+===============================
+
+## Introduction
+------------
+
+trAIner is an all-in-one AI-powered fitness app, designed to generate personalized workout plans and macro goals based on user demographics and fitness preferences. The chosen technologies implement an **agent-based architecture** that ensures a seamless, secure, and engaging user experience from the moment they sign up to their first fitness milestone.
+
+### Tech Stack Overview
+
+- **Frontend Development:** React with **CodeGuide Starter Pro kit**, using **V0 by Vercel** for component generation and **Cursor** for code completion
+- **Backend Services:** Node.js, Supabase
+- **AI Architecture:** Agent-based approach using OpenAI API and Perplexity AI
+- **Deployment & Hosting:** Vercel
+
+The tech stack ensures that trAIner is adaptable to future innovations, providing a robust foundation for growth and user engagement enhancements.
+
+## Detailed Technologies
+---------------------
+
+### Frontend Technologies
+
+- **Framework:** React - Serves as the flexible backbone for developing dynamic user interfaces, using the **CodeGuide Starter Pro kit** as the foundation.
+- **Component Generation:** **V0 by Vercel** - Enables rapid development of React components with specific prompts for generating UI elements.
+- **Code Assistance:** **Cursor** - Provides advanced code completion and AI assistance for frontend implementation.
+- **Styling:** Tailwind CSS - Offers utility-first styling that maintains consistency across components, with a dark mode default theme.
+- **Hosting:** Vercel - For deploying the app, ensuring automatic deployments and scalability.
+- **Visual Design:** Default dark mode with light mode option, featuring near-black backgrounds (#121212), off-white text (#F5F5F5), and electric blue accents (#3E9EFF).
+- **Agent Visualization Components:** Display reasoning steps, action plans, and reflection insights to build user trust in AI-generated content.
+
+### Backend Technologies
+
+- **Runtime Environment:** Node.js - Powers server-side logic and manages data processing.
+
+- **Database & Authentication:** Supabase - Manages secure user authentication and serves as the main database, providing data security and compliance with privacy regulations like GDPR and CCPA.
+
+- **Agent-Based Architecture:**
+    - **Research Agent** (powered by Perplexity AI): Gathers exercise research and best practices from reputable sources.
+    - **Workout Generation Agent** (powered by OpenAI API): Creates personalized workout plans using the research data and user profile.
+    - **Plan Adjustment Agent** (powered by OpenAI API): Handles workout plan modifications based on user feedback using reflection capabilities.
+    - **Nutrition Agent** (powered by OpenAI API): Calculates macros and nutritional recommendations based on user demographics.
+    - **Agent Memory System**: Utilizes Supabase's vector storage capabilities to store and retrieve relevant user data for improved personalization.
+
+- **AI Services:**
+    - **OpenAI API:** For generating personalized workout plans, adjusting plans based on feedback, and calculating nutritional recommendations.
+    - **Perplexity AI:** To fetch current exercise research and best practices.
+
+- **Pattern Implementation:**
+    - **ReAct Pattern:** For step-by-step reasoning in workout generation.
+    - **Reflection Pattern:** For understanding user feedback and making intelligent plan adjustments.
+
+### Development Tools
+
+- **Cursor:** Advanced IDE for real-time coding support, backend development, and agent implementation.
+- **V0 by Vercel:** For generating frontend components with specific prompts.
+- **Bolt.new:** For generating auth implementations and API services with Supabase integration.
+- **Version Control:** Git-based version control for collaborative development.
+- **Testing Tools:** Jest for unit testing, Cypress for end-to-end testing, and custom frameworks for agent evaluation.
+- **Additional LLMs:** In addition to OpenAI and Perplexity AI, the project’s workflow may also consult other large language models (such as Claude, ChatGPT, or Grok) for test coverage reviews, agent output evaluation, and iterative development assistance.
+
+### Build & Analytics Tools
+
+#### Build Tools
+
+To streamline frontend and backend builds, we will:
+
+1. **Bundler**: Use Vite or Webpack with React to achieve fast, optimized builds. The official CodeGuide Starter Pro kit can be extended with a custom Webpack or Site config for advanced optimizations (tree shaking, code splitting).
+2. **Transpiler**: Babel or TypeScript for modern JS/TS features with backward compatibility as needed.
+3. **Automated Scripts**:
+    - “npm run build” (production build)
+    - “npm run dev” (hot-reload local dev)
+    - “npm run analyze” (bundle analyzer for performance overhead checks)
+
+#### Analytics & Telemetry
+
+1. **Page View Tracking**: Integrate a privacy-conscious tool (e.g., Plausible or a self-hosted PostHog) to measure user visits, active usage, and bounce rates.
+2. **Event-based Analytics**: Track custom events like “generated workout plan,” “completed log entry,” or “opened notifications.” This helps identify popular features and user drop-offs.
+3. **User Consent**: Provide an opt-in for analytics in the user settings to respect privacy laws (GDPR, CCPA).
+4. **Data Storage**: Store aggregated analytics data in a separate schema or external analytics platform. Avoid storing PII or sensitive health info in analytics logs.
+5. **Dashboards**: We can create real-time usage dashboards for the development team to observe any sudden changes in usage or plan generation requests.
+
+### Infrastructure and Deployment
+
+Hosting the app on Vercel takes advantage of modern cloud platforms for scalability and seamless updates through continuous integration. This enables swift security patching and feature enhancements. A modular **agent-based architecture** allows for future additions like wearable integrations and community features.
+
+### Third-Party Integrations
+
+- **AI Integration:** OpenAI API for workout generation, plan adjustment, and nutrition calculation, with additional research facilitated by Perplexity AI.
+- **Notifications:** Incorporate in-app, email, and mobile push notifications, adaptable based on user preferences.
+- **Data Privacy:** Compliance with industry standards, utilizing encryption and user consent protocols.
+
+Future Considerations and Flexibility
+-------------------------------------
+
+- **Frontend Framework:** Using the **CodeGuide Starter Pro kit** provides a solid foundation with built-in authentication, Supabase integration, and OpenAI integration.
+
+- **AI Integration:** While starting with OpenAI API and Perplexity AI, the agent-based architecture is designed to accommodate more advanced AI models in future updates.
+
+- **Scalability:**
+    - Agent-based architecture ensures new AI components can be added without major restructuring.
+    - Database structured for expansion with new features like wearables and advanced nutritional tracking.
+    - Agent Memory System can be extended to support more complex user interactions and feedback loops.
+
+## Security and Performance Considerations
+---------------------------------------
+- **Data Security:** Supabase ensures robust encryption and storage standards.
+- **Agent Access Control:** Ensures AI components only have access to the specific data they need.
+- **Performance Optimization:** Leveraging Node.js' efficient runtime for fast response times and the caching of AI responses where feasible.
+- **Agent Operations:** Background processing for complex AI tasks to prevent UI blocking.
+- **Agent Monitoring:** Tracking performance metrics to ensure high-quality AI-generated content.
+
+## Testing Strategy
+----------------
+- **Unit Testing:** Using Jest to verify individual components and functions.
+- **Integration Testing:** Ensuring different parts of the app work together correctly.
+- **Agent Testing:** Custom frameworks to evaluate AI outputs for quality and consistency.
+- **End-to-End Testing:** Using Cypress or Playwright to simulate real user interactions.
+- **Security Testing:** OWASP-based validation of authentication and data protection.
+- **Performance Testing:** Monitoring response times for AI operations and database queries.
+
+## API Documentation Approach
+-----------------------------
+Given our reliance on AI dev tools and the complexity of a multi-agent fitness app, a centralized API reference is essential. We will:
+
+1. **Maintain an OpenAPI/Swagger Specification:**
+    - Stored in the repository (for example, docs/openapi.yaml).
+    - Lists all endpoints, request bodies, response bodies, and error codes.
+
+2. **Auto-Generation of Docs:**
+    - We will serve interactive documentation (using swagger-ui-express or a similar library) at /docs in the backend.
+    - This ensures any developer or AI tool can see the current endpoints and try them out.
+
+3. **Automated Code Generation:**
+    - Tools like swagger-typescript-api or Postman collections can generate front-end stubs or integration tests from the OpenAPI spec.
+    - This approach ensures the client and server remain in sync and helps keep the doc up to date.
+
+4. **Version Control:**
+    - The OpenAPI file is versioned (for example, info.version in the spec). Breaking changes increment this version, and older versions remain accessible.
+
+By integrating the OpenAPI specification with our code and versioning strategy, we ensure that AI tools and future developers have a single source of truth that accurately reflects the current API surface.
+
+## Conclusion
+----------
+The tech stack for trAIner harmonizes a suite of technologies that enable an intelligent and secure fitness experience. The **agent-based architecture** with specialized components for research, workout generation, plan adjustment, and nutrition calculation provides a flexible and maintainable approach. Leveraging the **CodeGuide Starter Pro kit** with **V0 by Vercel** for component generation, **Cursor** for code assistance, and **Bolt.new** for auth implementation positions trAIner for sustained innovation and user satisfaction.

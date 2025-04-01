@@ -1,0 +1,324 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+#trAIner REST API Reference
+This document defines all known endpoints, request/response bodies, status codes, and example payloads for the trAIner app. It serves as the single source of truth for both human developers and AI dev tooling.
+## 1. Auth and User Management
+
+### 1.1. Sign Up
+- **Endpoint:** POST /v1/auth/signup
+- **Request Body:**
+	```json
+	{
+	"name": "<string> - User's full name",
+	"email": "<string> - User's email address",
+	"password": "<string> - Chosen password"
+	}
+	```
+- **Response:**
+	```json
+	{
+	"userId": "<string> - The newly created user's unique ID",
+	"message": "Account created successfully."
+	}
+	```
+- **Error Codes:**
+    - 400 - Missing required fields
+    - 409 - User already exists
+
+### 1.2. Login
+
+- **Endpoint:** POST /v1/auth/login
+- **Request Body:**
+	```json
+	{
+	"email": "<string>",
+	"password": "<string>”,
+	"rememberMe”: “<boolean - optional>”
+	}
+	```
+
+- **Response:**
+	```json
+	{
+	"userId": "<string> - The existing user's unique ID",
+	“jwtToken”: "<string> - Authentication token for subsequent requests",
+	“refreshToken”: “<string> - Provided if rememberMe is true”,
+	"message": “Login successful."
+	}
+	```
+- **Error Codes:**
+    - 401 - Invalid credentials
+    - 400 - Missing required fields
+
+## 2. Profile
+
+### 2.1 Update or Create Profile
+
+- **Endpoint:** POST /v1/profile
+- **Request Body:**
+	```json
+	{
+	"userId": "<string> - from the JWT or request context",
+
+	// Height input depends on the user's 'units' preference:
+	// - If 'metric': the app expects a single number for height in centimeters.
+	// - If 'imperial': the app expects separate values for feet and inches, which the app
+	//   then converts to total inches internally.
+	// Example if 'imperial': { "feet": 5, "inches": 11 }
+	// Example if 'metric': 180
+	"height": {
+		"value": "<number>", 
+		"units": "<string> - e.g. 'cm' for metric, or 'ft/in' for imperial"
+		},
+
+	"weight": "<number> - in kg if 'metric', or in lbs if 'imperial'",
+	"age": "<number>",
+	"gender": "<string> - optional, e.g., 'male', 'female', 'other'",
+	"preferences": {
+		"units": "<string> - 'metric' or 'imperial'",
+		"exerciseTypes": ["<string> (e.g. 'cardio', 'strength', 'HIIT', 'yoga')",
+		"..."],
+		"equipment": ["<string> (e.g. 'dumbbells', 'barbell', 'kettlebell')",
+		“…”],
+		"workoutFrequency": "<string> (e.g. '3x per week', 'daily', '5x per week')",
+		},
+	"goals": ["<string> (e.g. 'weight_loss', 'muscle_gain', 'endurance')",
+	“…”],
+	}
+	```
+- **Response:**
+	```json
+	{
+  	"status": "success",
+	"updatedProfile": {
+		"userId": "<string>",
+		"height": "<number>",
+		"weight": "<number>",
+		"age": "<number>",
+		"gender": "<string>",
+		"preferences": { },
+		"goals": [ ]
+		},
+	"message": "Profile updated successfully."
+	}
+	```
+- **Error Codes:**
+    - 401 - if authentication token is missing or invalid.
+    - 400 - if required fields are missing.
+
+## 3. Workouts
+
+### 3.1. Generate a Workout Plan
+
+- **Endpoint:** POST /v1/workouts
+- **Request Body:**
+	```json
+	{
+	"userId": "<string>",
+	"fitnessLevel": "<string> - e.g. 'beginner', 'intermediate', 'advanced'",
+	"goals": ["<string> (e.g. 'weight_loss', 'muscle_gain', 'endurance')", “…”],
+	"equipment": ["<string> (e.g. 'dumbbells', 'barbell', 'kettlebell')", “…”],
+	"restrictions": ["<string>", "..."],
+	"exerciseTypes": ["<string> (e.g. 'cardio', 'strength', 'HIIT', 'yoga')", "..."],
+	"workoutFrequency": "<string> (e.g. '3x per week', 'daily', '5x per week')",
+	}
+	```
+- **Response:**
+	```json
+	{
+	"planId": "<string>",
+	"planName": "<string>",
+	"exercises": [
+		{
+		"name": "<string>",
+		"sets": <number>,
+		"repsOrRange": "<string> - e.g. '8-10', '6-8', etc.",
+		"notes": "<string> - e.g. 'drop set', 'superset with X'"
+		}
+		],
+	"researchInsights": ["<string> - e.g. short bullet summarizing relevant studies or exercise notes from Perplexity"
+	],
+	"reasoning": "<string> - brief summary of how the final plan was constructed"
+	}
+	```
+- **Error Codes:**
+    - 400 if the input is incomplete (e.g., missing fitnessLevel)
+    - 401 if not authenticated.
+    - 429 if rate limited or if the AI-based plan generation or research is at capacity.
+
+### 3.2. Adjust an Existing Workout Plan
+
+- **Endpoint:** POST /v1/workouts/{planId}
+- **Request Body:**
+	```json
+	{
+	"userId": "<string>",
+	"adjustments": {
+		"exercisesToAdd": [],
+		"exercisesToRemove": [],
+		"notesOrPreferences": "Focus more on upper body"
+		}
+	}
+	```
+- **Response:**
+	```json
+	{
+	"planId": "<string>",
+	"updatedExercises": [],
+	"reflection": "AI reasoning about the changes"
+	}
+	```
+- **Error Codes:**
+    - 400, 401, 404 as appropriate
+
+### 3.3. Log Completed Workout
+
+- **Endpoint:** POST /v1/workouts/log
+- **Request Body:**
+	```json
+	{
+	"userId": "<string>",
+	"planId": "<string> - which workout plan they are following",
+	"date": "<string> - e.g. '2023-08-15' in YYYY-MM-DD format",
+	"loggedExercises": [
+		{
+		"exerciseName": "<string>",
+		"setsCompleted": [
+		    {
+		    "weightUsed": "<number> - in kg or lbs, depending on user preference",
+		    "repsCompleted": <number>
+		    }
+		    ]
+		}
+		],
+	"notes": "<string> - optional user notes or how they felt about the session"
+	}
+	```
+- **Response:**
+	```json
+	{
+	"logId": "<string> - unique identifier for this logged workout session",
+	"message": "Workout log saved successfully."
+	}
+	```
+- **Error Codes:**
+    - 400 if any required field is missing or invalid.
+    - 401 if user is not authenticated.
+    - 404 if planId does not exist (if relevant).
+
+### 3.4. Search / Filter Workouts or Plans
+
+- **Endpoint:** POST /v1/workouts/log
+- **Query Parameters** (all optional):
+	- `startDate` (string, YYYY-MM-DD): Return only workouts/logs on or after this date.
+	- `endDate` (string, YYYY-MM-DD): Return only workouts/logs on or before this date.
+	- `exerciseName` (string): Filter by exercise name. Partial matches are allowed if we do fuzzy searching.
+	- `planId` (string): Return entries for a specific plan ID only.
+
+- **Response:**
+	```json
+	{
+	"status": "success",
+	"data": [
+    	{
+  		"planId": "<string>",
+  		"date": "<YYYY-MM-DD>",
+  		"exercises": [...],
+  		"notes": "..."
+  		},
+		"..."
+  		],
+  	"message": "Filtered workouts returned successfully."
+	}
+	```
+ - **Error Codes:**
+    - 400 if invalid date formats are provided
+    - 401 if unauthorized
+
+- **Implementation Notes:**
+    1. This endpoint can query the “workout_logs” or “workouts” table (or a join of both) to return relevant data. 
+    2. If the dataset grows large, consider pagination parameters (e.g., “page”, “limit”) and indexing by date or exercise name.
+    3. For fuzzy text searches on “exerciseName”, we might rely on Supabase’s “ilike” or a more advanced search solution.
+
+## 4. Macros
+
+### 4.1. Calculate Macros & Progress Check-Ins
+
+- **Endpoint:** POST /v1/macros/calculate
+- **Request Body:**
+	```json
+	{
+	"userId": "<string>",
+	"weight": "<number>",
+	"workoutFrequency": "<string> (e.g. '3x per week', 'daily', '5x per week')",
+	“progressMetrics”: {
+		"bodyFat": "<number> - optional, in percentage",
+		"measurements": {
+		"waist": "<number>",
+		"chest": "<number>"
+		}
+		}
+	}
+	```
+- **Response:**
+	```json
+	{
+	"recommendedDailyCalories": "<number>",
+	"recommendedMacros": {
+		"protein": "<number>",
+		"carbs": "<number>",
+		"fat": "<number>"
+		},
+	"message": "Macros updated successfully."
+	}
+	```
+- **Error Codes:**
+    - 400 if any required field is missing or invalid.
+    - 401 if not authenticated.
+
+## 5. Notifications
+
+### 5.1. Update Notification Preferences
+
+- **Endpoint:** POST /v1/notifications/preferences
+- **Request Body:**
+	```json
+	{
+	"userId": "<string>",
+	"emailNotifications": "<boolean>",
+	"pushNotifications": "<boolean>",
+	"smsNotifications": "<boolean>",
+	"preferredChannels": ["<string>", "..."]
+	}
+	```
+- **Response:**
+	```json
+	{
+	"status": "success",
+	"message": "Notification preferences updated."
+	}
+	```
+- **Error Codes:**
+    - 400 if the data is malformed
+    - 401 if token is invalid
+
+## 6. Error Response Format (General)
+
+Whenever an error occurs, the API returns:
+
+```json
+{
+  "status": "error",
+  "errorCode": "<string>",
+  "message": "<description>"
+}
+```
+Along with an appropriate HTTP status code (400, 401, 404, 500, etc.).
+
+## 7. Rate Limiting and SSRF Protections
+
+- Rate Limiting: Some endpoints (e.g., /v1/workouts) may return 429 if the user exceeds 10 requests/hour.
+- SSRF: Outbound requests by the AI agents to external sites are restricted or validated.

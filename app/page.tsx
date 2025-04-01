@@ -1,8 +1,5 @@
-"use client"
-
-import { Hero } from '@/components/ui/animated-hero'
-import Image from 'next/image'
+import { redirect } from "next/navigation"
 
 export default function Home() {
-  return <Hero />
+  return redirect("/dashboard")
 }
