@@ -38,8 +38,14 @@ router.get('/health', (req, res) => {
 const authRoutes = require('./auth');
 const healthRoutes = require('./v1/health');
 const profileRoutes = require('./profile');
+const nutritionRoutes = require('./nutrition');
+const workoutRoutes = require('./workout');
+const workoutLogRoutes = require('./workout-log');
+const checkInRoutes = require('./check-in');
+const macroRoutes = require('./macros');
+const notificationRoutes = require('./notifications');
+const dataTransferRoutes = require('./data-transfer');
 // TODO: Import additional route modules when implemented
-// const workoutRoutes = require('./workout');
 
 // Register routes
 function registerRoutes(app) {
@@ -53,8 +59,13 @@ function registerRoutes(app) {
   apiRouter.use('/auth', authRoutes);
   apiRouter.use('/health', healthRoutes);
   apiRouter.use('/profile', profileRoutes);
-  // TODO: Register additional route modules when implemented
-  // apiRouter.use('/workouts', workoutRoutes);
+  apiRouter.use('/nutrition', nutritionRoutes); // Updated: use /nutrition prefix to match API structure
+  apiRouter.use('/macros', macroRoutes); // New: mount macro routes under /macros prefix
+  apiRouter.use('/workouts', workoutRoutes);
+  apiRouter.use('/', workoutLogRoutes); // Mount workout log routes at root level since they have full paths
+  apiRouter.use('/progress', checkInRoutes); // Mount check-in routes under /progress to match the intended API structure
+  apiRouter.use('/notifications', notificationRoutes);
+  apiRouter.use('/', dataTransferRoutes); // Mount data transfer routes at root level since they have full paths
 
   // Mount versioned API routes
   app.use('/v1', apiRouter);

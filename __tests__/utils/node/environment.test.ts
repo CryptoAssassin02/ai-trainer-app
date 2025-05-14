@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as versionUtils from '../../../utils/node/version';
 import { 
   checkEnvironment, 
@@ -7,18 +7,18 @@ import {
 } from '../../../utils/node/environment';
 
 // Mock the version utility functions
-vi.mock('../../../utils/node/version', () => ({
-  checkNodeVersion: vi.fn(),
+jest.mock('../../../utils/node/version', () => ({
+  checkNodeVersion: jest.fn(),
   MIN_NODE_VERSION: '18.17.0'
 }));
 
 describe('Node.js Environment Utility', () => {
-  // Get the mocked function
-  const mockCheckNodeVersion = versionUtils.checkNodeVersion as ReturnType<typeof vi.fn>;
+  // Get the mocked function using Jest's type for mocked functions
+  const mockCheckNodeVersion = versionUtils.checkNodeVersion as jest.MockedFunction<typeof versionUtils.checkNodeVersion>;
   
   // Reset mocks before each test
   beforeEach(() => {
-    vi.resetAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('checkEnvironment', () => {

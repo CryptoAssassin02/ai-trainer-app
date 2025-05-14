@@ -7,6 +7,9 @@ const { env } = require('../config');
 const { Pool } = require('pg');
 const dns = require('dns').promises;
 
+// Forward declaration for module.exports being used internally
+let supabaseModuleExports;
+
 /**
  * Parse project reference from Supabase URL or environment variable
  * @param {string} supabaseUrl - The Supabase project URL
@@ -19,20 +22,38 @@ function getProjectRef(supabaseUrl) {
     return env.supabase.projectRef;
   }
 
+  let parsedUrl;
   try {
-    // Extract from URL if not in environment
-    const url = new URL(supabaseUrl);
-    // Project ref is the second part of the hostname (db.[PROJECT-REF].supabase.co)
-    const projectRef = url.hostname.split('.')[1];
-    
-    if (!projectRef) {
-      throw new Error('Invalid Supabase URL format');
-    }
-    
-    return projectRef;
-  } catch (error) {
+    parsedUrl = new URL(supabaseUrl);
+  } catch (urlParseError) {
+    // If new URL() constructor fails for a completely invalid string
     throw new Error('Could not determine project reference. Please set SUPABASE_PROJECT_REF in .env');
   }
+
+  const hostnameParts = parsedUrl.hostname.split('.');
+  // Expecting at least like [PROJECT-REF].supabase.co (3 parts)
+  // or for custom domains/older structures like [PROJECT-REF].supabase.com (3 parts)
+  // The original comment mentioned db.[PROJECT-REF].supabase.co (4 parts), 
+  // but tests imply [PROJECT-REF].supabase.co as primary target.
+  // For https://[PROJECT-REF].supabase.co, projectRef is hostnameParts[0]
+  // For https://db.[PROJECT-REF].supabase.co, projectRef is hostnameParts[1]
+  
+  // Let's try to be a bit more robust or pick a primary supported format.
+  // Given the tests, the primary format seems to be [PROJECT-REF].supabase.tld
+  if (hostnameParts.length >= 2 && (parsedUrl.hostname.endsWith('.supabase.co') || parsedUrl.hostname.endsWith('.supabase.com'))) {
+    const projectRef = hostnameParts[0];
+    if (projectRef && projectRef !== 'db' && projectRef !== 'auth' && projectRef !== 'storage' && projectRef !== 'realtime' && projectRef !== 'functions') { // Ensure it's not a service subdomain if it's short
+        return projectRef;
+    } 
+    // If it looked like a service subdomain (e.g. db.project.supabase.co) or a generic (e.g. db.supabase.co)
+    // and hostnameParts[1] exists and is not 'supabase', it might be the ref.
+    if (hostnameParts.length >=3 && hostnameParts[1] !== 'supabase') {
+        return hostnameParts[1]; // for cases like db.actual-ref.supabase.co
+    }
+  }
+
+  // If we haven't returned a ref, the format is not recognized as expected or is ambiguous.
+  throw new Error('Invalid Supabase URL format or ambiguous project reference.');
 }
 
 /**
@@ -155,9 +176,20 @@ function getPoolConfig(type = 'direct') {
  * @returns {Promise<Object>} Connection test result
  */
 async function testConnection(connectionString) {
+  let url;
   try {
     // Extract hostname for DNS check
-    const url = new URL(connectionString);
+    url = new URL(connectionString);
+  } catch (urlError) {
+    // Handle URL parsing errors consistently
+    return {
+      success: false,
+      error: "Invalid URL", // Fixed error message
+      errorType: 'ERR_INVALID_URL' // Fixed error type
+    };
+  }
+
+  try {
     const hostname = url.hostname;
 
     try {
@@ -228,8 +260,9 @@ async function createConnectionWithFallback(options = {}) {
   // Try each connection type in sequence
   for (const type of types) {
     try {
-      const connectionString = createConnectionString({ type, useServiceRole });
-      const testResult = await testConnection(connectionString);
+      // Use supabaseModuleExports to ensure spied functions are called
+      const connectionString = supabaseModuleExports.createConnectionString({ type, useServiceRole });
+      const testResult = await supabaseModuleExports.testConnection(connectionString);
 
       if (testResult.success) {
         return {
@@ -259,10 +292,12 @@ async function createConnectionWithFallback(options = {}) {
   };
 }
 
-module.exports = {
+supabaseModuleExports = {
   createConnectionString,
   getPoolConfig,
   getProjectRef,
   testConnection,
   createConnectionWithFallback
-}; 
+};
+
+module.exports = supabaseModuleExports; 

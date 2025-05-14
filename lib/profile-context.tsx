@@ -5,6 +5,8 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { useEffect as useEffectWithoutSSR } from "react"
+// Import the specific table type from generated types
+import type { Tables } from "@/types/database.types"
 
 // Define the shape of the user profile data
 export interface UserProfile {
@@ -49,6 +51,66 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
+// Helper function to transform DB profile to frontend UserProfile
+const transformDbProfileToFrontend = (dbProfile: Tables<'user_profiles'> | null): UserProfile | null => {
+  if (!dbProfile) return null;
+
+  // Type guard helper for experience level
+  const experienceLevels = ["beginner", "intermediate", "advanced"] as const;
+  type ExperienceLevel = typeof experienceLevels[number];
+  const isValidExperienceLevel = (level: string | null): level is ExperienceLevel => 
+    experienceLevels.includes(level as ExperienceLevel);
+
+  // Type guard helper for unit preference
+  const unitPreferences = ["metric", "imperial"] as const;
+  type UnitPreference = typeof unitPreferences[number];
+  const isValidUnitPreference = (pref: string | null): pref is UnitPreference =>
+    unitPreferences.includes(pref as UnitPreference);
+
+  return {
+    id: dbProfile.id,
+    user_id: dbProfile.user_id,
+    name: dbProfile.name || defaultProfile.name,
+    age: dbProfile.age === null ? defaultProfile.age : dbProfile.age,
+    gender: dbProfile.gender === null ? defaultProfile.gender : dbProfile.gender,
+    height: dbProfile.height === null ? defaultProfile.height : dbProfile.height,
+    weight: dbProfile.weight === null ? defaultProfile.weight : dbProfile.weight,
+    // Use type guard or default for experienceLevel
+    experienceLevel: isValidExperienceLevel(dbProfile.experience_level) 
+      ? dbProfile.experience_level 
+      : defaultProfile.experienceLevel,
+    fitnessGoals: dbProfile.fitness_goals || defaultProfile.fitnessGoals,
+    medicalConditions: dbProfile.medical_conditions || defaultProfile.medicalConditions,
+    equipment: dbProfile.equipment || defaultProfile.equipment,
+    created_at: dbProfile.created_at || undefined,
+    updated_at: dbProfile.updated_at || undefined,
+    // Use type guard or default for unit_preference
+    unit_preference: isValidUnitPreference(dbProfile.unit_preference)
+      ? dbProfile.unit_preference
+      : defaultProfile.unit_preference,
+  };
+};
+
+// Helper function to transform frontend UserProfile to DB structure
+const transformFrontendProfileToDb = (profile: UserProfile, userId: string) => {
+  return {
+    // Map camelCase to snake_case
+    id: profile.id, // Include if updating
+    user_id: profile.user_id || userId,
+    name: profile.name,
+    age: profile.age,
+    gender: profile.gender,
+    height: profile.height,
+    weight: profile.weight,
+    experience_level: profile.experienceLevel,
+    fitness_goals: profile.fitnessGoals,
+    medical_conditions: profile.medicalConditions,
+    equipment: profile.equipment,
+    unit_preference: profile.unit_preference,
+    // updated_at will be handled by DB/Supabase
+  };
+};
+
 // Provider component
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(defaultProfile)
@@ -81,7 +143,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         const userId = session.user.id
 
         // Fetch the user's profile from the database
-        const { data, error } = await supabase
+        const { data: dbData, error } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', userId)
@@ -104,9 +166,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               variant: "destructive",
             })
           }
-        } else if (data) {
-          // If profile exists, use it
-          setProfile(data)
+        } else if (dbData) {
+          // If profile exists, transform it and set state
+          const transformedProfile = transformDbProfileToFrontend(dbData);
+          if (transformedProfile) {
+            setProfile(transformedProfile)
+          }
         }
       } catch (err) {
         console.error('Unexpected error:', err)
@@ -146,7 +211,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true)
       setError(null)
       
-      const updatedProfile = { ...profile, ...data, updated_at: new Date().toISOString() }
+      // Merge incoming data with current profile state
+      const profileToSave: UserProfile = { ...profile, ...data };
       
       // Get the current user session
       const { data: { session } } = await supabase.auth.getSession()
@@ -154,17 +220,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         const userId = session.user.id
         
+        // Transform frontend profile to DB structure before upserting
+        const dbProfileData = transformFrontendProfileToDb(profileToSave, userId);
+
         // Upsert the profile to Supabase
-        const { error } = await supabase
+        const { error: upsertError } = await supabase
           .from('user_profiles')
-          .upsert({ 
-            ...updatedProfile,
-            user_id: userId,
-            id: profile.id // Keep existing ID if present
-          })
+          .upsert(dbProfileData) // Use transformed data
           
-        if (error) {
-          console.error('Error updating profile:', error)
+        if (upsertError) {
+          console.error('Error updating profile:', upsertError)
           setError('Failed to update profile')
           toast({
             title: "Error",
@@ -174,8 +239,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        // Refetch the profile to get the latest data with ID
-        const { data, error: fetchError } = await supabase
+        // Refetch the profile to get the latest data (e.g., with generated ID/timestamps)
+        const { data: refetchedDbData, error: fetchError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', userId)
@@ -183,17 +248,22 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           
         if (fetchError) {
           console.error('Error fetching updated profile:', fetchError)
-        } else if (data) {
-          setProfile(data)
+        } else if (refetchedDbData) {
+          // Transform the refetched data before setting state
+          const updatedTransformedProfile = transformDbProfileToFrontend(refetchedDbData);
+          if (updatedTransformedProfile) {
+             setProfile(updatedTransformedProfile)
+          }
           toast({
             title: "Success",
             description: "Your profile has been updated",
           })
         }
       } else {
-        // No authenticated user, use localStorage as fallback
-        setProfile(updatedProfile)
-        localStorage.setItem("userProfile", JSON.stringify(updatedProfile))
+        // No authenticated user, update local state and localStorage (no transformation needed here)
+        const updatedLocalProfile = { ...profile, ...data, updated_at: new Date().toISOString() };
+        setProfile(updatedLocalProfile)
+        localStorage.setItem("userProfile", JSON.stringify(updatedLocalProfile))
       }
     } catch (err) {
       console.error('Unexpected error:', err)

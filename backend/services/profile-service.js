@@ -6,13 +6,20 @@ const { getSupabaseClient } = require('./supabase');
 const { 
   ValidationError, 
   NotFoundError, 
-  InternalError 
+  InternalError,
+  ConflictError
 } = require('../utils/errors');
 const { convertHeight, convertWeight } = require('../utils/unit-conversion');
 const logger = require('../config/logger');
 
 // Table name for user profiles
 const PROFILES_TABLE = 'user_profiles';
+
+// Error code for version conflict
+const VERSION_CONFLICT_ERROR = 'P2034';
+
+// Maximum retry attempts for version conflicts
+const MAX_RETRY_ATTEMPTS = 3;
 
 /**
  * Get a user profile by user ID
@@ -26,30 +33,51 @@ async function getProfileByUserId(userId) {
   try {
     const supabase = getSupabaseClient();
     
+    // Supabase response includes both data and error properties
     const { data, error } = await supabase
       .from(PROFILES_TABLE)
       .select('*')
       .eq('user_id', userId)
       .single();
     
+    // Check for errors first
     if (error) {
+      // If it's a PGRST116 error (not found), throw NotFoundError
       if (error.code === 'PGRST116') {
+        logger.warn(`NotFoundError: Profile not found for user: ${userId}`);
         throw new NotFoundError(`Profile not found for user: ${userId}`);
       }
-      throw new InternalError('Failed to fetch user profile', error);
+      
+      // For all other error types, throw InternalError
+      logger.error(`Database error in getProfileByUserId for user ${userId}:`, error);
+      throw new InternalError('Failed to fetch user profile due to a database error', error);
     }
     
+    // Then check if data is missing/null
     if (!data) {
+      // This case should ideally be handled by error above, but keep as a safeguard
+      logger.warn(`Profile data is null/undefined for user ${userId} even though promise resolved without error.`);
       throw new NotFoundError(`Profile not found for user: ${userId}`);
     }
     
-    // Handle unit conversions if needed
     return convertProfileUnitsForResponse(data);
-  } catch (error) {
-    if (error instanceof NotFoundError || error instanceof InternalError) {
+
+  } catch (error) { // Catch block expects promise rejections now
+    logger.error('Caught error in getProfileByUserId catch block:', { errorName: error.name, errorCode: error.code, errorMessage: error.message });
+
+    // Check for the specific 'not found' error code from the caught (rejected) error
+    if (error.code === 'PGRST116') { // PostgREST code for exact row not found
+      logger.warn(`NotFoundError: Profile not found for user: ${userId}`);
+      throw new NotFoundError(`Profile not found for user: ${userId}`);
+    }
+
+    // Re-throw other specific errors if needed (though less likely here)
+    if (error instanceof NotFoundError || error.name === 'InternalError') {
       throw error;
     }
-    logger.error('Error in getProfileByUserId:', error);
+
+    // Otherwise, wrap any other caught error in InternalError
+    logger.error(`Error in getProfileByUserId for user ${userId}:`, error);
     throw new InternalError('Failed to fetch user profile', error);
   }
 }
@@ -60,35 +88,84 @@ async function getProfileByUserId(userId) {
  * @param {Object} profileData - Profile data to save
  * @returns {Promise<Object>} Created profile
  * @throws {ValidationError} If profile data is invalid
+ * @throws {ConflictError} If profile already exists for the user
  * @throws {InternalError} If database operation fails
  */
 async function createProfile(profileData) {
+  logger.info('Attempting to create profile', { userId: profileData?.userId });
   try {
-    validateProfileData(profileData);
-    
+    // Validate input data first
+    validateProfileData(profileData, false); // isUpdate = false
+
+    // Prepare data for database insertion (snake_case, conversions)
+    const dbData = prepareProfileDataForStorage(profileData);
+    logger.debug('Prepared data for DB insertion:', dbData);
+
+    // Get Supabase client
     const supabase = getSupabaseClient();
-    
-    // Prepare data for storage (convert units if needed)
-    const dataToStore = prepareProfileDataForStorage(profileData);
-    
-    const { data, error } = await supabase
+
+    // Execute the insert operation
+    logger.debug('Executing Supabase insert...');
+    // ---> Add logs before the call
+    console.log(`--- DEBUG SERVICE (createProfile): Before supabase.from('${PROFILES_TABLE}').insert(...) ---`);
+    console.log(`--- DEBUG SERVICE (createProfile): typeof supabase.from === ${typeof supabase?.from}`);
+    const fromResult = supabase.from(PROFILES_TABLE);
+    console.log(`--- DEBUG SERVICE (createProfile): Result of supabase.from('${PROFILES_TABLE}') keys: ${fromResult ? Object.keys(fromResult).join(', ') : 'null/undefined'} ---`);
+    console.log(`--- DEBUG SERVICE (createProfile): typeof fromResult.insert === ${typeof fromResult?.insert}`);
+    // <--- End added logs
+
+    // Await will now THROW if the mock promise rejects
+    const { data: newProfileData } = await supabase
       .from(PROFILES_TABLE)
-      .insert(dataToStore)
-      .select()
-      .single();
+      .insert(dbData) 
+      .select() 
+      .single(); 
+      
+    // This part is only reached on SUCCESS (promise resolved)
+    logger.debug('Supabase insert resolved successfully.');
+    console.log("--- DEBUG SERVICE (createProfile): Insert Promise RESOLVED ---");
+    console.log("--- DEBUG SERVICE (createProfile): Resolved data (newProfileData):", newProfileData);
     
-    if (error) {
-      throw new InternalError('Failed to create user profile', error);
+    logger.debug('Checking if newProfileData exists...', { exists: !!newProfileData });
+    if (!newProfileData) {
+      logger.error('newProfileData is null or undefined after successful insert call.');
+      console.error("--- DEBUG SERVICE (createProfile): ERROR - newProfileData is null/undefined post-resolution ---");
+      // This case might indicate an issue post-insert or with RLS, treat as internal error
+      throw new InternalError('Failed to retrieve profile data immediately after creation.');
+    }
+
+    logger.info(`Profile created successfully for user ID: ${profileData.userId}`);
+    logger.debug('Converting profile data for response...');
+    const responseData = convertProfileUnitsForResponse(newProfileData);
+    logger.debug('Returning response data.');
+    console.log("--- DEBUG SERVICE (createProfile): Successfully returning response data:", responseData);
+    return responseData;
+
+
+  } catch (error) { // Catch block expects promise rejections now
+    logger.error('Caught error in createProfile catch block:', { errorName: error.name, errorCode: error.code, errorMessage: error.message });
+
+    // Handle validation errors specifically if they bubble up
+    if (error instanceof ValidationError) {
+      logger.warn(`ValidationError during profile creation: ${error.message}`);
+      throw error; // Re-throw validation errors as they are
     }
     
-    // Handle unit conversions for response
-    return convertProfileUnitsForResponse(data);
-  } catch (error) {
-    if (error instanceof ValidationError || error instanceof InternalError) {
-      throw error;
+    // Check for the specific conflict error code from the caught (rejected) error
+    if (error.code === '23505') { // PostgreSQL unique violation error code
+      logger.warn(`ConflictError: Profile already exists for user ID: ${profileData.userId || 'N/A'}`);
+      throw new ConflictError('A profile for this user already exists.');
     }
-    logger.error('Error in createProfile:', error);
-    throw new InternalError('Failed to create user profile', error);
+
+    // If it's already an InternalError (e.g., from the !newProfileData check), re-throw it
+    if (error.name === 'InternalError') {
+        throw error;
+    }
+    
+    // Otherwise, wrap any other caught error (like the generic DB error from rejection) in InternalError
+    const logUserId = profileData && profileData.userId ? profileData.userId : 'UserIdNotProvidedInInput';
+    logger.error(`Unexpected error in createProfile for user ${logUserId}:`, error);
+    throw new InternalError('An unexpected error occurred while creating the user profile', error);
   }
 }
 
@@ -100,57 +177,199 @@ async function createProfile(profileData) {
  * @returns {Promise<Object>} Updated profile
  * @throws {NotFoundError} If profile doesn't exist
  * @throws {ValidationError} If update data is invalid
+ * @throws {ConflictError} If maximum retry attempts are exceeded
  * @throws {InternalError} If database operation fails
  */
-async function updateProfile(userId, updateData) {
+async function updateProfile(userId, data) {
+  // Input validation
   try {
-    validateProfileData(updateData, true);
+    // Replace Joi validation with existing validateProfileData function
+    validateProfileData(data, true); // true indicates this is an update operation
     
+    // Get Supabase client
     const supabase = getSupabaseClient();
-    
-    // First check if profile exists
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from(PROFILES_TABLE)
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    
-    if (fetchError) {
-      if (fetchError.code === 'PGRST116') {
-        throw new NotFoundError(`Profile not found for user: ${userId}`);
+   
+    let existingProfile = null;
+    let initialFetchError = null; // Store potential error from the initial fetch
+
+    // 1. Fetch the existing profile first to get the current version
+    try {
+      console.log(`--- DEBUG SVC (updateProfile): Fetching profile for user ${userId} ---`);
+      existingProfile = await getProfileByUserId(userId); // Use function directly, not this.getProfileByUserId
+      console.log(`--- DEBUG SVC (updateProfile): Fetched profile:`, existingProfile ? `Version ${existingProfile.version}` : 'Not Found');
+    } catch (fetchError) {
+      console.error(`--- DEBUG SVC (updateProfile): Error during initial fetch:`, fetchError);
+      // If the initial fetch failed because the profile wasn't found, re-throw NotFoundError immediately.
+      // Check both the instance type and potentially a specific error code if applicable.
+      if (fetchError instanceof NotFoundError || fetchError.code === 'PGRST116') { // PGRST116 might indicate 0 rows returned
+        console.log('--- DEBUG SVC (updateProfile): Rethrowing NotFoundError from initial fetch ---');
+        throw new NotFoundError(`Profile not found for user: ${userId}`, fetchError);
       }
-      throw new InternalError('Failed to fetch user profile for update', fetchError);
+      // For other fetch errors, store it but proceed to see if we can update anyway (less likely, but covers edge cases)
+      initialFetchError = fetchError;
+      console.log('--- DEBUG SVC (updateProfile): Stored non-NotFoundError from initial fetch:', initialFetchError);
     }
-    
+
+    // 2. If the initial fetch *definitely* failed (and it wasn't a NotFoundError already thrown),
+    //    we cannot proceed with an update that relies on the current version. Throw the stored error.
+    if (!existingProfile && initialFetchError) {
+        console.error('--- DEBUG SVC (updateProfile): Initial fetch failed with non-NotFoundError, throwing InternalError before update attempt. ---');
+        throw new InternalError('Failed to fetch user profile before update.', initialFetchError);
+    }
+
+    // 3. If the initial fetch returned nothing BUT didn't throw an error (shouldn't happen if getProfileByUserId is correct),
+    //    or if the profile genuinely doesn't exist (fetchError was NotFoundError but wasn't caught above somehow).
     if (!existingProfile) {
-      throw new NotFoundError(`Profile not found for user: ${userId}`);
+        console.error(`--- DEBUG SVC (updateProfile): Profile not found for user ${userId} before update attempt (either fetch returned null or previous error handling missed). Throwing NotFoundError. ---`);
+        throw new NotFoundError(`Profile not found for user: ${userId}`);
+    }
+
+    // 4. Proceed with the update attempt using the fetched profile's version
+    let attempts = 1;
+    const MAX_RETRY_ATTEMPTS = 3; // Define max retries
+    
+    while (attempts <= MAX_RETRY_ATTEMPTS) {
+      try {
+        const currentVersion = existingProfile.version;
+        const updatePayload = {
+          ...prepareProfileDataForStorage(data, existingProfile),
+          version: currentVersion + 1, // Increment version for optimistic lock
+          updated_at: new Date().toISOString(),
+        };
+
+        console.log(`--- DEBUG SVC (updateProfile): Attempting update (Attempt ${attempts}) for user ${userId} with version ${currentVersion} ---`, updatePayload);
+
+        const { data: updatedData, error: updateError } = await supabase
+          .from(PROFILES_TABLE)
+          .update(updatePayload)
+          .eq('user_id', userId)
+          .eq('version', currentVersion) // Optimistic lock
+          .select()
+          .single();
+
+        console.log(`--- DEBUG SVC (updateProfile): Update Attempt ${attempts} Result - Error: ${JSON.stringify(updateError)}, Data: ${JSON.stringify(updatedData)} ---`);
+
+        if (updateError) {
+          console.error(`--- DEBUG SVC (updateProfile): Update error (Attempt ${attempts}):`, updateError);
+          // Check for version conflict (Supabase might return 0 rows affected, or specific code)
+          // PGRST116 often means the WHERE clause (.eq('version', currentVersion)) matched 0 rows.
+          // P2034 is a specific version conflict error code
+          if (updateError.code === 'PGRST116' || updateError.code === 'P2034' || updateError.message?.includes('constraint violation')) {
+            console.log(`--- DEBUG SVC (updateProfile): Caught DB conflict error (${updateError.code || 'message match'}), retrying... ---`);
+            attempts++;
+            
+            // If we've exceeded max retries, throw a ConflictError immediately
+            if (attempts > MAX_RETRY_ATTEMPTS) {
+              console.error(`--- DEBUG SVC (updateProfile): Max retries (${MAX_RETRY_ATTEMPTS}) exceeded for version conflict. ---`);
+              throw new ConflictError(
+                `Profile update failed after ${MAX_RETRY_ATTEMPTS} attempts due to version conflicts.`,
+                updateError
+              );
+            }
+            
+            console.log(`--- DEBUG SVC (updateProfile): Retrying update (Attempt ${attempts}). Fetching latest profile... ---`);
+            
+            // Fetch the latest profile version *again* before the next attempt
+            try {
+              existingProfile = await getProfileByUserId(userId);
+              console.log(`--- DEBUG SVC (updateProfile): Fetched latest profile for retry:`, existingProfile ? `Version ${existingProfile.version}` : 'Not Found during retry');
+              if (!existingProfile) {
+                // If the profile disappears during retry, it's a NotFoundError situation
+                throw new NotFoundError(`Profile for user ${userId} disappeared during update retry.`);
+              }
+              // Continue to the next iteration of the while loop with the new `existingProfile` version
+              continue;
+            } catch(retryFetchError) {
+              console.error(`--- DEBUG SVC (updateProfile): Error fetching profile during retry (Attempt ${attempts}):`, retryFetchError);
+              // If fetching fails during retry, throw an appropriate error
+              if (retryFetchError instanceof NotFoundError || retryFetchError.code === 'PGRST116') {
+                throw new NotFoundError(`Profile for user ${userId} not found during update retry.`, retryFetchError);
+              }
+              throw new InternalError(`Failed to fetch profile during update retry attempt ${attempts}.`, retryFetchError);
+            }
+          } else {
+            // Throw other database update errors immediately
+            console.error(`--- DEBUG SVC (updateProfile): Non-conflict update DB error:`, updateError);
+            throw new InternalError('Failed to update user profile due to a database error.', updateError);
+          }
+        } else if (!updatedData) {
+          // If no data returned but also no error, it's an anomaly
+          console.error(`--- DEBUG SVC (updateProfile): Update returned no error but also no data on attempt ${attempts} ---`);
+          throw new InternalError('Failed to retrieve updated profile data');
+        } else {
+          // Success!
+          console.log(`--- DEBUG SVC (updateProfile): Update successful on attempt ${attempts} ---`);
+          // Return the converted profile data
+          return convertProfileUnitsForResponse(updatedData);
+        }
+      } catch (error) {
+        // Catch errors thrown from within the try block
+        console.error(`--- DEBUG SVC (updateProfile): Error caught within retry loop (Attempt ${attempts}):`, error);
+        
+        // Re-throw specific errors directly
+        if (error instanceof ValidationError || 
+            error instanceof NotFoundError || 
+            error instanceof ConflictError || 
+            error instanceof InternalError) {
+          throw error;
+        }
+        
+        // Handle PGRST116 errors as conflicts
+        if (error.code === 'PGRST116' || error.code === 'P2034') {
+          attempts++;
+          
+          // If we've exceeded max retries, throw a ConflictError
+          if (attempts > MAX_RETRY_ATTEMPTS) {
+            throw new ConflictError(
+              `Profile update failed after ${MAX_RETRY_ATTEMPTS} attempts due to version conflicts.`,
+              error
+            );
+          }
+          
+          console.log(`--- DEBUG SVC (updateProfile): Caught conflict error in catch block, incrementing attempts to ${attempts} ---`);
+          
+          // Try to fetch the profile again for the next attempt
+          try {
+            existingProfile = await getProfileByUserId(userId);
+            continue;
+          } catch (fetchError) {
+            if (fetchError instanceof NotFoundError) {
+              throw fetchError;
+            }
+            throw new InternalError('Failed to fetch profile during update retry', fetchError);
+          }
+        }
+        
+        // Wrap any other unexpected errors
+        throw new InternalError(`Unexpected error during profile update attempt ${attempts}.`, error);
+      }
     }
     
-    // Prepare data for storage
-    const dataToStore = prepareProfileDataForStorage(updateData, existingProfile);
-    
-    // Update the profile
-    const { data, error } = await supabase
-      .from(PROFILES_TABLE)
-      .update(dataToStore)
-      .eq('user_id', userId)
-      .select()
-      .single();
-    
-    if (error) {
-      throw new InternalError('Failed to update user profile', error);
-    }
-    
-    // Handle unit conversions for response
-    return convertProfileUnitsForResponse(data);
+    // If we've gotten here, we've exceeded max retries without throwing an error yet
+    throw new ConflictError(`Profile update failed after ${MAX_RETRY_ATTEMPTS} attempts due to version conflicts.`);
   } catch (error) {
-    if (error instanceof NotFoundError || 
-        error instanceof ValidationError || 
-        error instanceof InternalError) {
+    // Re-throw validation errors
+    if (error instanceof ValidationError) {
       throw error;
     }
-    logger.error('Error in updateProfile:', error);
-    throw new InternalError('Failed to update user profile', error);
+    
+    // Re-throw NotFoundError (from the fetch attempt)
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
+    
+    // Re-throw ConflictError (from retry mechanism)
+    if (error instanceof ConflictError) {
+      throw error;
+    }
+    
+    // Re-throw InternalError errors
+    if (error instanceof InternalError) {
+      throw error;
+    }
+    
+    // Wrap any other unexpected errors
+    throw new InternalError('Unexpected error in updateProfile function', error);
   }
 }
 
@@ -168,7 +387,7 @@ async function getProfilePreferences(userId) {
     
     const { data, error } = await supabase
       .from(PROFILES_TABLE)
-      .select('unit_preference, goals, exercise_preferences, equipment_preferences, workout_frequency')
+      .select('unit_preference, goals, exercise_preferences, equipment_preferences, workout_frequency, updated_at')
       .eq('user_id', userId)
       .single();
     
@@ -183,17 +402,32 @@ async function getProfilePreferences(userId) {
       throw new NotFoundError(`Profile not found for user: ${userId}`);
     }
     
+    // Transform snake_case to camelCase for response
     return {
       unitPreference: data.unit_preference,
       goals: data.goals,
       exercisePreferences: data.exercise_preferences,
       equipmentPreferences: data.equipment_preferences,
-      workoutFrequency: data.workout_frequency
+      workoutFrequency: data.workout_frequency,
+      updatedAt: data.updated_at
     };
   } catch (error) {
-    if (error instanceof NotFoundError || error instanceof InternalError) {
+    // Re-throw NotFoundError
+    if (error instanceof NotFoundError) {
       throw error;
     }
+    
+    // Re-throw error with PGRST116 code as NotFoundError
+    if (error.code === 'PGRST116') {
+      throw new NotFoundError(`Profile not found for user: ${userId}`);
+    }
+    
+    // Re-throw InternalError
+    if (error instanceof InternalError) {
+      throw error;
+    }
+    
+    // Log any unexpected errors
     logger.error('Error in getProfilePreferences:', error);
     throw new InternalError('Failed to fetch user preferences', error);
   }
@@ -211,6 +445,7 @@ async function getProfilePreferences(userId) {
  */
 async function updateProfilePreferences(userId, preferenceData) {
   try {
+    // Validate input data first
     validatePreferenceData(preferenceData);
     
     const supabase = getSupabaseClient();
@@ -253,8 +488,13 @@ async function updateProfilePreferences(userId, preferenceData) {
 
     // Ensure there's something to update
     if (Object.keys(dataToUpdate).length === 0) {
-       return convertProfileUnitsForResponse(existingProfile); // Or throw validation error? Return existing prefs?
-       // For now, let's just return the existing converted prefs if nothing was provided to update.
+       return {
+         unitPreference: existingProfile.unit_preference,
+         goals: existingProfile.goals,
+         exercisePreferences: existingProfile.exercise_preferences,
+         equipmentPreferences: existingProfile.equipment_preferences,
+         workoutFrequency: existingProfile.workout_frequency
+       };
     }
 
     // Always add the updated_at timestamp
@@ -265,15 +505,19 @@ async function updateProfilePreferences(userId, preferenceData) {
       .from(PROFILES_TABLE)
       .update(dataToUpdate)
       .eq('user_id', userId)
-      .select('unit_preference, goals, exercise_preferences, equipment_preferences, workout_frequency') // Select only prefs
+      .select('unit_preference, goals, exercise_preferences, equipment_preferences, workout_frequency, updated_at')
       .single();
 
     if (error) {
       // Handle potential error where update affects 0 rows (profile gone between check and update)
-      if (error.code === 'PGRST116') { // Or based on specific error inspection
+      if (error.code === 'PGRST116') {
            throw new NotFoundError(`Profile not found for user: ${userId} during preference update.`);
        }
       throw new InternalError('Failed to update user preferences', error);
+    }
+
+    if (!data) {
+      throw new NotFoundError(`Failed to retrieve updated preferences for user: ${userId}`);
     }
 
     // The select should return the *updated* preferences based on the DB state
@@ -282,14 +526,31 @@ async function updateProfilePreferences(userId, preferenceData) {
       goals: data.goals,
       exercisePreferences: data.exercise_preferences,
       equipmentPreferences: data.equipment_preferences,
-      workoutFrequency: data.workout_frequency
+      workoutFrequency: data.workout_frequency,
+      updatedAt: data.updated_at
     };
   } catch (error) {
-    if (error instanceof NotFoundError ||
-        error instanceof ValidationError ||
-        error instanceof InternalError) {
+    // Re-throw ValidationError
+    if (error instanceof ValidationError) {
       throw error;
     }
+    
+    // Re-throw NotFoundError
+    if (error instanceof NotFoundError) {
+      throw error;
+    }
+    
+    // Handle PGRST116 error code specifically for NotFoundError
+    if (error.code === 'PGRST116') {
+      throw new NotFoundError(`Profile not found for user: ${userId}`);
+    }
+    
+    // Re-throw InternalError
+    if (error instanceof InternalError) {
+      throw error;
+    }
+    
+    // Log any unexpected errors
     logger.error('Error in updateProfilePreferences:', error);
     throw new InternalError('Failed to update user preferences', error);
   }
@@ -461,6 +722,8 @@ function prepareProfileDataForStorage(profileData, existingProfile = {}) {
     result.created_at = new Date().toISOString();
   }
   
+  // Note: We don't set version here as it's handled in the update function
+  
   return result;
 }
 
@@ -485,7 +748,8 @@ function convertProfileUnitsForResponse(profileData) {
     equipmentPreferences: profileData.equipment_preferences,
     workoutFrequency: profileData.workout_frequency,
     createdAt: profileData.created_at,
-    updatedAt: profileData.updated_at
+    updatedAt: profileData.updated_at,
+    version: profileData.version || 1 // Include version in response
   };
   
   // Convert height from cm to imperial if needed

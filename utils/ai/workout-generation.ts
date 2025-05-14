@@ -1,7 +1,8 @@
 import { OpenAI } from "openai";
 import { generateCompletion } from "./openai";
-import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam } from "openai/resources/chat/completions";
 import { UserProfile } from "@/lib/profile-context";
+import Ajv, { JSONSchemaType } from 'ajv';
 
 /**
  * Interface defining the common structure for all workout agent types
@@ -300,18 +301,19 @@ export class WorkoutGenerationAgent implements WorkoutAgent {
 
   async process(input: AgentInputType): Promise<AgentResultType> {
     try {
-      const { profile, goals, preferences, previousResults } = input;
+      const { profile, goals, preferences, previousResults, messages: inputMessages } = input;
       
       if (!previousResults) {
         throw new Error("Research results required for workout generation");
       }
       
-      // Prepare the generation prompt using research insights
+      // Prepare the generation prompt using research insights and previous messages
       const generationMessages: ChatCompletionMessageParam[] = [
         {
           role: "system",
           content: this.buildSystemPrompt(profile, goals, preferences, previousResults)
-        }
+        },
+        ...(inputMessages || []) // Include previous messages from input
       ];
       
       // Generate the workout plan
@@ -430,23 +432,33 @@ export class WorkoutGenerationAgent implements WorkoutAgent {
   private extractReasoning(workoutPlan: any): string {
     // Extract reasoning elements from the workout plan
     let reasoning = "## Workout Plan Reasoning\n\n";
-    
-    if (workoutPlan.reasoning?.volumeOptimization) {
-      reasoning += "### Volume Optimization\n" + workoutPlan.reasoning.volumeOptimization + "\n\n";
+
+    // **Priority: Check for a top-level reasoning string first**
+    if (typeof workoutPlan.reasoning === 'string') {
+      reasoning += workoutPlan.reasoning + "\n\n";
+      // Optionally, return here if only the top-level reasoning is expected
+      // return reasoning;
     }
-    
-    if (workoutPlan.reasoning?.frequencyDetermination) {
-      reasoning += "### Frequency Determination\n" + workoutPlan.reasoning.frequencyDetermination + "\n\n";
+
+    // Fallback or supplement with nested reasoning object if it exists
+    if (typeof workoutPlan.reasoning === 'object' && workoutPlan.reasoning !== null) {
+        if (workoutPlan.reasoning.volumeOptimization) {
+        reasoning += "### Volume Optimization\n" + workoutPlan.reasoning.volumeOptimization + "\n\n";
+        }
+        
+        if (workoutPlan.reasoning.frequencyDetermination) {
+        reasoning += "### Frequency Determination\n" + workoutPlan.reasoning.frequencyDetermination + "\n\n";
+        }
+        
+        if (workoutPlan.reasoning.exerciseSelection) {
+        reasoning += "### Exercise Selection\n" + workoutPlan.reasoning.exerciseSelection + "\n\n";
+        }
+        
+        if (workoutPlan.reasoning.progressionModel) {
+        reasoning += "### Progression Model\n" + workoutPlan.reasoning.progressionModel + "\n\n";
+        }
     }
-    
-    if (workoutPlan.reasoning?.exerciseSelection) {
-      reasoning += "### Exercise Selection\n" + workoutPlan.reasoning.exerciseSelection + "\n\n";
-    }
-    
-    if (workoutPlan.reasoning?.progressionModel) {
-      reasoning += "### Progression Model\n" + workoutPlan.reasoning.progressionModel + "\n\n";
-    }
-    
+
     return reasoning;
   }
 }
@@ -458,9 +470,43 @@ export class PlanAdjustmentAgent implements WorkoutAgent {
   name = "PlanAdjustmentAgent";
   description = "Adjusts workout plans based on user feedback and preferences";
 
+  // Remove explicit JSONSchemaType<any> for broader compatibility
+  private adjustedPlanSchema = {
+    type: "object",
+    properties: {
+      planName: { type: "string" },
+      schedule: { 
+        type: "array",
+        items: { 
+            type: "object",
+            properties: {
+                day: {type: "string"},
+                exercises: { 
+                    type: "array",
+                    items: { type: "object"} // Basic check for exercise objects
+                }
+            },
+            required: ["day", "exercises"]
+        }
+      },
+      reasoning: { type: "string", nullable: true }, // Original reasoning might be present
+      // Adjustment specific fields (optional based on prompt)
+      adjustments: { type: ["string", "object"], nullable: true }, 
+      adjustmentReasoning: { type: "string", nullable: true }
+    },
+    required: ["planName", "schedule"],
+    additionalProperties: true,
+  };
+
+  private ajv = new Ajv();
+  // Compile the schema without the explicit type hint
+  private validateAdjustedPlan = this.ajv.compile(this.adjustedPlanSchema);
+
   async process(input: AgentInputType): Promise<AgentResultType> {
+    let adjustedPlan: any;
+    let adjustmentMessages: ChatCompletionMessageParam[] = [];
     try {
-      const { profile, feedback, previousResults, planId } = input;
+      const { profile, feedback, previousResults, planId, messages: inputMessages } = input;
       
       if (!feedback) {
         throw new Error("Feedback required for plan adjustment");
@@ -472,12 +518,13 @@ export class PlanAdjustmentAgent implements WorkoutAgent {
       
       const originalPlan = previousResults.data;
       
-      // Prepare the adjustment prompt
-      const adjustmentMessages: ChatCompletionMessageParam[] = [
+      // Prepare the adjustment prompt, including previous messages
+      adjustmentMessages = [
         {
           role: "system",
           content: this.buildAdjustmentPrompt(profile, feedback, originalPlan)
-        }
+        },
+        ...(inputMessages || []) // *** Append input messages here ***
       ];
       
       // Generate the adjusted plan
@@ -489,11 +536,20 @@ export class PlanAdjustmentAgent implements WorkoutAgent {
       });
       
       // Parse the adjusted plan
-      const adjustedPlan = typeof adjustedPlanContent === 'string' 
+      const parsedPlan = typeof adjustedPlanContent === 'string' 
         ? JSON.parse(adjustedPlanContent) 
         : JSON.parse(adjustedPlanContent.content || "{}");
+
+      adjustedPlan = parsedPlan; // Store for potential use in catch
       
-      // Extract and format the reasoning for adjustments
+      // *** Validate the parsed adjusted plan against the schema ***
+      if (!this.validateAdjustedPlan(adjustedPlan)) {
+          console.error("Adjusted plan validation failed:", this.validateAdjustedPlan.errors);
+          const validationErrors = this.ajv.errorsText(this.validateAdjustedPlan.errors);
+          throw new Error(`Invalid adjusted workout plan structure: ${validationErrors}`);
+      }
+      
+      // Extract and format the reasoning for adjustments (only if valid)
       const reasoningContent = this.extractAdjustmentReasoning(adjustedPlan, feedback);
       
       // Build the messages array for context
@@ -518,11 +574,23 @@ export class PlanAdjustmentAgent implements WorkoutAgent {
       };
     } catch (error: any) {
       console.error("Plan adjustment agent error:", error);
+       // Include the system prompt in the error messages for context
+       const errorMessages = [...adjustmentMessages, {
+           role: "assistant", // Assuming 'assistant' role is appropriate here too
+           content: `Adjustment failed: ${error.message}. Input was: ${JSON.stringify(adjustedPlan)}` // Include potentially invalid plan
+       } as ChatCompletionAssistantMessageParam]; // Type assertion for safety
+      
+      // Determine the reasoning based on the error message
+      const reasoningMessage = error.message?.includes("Invalid adjusted workout plan structure")
+        ? error.message // Use the specific validation error
+        : "Plan adjustment failed"; // Generic fallback
+        
       return {
         success: false,
         data: {},
-        reasoning: "Plan adjustment failed",
-        messages: [{ role: "assistant", content: "Adjustment failed: " + error.message }],
+        // Use the determined reasoning message
+        reasoning: reasoningMessage, 
+        messages: errorMessages,
         error: error.message
       };
     }
@@ -589,12 +657,78 @@ export class NutritionAgent implements WorkoutAgent {
   name = "NutritionAgent";
   description = "Provides nutrition advice and macro calculations";
 
+  // Define the schema for the expected nutrition plan structure
+  private nutritionPlanSchema: JSONSchemaType<{
+    recommendedDailyCalories: number;
+    recommendedMacros: {
+      protein: number;
+      carbs: number;
+      fat: number;
+      proteinPercentage?: number; // Optional fields
+      carbsPercentage?: number;
+      fatPercentage?: number;
+    };
+    reasoning: string;
+    // Add other expected fields if necessary (meal timing, hydration, etc.)
+    calorieTarget?: number; // Added based on extractNutritionReasoning usage
+    macros?: { // Added based on extractNutritionReasoning usage
+        protein: number;
+        carbs: number;
+        fat: number;
+        proteinPercentage?: number;
+        carbsPercentage?: number;
+        fatPercentage?: number;
+    };
+  }> = {
+    type: "object",
+    properties: {
+      recommendedDailyCalories: { type: "number" },
+      recommendedMacros: {
+        type: "object",
+        properties: {
+          protein: { type: "number" },
+          carbs: { type: "number" },
+          fat: { type: "number" },
+          proteinPercentage: { type: "number", nullable: true },
+          carbsPercentage: { type: "number", nullable: true },
+          fatPercentage: { type: "number", nullable: true },
+        },
+        required: ["protein", "carbs", "fat"],
+        additionalProperties: false,
+      },
+      reasoning: { type: "string" },
+      // Added optional properties based on usage in extractNutritionReasoning
+      calorieTarget: { type: "number", nullable: true },
+      macros: {
+          type: "object",
+          properties: {
+              protein: { type: "number" },
+              carbs: { type: "number" },
+              fat: { type: "number" },
+              proteinPercentage: { type: "number", nullable: true },
+              carbsPercentage: { type: "number", nullable: true },
+              fatPercentage: { type: "number", nullable: true },
+          },
+          required: ["protein", "carbs", "fat"],
+          additionalProperties: false,
+          nullable: true
+      }
+    },
+    required: ["recommendedDailyCalories", "recommendedMacros", "reasoning"],
+    additionalProperties: true, // Allow other fields potentially returned by AI
+  };
+
+  private ajv = new Ajv(); // Initialize Ajv instance
+  private validateNutritionPlan = this.ajv.compile(this.nutritionPlanSchema);
+
   async process(input: AgentInputType): Promise<AgentResultType> {
+    let nutritionPlan: any;
+    let nutritionMessages: ChatCompletionMessageParam[] = [];
     try {
       const { profile, goals, preferences } = input;
       
       // Prepare the nutrition prompt
-      const nutritionMessages: ChatCompletionMessageParam[] = [
+      nutritionMessages = [
         {
           role: "system",
           content: this.buildNutritionPrompt(profile, goals, preferences)
@@ -610,11 +744,20 @@ export class NutritionAgent implements WorkoutAgent {
       });
       
       // Parse the nutrition plan
-      const nutritionPlan = typeof nutritionContent === 'string' 
+      const parsedContent = typeof nutritionContent === 'string' 
         ? JSON.parse(nutritionContent) 
         : JSON.parse(nutritionContent.content || "{}");
       
-      // Extract and format the nutrition reasoning
+      nutritionPlan = parsedContent; // Store parsed plan for potential use in catch block
+
+      // *** Validate the parsed JSON against the schema ***
+      if (!this.validateNutritionPlan(nutritionPlan)) {
+        console.error("Nutrition plan validation failed:", this.validateNutritionPlan.errors);
+        const validationErrors = this.ajv.errorsText(this.validateNutritionPlan.errors);
+        throw new Error(`Invalid nutrition plan structure: ${validationErrors}`);
+      }
+      
+      // Extract and format the nutrition reasoning (only if valid)
       const reasoningContent = this.extractNutritionReasoning(nutritionPlan);
       
       // Build the messages array for context
@@ -634,12 +777,19 @@ export class NutritionAgent implements WorkoutAgent {
       };
     } catch (error: any) {
       console.error("Nutrition agent error:", error);
+      // Include the system prompt in the error messages for context
+      const assistantErrorMessage: ChatCompletionAssistantMessageParam = {
+        role: "assistant",
+        content: `Nutrition planning failed: ${error.message}. Input was: ${JSON.stringify(nutritionPlan)}`
+      };
+      // Construct the array with the correctly typed object
+      const errorMessages: ChatCompletionMessageParam[] = [...nutritionMessages, assistantErrorMessage];
       return {
         success: false,
         data: {},
         reasoning: "Nutrition calculation failed",
-        messages: [{ role: "assistant", content: "Nutrition planning failed: " + error.message }],
-        error: error.message
+        messages: errorMessages,
+        error: error.message // Keep original error message
       };
     }
   }

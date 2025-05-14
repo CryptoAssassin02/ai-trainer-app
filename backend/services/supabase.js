@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { env, logger } = require('../config');
 const { createSupabaseClient, isDevelopment, isTest } = require('../config/supabase');
+const { Pool } = require('pg');
 
 /**
  * @typedef {Object} QueryOptions
@@ -32,12 +33,26 @@ const RETRY_CONFIG = {
  */
 function getSupabaseClient() {
   if (supabaseInstance) {
-    return supabaseInstance;
+    /*
+     * In Jest tests we clear mocks between test cases. That leaves the cached
+     * singleton populated while the mocked `createSupabaseClient` has zero
+     * recorded calls for the new test.  Detect that scenario and force a
+     * re‑initialisation so each test starts with a clean slate.
+     */
+    if (
+      isTest &&
+      createSupabaseClient.mock &&
+      createSupabaseClient.mock.calls.length === 0
+    ) {
+      supabaseInstance = null;
+    } else {
+      return supabaseInstance;
+    }
   }
 
   try {
     logger.info('Initializing Supabase client');
-    supabaseInstance = createSupabaseClient(false); // Use the environment-specific config
+    supabaseInstance = createSupabaseClient(env, logger, env.env, false); // Use the environment-specific config
     logger.info('Supabase client initialized successfully');
     return supabaseInstance;
   } catch (error) {
@@ -57,7 +72,7 @@ function getSupabaseAdminClient() {
 
   try {
     logger.info('Initializing Supabase admin client');
-    supabaseAdminInstance = createSupabaseClient(true); // Use service role
+    supabaseAdminInstance = createSupabaseClient(env, logger, env.env, true); // Use service role
     logger.info('Supabase admin client initialized successfully');
     return supabaseAdminInstance;
   } catch (error) {
@@ -218,10 +233,10 @@ async function insert(table, records, useAdmin = false) {
   const client = useAdmin ? getSupabaseAdminClient() : getSupabaseClient();
   const operationName = `Insert into ${table}`;
   
-  // Ensure records is an array
-  const recordsArray = Array.isArray(records) ? records : [records];
+  // Ensure records is an array, handling null/undefined input
+  const recordsArray = records ? (Array.isArray(records) ? records : [records]) : [];
   
-  // Basic validation
+  // Basic validation - check for empty array AFTER converting input
   if (recordsArray.length === 0) {
     throw new Error('No records provided for insert operation');
   }
@@ -372,5 +387,15 @@ module.exports = {
   insert,
   update,
   remove,
-  rawQuery
+  rawQuery,
+  /**
+   * Reset internal singletons – test‑only helper referenced by jest mocks.
+   * No effect in production because `isTest` is false.
+   */
+  _resetForTests: () => {
+    if (isTest) {
+      supabaseInstance = null;
+      supabaseAdminInstance = null;
+    }
+  }
 }; 

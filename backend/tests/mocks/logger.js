@@ -1,14 +1,20 @@
-/**
- * @fileoverview Mock logger for tests
- */
+// backend/tests/mocks/logger.js
 
-const mockLogger = {
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
+const logger = {
   debug: jest.fn(),
-  verbose: jest.fn(),
-  http: jest.fn()
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  fatal: jest.fn(),
+  requestFormat: jest.fn(() => ({
+    method: 'mockMethod',
+    url: 'mockUrl',
+    ip: 'mockIp',
+    status: 'mockStatus',
+    userAgent: 'mockUserAgent',
+    responseTime: 'mockTime',
+    userId: 'mockUserId'
+  }))
 };
 
-module.exports = mockLogger; 
+module.exports = logger; 

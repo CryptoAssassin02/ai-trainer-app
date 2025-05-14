@@ -5,7 +5,7 @@
 
 const { logger } = require('../config');
 const profileService = require('../services/profile-service');
-const { ValidationError, NotFoundError } = require('../utils/errors');
+const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 
 /**
  * Get user profile
@@ -133,6 +133,17 @@ const createOrUpdateProfile = async (req, res, next) => {
       return res.status(404).json({
         status: 'error',
         message: error.message
+      });
+    }
+
+    // Handle ConflictError specifically
+    if (error instanceof ConflictError) {
+      return res.status(409).json({
+        status: 'error',
+        message: error.message,
+        // Use the error's code if available (like from ConcurrencyConflictError)
+        // otherwise provide a default specific to profile conflicts
+        errorCode: error.code || 'PROFILE_CONFLICT_ERROR' 
       });
     }
     

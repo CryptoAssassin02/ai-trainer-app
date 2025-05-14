@@ -1,7 +1,8 @@
 const { OpenAI, APIError } = require('openai');
-const envConfig = require('../config/env');
-const logger = require('../config/logger'); // Assuming a logger exists based on backend/config/logger.js
-const openaiConfig = require('../config/openai'); // Import the new config
+const envConfig = require('../config/env'); // Fix import to use CommonJS require
+const logger = require('../config/logger'); // Fix import to use CommonJS require
+// REMOVE config require from top level
+// const openaiConfig = require('../config/openai');
 
 // Constants moved to config or used via this.config
 // const MAX_RETRIES = config.retry.maxRetries;
@@ -13,36 +14,51 @@ const openaiConfig = require('../config/openai'); // Import the new config
  * Handles client instantiation, API calls, error handling, and retries.
  */
 class OpenAIService {
-  /**
-   * @private {OpenAI | null} The singleton OpenAI client instance.
-   */
-  #client = null;
-  /**
-   * @private {string | null} The OpenAI API key.
-   */
-  #apiKey = null;
-  #config; // Store config internally
+  #client = null; // Initialize client as null
+  #apiKey = null; // Initialize apiKey as null
+  // Define config property but don't assign here
+  #config;
+  #isInitialized = false; // Flag to track initialization attempt
 
   constructor() {
-    // Store the imported config
-    this.#config = openaiConfig;
+    // Require config INSIDE constructor again
+    // This might allow test-specific mocks via jest.mock to work correctly
+    this.#config = require('../config/openai');
+    logger.info('OpenAIService instance created. Client will be initialized on first use.');
+  }
 
-    this.#apiKey = envConfig.externalServices.openai.apiKey;
-    if (!this.#apiKey) {
-      logger.warn('OpenAI API key is not configured. OpenAI services will not be available.');
-    } else {
-      logger.info(`OpenAIService initialized. Default chat model: ${openaiConfig.defaultChatModel}`);
+  /**
+   * Initializes the OpenAI client if it hasn't been initialized yet.
+   * @returns {Promise<void>} A promise that resolves when the client is ready
+   * @throws {Error} If the client initialization fails
+   */
+  async initClient() {
+    if (this.#client) {
+      return; // Client already initialized
     }
 
-    // Basic validation
-    if (!this.#config.apiKey) {
-      logger.error('OpenAI API key is missing from configuration.');
-      throw new Error('OpenAI API key is missing.');
+    // Set initialization flag to avoid multiple initialization attempts during retry sequences
+    this.#isInitialized = true;
+
+    try {
+      // Get API key from environment or configuration
+      this.#apiKey = envConfig.externalServices.openai.apiKey;
+
+      if (!this.#apiKey) {
+        throw new Error('OpenAI API key not found');
+      }
+
+      // Create the client
+      this.#client = new OpenAI({
+        apiKey: this.#apiKey,
+      });
+
+      logger.info('OpenAI client initialized successfully');
+    } catch (error) {
+      this.#isInitialized = false; // Reset flag on failure
+      logger.error('Failed to initialize OpenAI client', { error: error.message });
+      throw new Error(`Failed to initialize OpenAI client: ${error.message}`);
     }
-    this.#client = new OpenAI({
-      apiKey: this.#config.apiKey,
-      organization: this.#config.organization || undefined, // Pass organization if provided
-    });
   }
 
   /**
@@ -69,67 +85,6 @@ class OpenAIService {
   }
 
   /**
-   * Executes an OpenAI API call with retry logic for specific errors.
-   * @template T
-   * @param {() => Promise<T>} apiCallFn - The function executing the OpenAI API call.
-   * @param {string} operationName - Name of the operation for logging (e.g., 'Chat Completion').
-   * @param {string} model - The model being used (for logging/cost estimation).
-   * @returns {Promise<T>} The result of the successful API call.
-   * @throws {Error | APIError} Throws an error if the call fails after retries or encounters a non-retryable error.
-   */
-  async #executeWithRetry(apiCallFn, operationName, model) {
-    let retries = 0;
-    // Use config values
-    const maxRetries = this.#config.retry.maxRetries;
-    const baseDelay = this.#config.retry.baseDelay;
-    const retryableStatusCodes = this.#config.retry.retryableStatusCodes;
-
-    while (retries <= maxRetries) {
-      try {
-        logger.debug(`Executing OpenAI ${operationName} (Attempt ${retries + 1})`);
-        const result = await apiCallFn();
-        logger.debug(`OpenAI ${operationName} successful (Attempt ${retries + 1})`);
-
-        // Log usage and estimated cost if available in the response
-        if (result && result.usage) {
-          const estimatedCost = this.#config.utils.estimateCost(model, result.usage);
-          logger.info(`OpenAI ${operationName} Usage:`, { usage: result.usage, estimatedCostUSD: estimatedCost });
-        } else {
-          logger.debug(`No usage data in response for OpenAI ${operationName}`);
-        }
-
-        return result;
-      } catch (error) {
-        logger.error(`Error during OpenAI ${operationName} (Attempt ${retries + 1})`, { error: error.message || error, status: error.status });
-
-        if (error instanceof APIError) {
-          // Check for retryable status codes using config
-          const isRetryable = retryableStatusCodes.includes(error.status);
-
-          if (isRetryable && retries < maxRetries) {
-            retries++;
-            const delayMs = this.#calculateDelay(retries, baseDelay);
-            logger.warn(`OpenAI ${operationName} failed with retryable status ${error.status}. Retrying (${retries}/${maxRetries}) after ${delayMs}ms...`);
-            await this.#delay(delayMs); // Use internal delay method
-          } else if (isRetryable) { // Retries exhausted for a retryable error
-             logger.error(`OpenAI ${operationName} failed with status ${error.status} after exhausting all ${maxRetries} retries.`);
-             throw error; // Re-throw the last APIError
-          } else { // Non-retryable APIError
-            logger.error(`OpenAI ${operationName} failed with non-retryable status ${error.status}.`);
-            throw error; // Re-throw non-retryable APIError immediately
-          }
-        } else {
-          // Handle non-API errors (network issues, unexpected errors)
-          logger.error(`An unexpected non-APIError occurred during OpenAI ${operationName}.`, error);
-          throw error; // Re-throw unexpected errors immediately
-        }
-      }
-    }
-    // This line should theoretically be unreachable if logic is correct, but acts as a safeguard.
-    throw new Error(`OpenAI ${operationName} failed unexpectedly after retries.`);
-  }
-
-  /**
    * Generates a chat completion using the OpenAI API.
    * @param {Array<Object>} messages - An array of message objects (e.g., [{ role: 'user', content: 'Hello' }]).
    * @param {Object} [options={}] - Optional parameters to override defaults (e.g., model, temperature, max_tokens).
@@ -137,8 +92,11 @@ class OpenAIService {
    * @throws {APIError | Error} If the API call fails or the response is invalid.
    */
   async generateChatCompletion(messages, options = {}) {
+    // Ensure client is initialized
+    await this.initClient();
+
     // Determine the final max_tokens value, prioritizing options
-    const maxTokensValue = options.maxTokens ?? this.#config.maxTokens;
+    const maxTokensValue = options.max_tokens ?? this.#config.maxTokens;
 
     // Base payload with defaults
     const requestPayload = {
@@ -148,44 +106,84 @@ class OpenAIService {
       // Add max_tokens only if it has a value (either from options or config)
       ...(maxTokensValue !== undefined && maxTokensValue !== null ? { max_tokens: maxTokensValue } : {}),
       // Add other parameters from options if needed, ensuring correct naming
-      ...(options.topP !== undefined ? { top_p: options.topP } : {}),
-      ...(options.frequencyPenalty !== undefined ? { frequency_penalty: options.frequencyPenalty } : {}),
-      ...(options.presencePenalty !== undefined ? { presence_penalty: options.presencePenalty } : {}),
-      ...(options.responseFormat ? { response_format: options.responseFormat } : {}),
+      ...(options.top_p !== undefined ? { top_p: options.top_p } : {}),
+      ...(options.frequency_penalty !== undefined ? { frequency_penalty: options.frequency_penalty } : {}),
+      ...(options.presence_penalty !== undefined ? { presence_penalty: options.presence_penalty } : {}),
+      ...(options.response_format ? { response_format: options.response_format } : {}),
       ...(options.tools ? { tools: options.tools } : {}),
-      ...(options.toolChoice ? { tool_choice: options.toolChoice } : {}),
+      ...(options.tool_choice ? { tool_choice: options.tool_choice } : {}),
     };
 
     logger.info(`Generating OpenAI chat completion with model: ${requestPayload.model}`);
     logger.debug('Chat completion request payload:', requestPayload);
 
-    const apiCall = async () => {
-      const response = await this.#client.chat.completions.create(requestPayload);
+    const retryableStatusCodes = this.#config.retry.retryableStatusCodes;
+    const maxRetries = this.#config.retry.maxRetries;
+    const baseDelay = this.#config.retry.baseDelay;
+    
+    let retries = 0;
+    
+    while (retries <= maxRetries) {
+      try {
+        logger.debug(`Executing OpenAI Chat Completion (Attempt ${retries + 1})`);
+        
+        const response = await this.#client.chat.completions.create(requestPayload);
 
-      // Basic validation of response structure
-      if (!response || !response.choices || response.choices.length === 0) {
-        logger.error('Invalid response structure received from OpenAI Chat Completion', response);
-        throw new Error('Invalid response structure from OpenAI Chat Completion');
+        // Validate response
+        if (!response || !response.choices || response.choices.length === 0) {
+          logger.error('Invalid response structure received from OpenAI Chat Completion', response);
+          throw new Error('Invalid response structure from OpenAI Chat Completion');
+        }
+
+        const choice = response.choices[0];
+
+        // Log usage and estimated cost if available
+        if (response && response.usage) {
+          const estimatedCost = this.#config.utils.estimateCost(requestPayload.model, response.usage);
+          logger.info(`OpenAI Chat Completion Usage:`, { usage: response.usage, estimatedCostUSD: estimatedCost });
+        }
+
+        // Handle tool calls
+        if (choice.finish_reason === 'tool_calls') {
+          logger.info('OpenAI chat completion finished due to tool calls.');
+          return choice.message; // Return the full message object with tool_calls
+        }
+
+        // Validate message content exists
+        if (!choice.message || typeof choice.message.content !== 'string') {
+          logger.error('Missing or invalid content in OpenAI Chat Completion response', { choice });
+          throw new Error('Missing or invalid content in OpenAI Chat Completion response');
+        }
+
+        return choice.message.content;
+      } catch (error) {
+        logger.error(`Error during OpenAI Chat Completion (Attempt ${retries + 1})`, { error: error.message || error, status: error.status });
+
+        if (error && typeof error.status === 'number') { 
+          const isRetryable = retryableStatusCodes.includes(error.status);
+
+          if (isRetryable && retries < maxRetries) {
+            retries++;
+            const delayMs = this.#calculateDelay(retries, baseDelay);
+            logger.warn(`OpenAI Chat Completion failed with retryable status ${error.status}. Retrying (${retries}/${maxRetries}) after ${delayMs}ms...`);
+            await this.#delay(delayMs);
+            continue;
+          } else if (isRetryable) {
+            logger.error(`OpenAI Chat Completion failed with status ${error.status} after exhausting all ${maxRetries} retries.`);
+            throw error; // Re-throw the original error
+          } else {
+            logger.error(`OpenAI Chat Completion failed with non-retryable status ${error.status}.`);
+            throw error; // Re-throw the original error
+          }
+        } else {
+          logger.error(`An unexpected non-APIError occurred during OpenAI Chat Completion.`, error);
+          throw error; // Re-throw the original error
+        }
       }
-      return response;
-    };
-
-    const response = await this.#executeWithRetry(apiCall, 'Chat Completion', requestPayload.model);
-    const choice = response.choices[0];
-
-    // Handle tool calls
-    if (choice.finish_reason === 'tool_calls') {
-      logger.info('OpenAI chat completion finished due to tool calls.');
-      return choice.message; // Return the full message object with tool_calls
     }
 
-    // Validate message content exists
-    if (!choice.message || typeof choice.message.content !== 'string') {
-      logger.error('Missing or invalid content in OpenAI Chat Completion response', { choice });
-      throw new Error('Missing or invalid content in OpenAI Chat Completion response');
-    }
-
-    return choice.message.content;
+    // This line should be unreachable
+    throw new Error('OpenAI Chat Completion failed unexpectedly after retries.');
   }
 
   /**
@@ -198,46 +196,96 @@ class OpenAIService {
    * @throws {APIError | Error} If the API call fails after retries.
    */
   async generateEmbedding(inputText, options = {}) {
-     // Merge options with defaults from config
-    const mergedOptions = {
-        model: openaiConfig.defaultEmbeddingModel,
-        ...options,
+    // Ensure client is initialized
+    await this.initClient();
+    
+    // Merge options with defaults from config
+    const requestPayload = {
+      model: options.model ?? this.#config.defaultEmbeddingModel,
+      input: inputText,
+      // Add optional parameters from options if they exist
+      ...(options.dimensions && { dimensions: options.dimensions }),
+      ...(options.encoding_format && { encoding_format: options.encoding_format }), // Added missing option
+      ...(options.user && { user: options.user }),
     };
 
-    logger.info(`Generating OpenAI embedding(s) with model: ${mergedOptions.model}`);
-    logger.debug('Embedding request payload:', mergedOptions);
+    logger.info(`Generating OpenAI embedding(s) with model: ${requestPayload.model}`);
+    logger.debug('Embedding request payload:', requestPayload);
 
-    const apiCall = async () => {
-      const response = await this.#client.embeddings.create({
-        model: mergedOptions.model,
-        input: inputText,
-      });
+    const retryableStatusCodes = this.#config.retry.retryableStatusCodes;
+    const maxRetries = this.#config.retry.maxRetries;
+    const baseDelay = this.#config.retry.baseDelay;
+    
+    let retries = 0;
+    
+    while (retries <= maxRetries) {
+      try {
+        logger.debug(`Executing OpenAI Embedding Generation (Attempt ${retries + 1})`);
+        
+        const response = await this.#client.embeddings.create(requestPayload);
+        
+        // Validate response
+        if (!response || !response.data || response.data.length === 0) {
+          logger.error('Invalid response structure received from OpenAI Embedding', response);
+          throw new Error('Invalid response structure from OpenAI Embedding');
+        }
+        
+        for (let i = 0; i < response.data.length; i++) {
+          const item = response.data[i];
+          if (!item || !item.embedding || !Array.isArray(item.embedding)) {
+            logger.error('Missing embedding in response data at index ' + i, item ?? response);
+            throw new Error('Missing embedding in response data at index ' + i);
+          }
+        }
+        
+        // ADDED: Validate response length matches input length for array inputs
+        if (Array.isArray(inputText) && response.data.length !== inputText.length) {
+          logger.error('Invalid response structure: embedding count mismatch', {
+            inputLength: inputText.length,
+            outputLength: response.data.length,
+            response
+          });
+          throw new Error('Invalid response structure: embedding count mismatch');
+        }
+        
+        // Log usage and estimated cost if available
+        if (response && response.usage) {
+          const estimatedCost = this.#config.utils.estimateCost(requestPayload.model, response.usage);
+          logger.info(`OpenAI Embedding Generation Usage:`, { usage: response.usage, estimatedCostUSD: estimatedCost });
+        }
+        
+        const embeddings = response.data.map(d => d.embedding);
+        return Array.isArray(inputText) ? embeddings : embeddings[0];
+      } catch (error) {
+        logger.error(`Error during OpenAI Embedding Generation (Attempt ${retries + 1})`, { error: error.message || error, status: error.status });
 
-      // Basic validation
-      if (!response || !response.data || !response.data.length === 0) {
-        logger.error('Invalid response structure received from OpenAI Embeddings', response);
-        throw new Error('Invalid response structure from OpenAI Embeddings');
-      }
-       // Validate embeddings exist for each input
-      for (let i = 0; i < response.data.length; i++) {
-        const item = response.data[i];
-        if (!item || !item.embedding || !Array.isArray(item.embedding)) {
-          logger.error('Missing embedding in response data at index ' + i, item ?? response);
-          throw new Error('Missing embedding in response data at index ' + i);
+        if (error && typeof error.status === 'number') {
+          const isRetryable = retryableStatusCodes.includes(error.status);
+
+          if (isRetryable && retries < maxRetries) {
+            retries++;
+            const delayMs = this.#calculateDelay(retries, baseDelay);
+            logger.warn(`OpenAI Embedding Generation failed with retryable status ${error.status}. Retrying (${retries}/${maxRetries}) after ${delayMs}ms...`);
+            await this.#delay(delayMs);
+            continue;
+          } else if (isRetryable) {
+            logger.error(`OpenAI Embedding Generation failed with status ${error.status} after exhausting all ${maxRetries} retries.`);
+            throw error; // Re-throw the original error
+          } else {
+            logger.error(`OpenAI Embedding Generation failed with non-retryable status ${error.status}.`);
+            throw error; // Re-throw the original error
+          }
+        } else {
+          logger.error(`An unexpected non-APIError occurred during OpenAI Embedding Generation.`, error);
+          throw error; // Re-throw the original error
         }
       }
+    }
 
-      // Return single embedding or array of embeddings based on input type
-      const embeddings = response.data.map(d => d.embedding);
-      return { ...response, embeddingsResult: Array.isArray(inputText) ? embeddings : embeddings[0] }; // Return full response + processed result
-    };
-
-    // Get the result from executeWithRetry, which now contains the full response + our processed result
-    const resultWithFullResponse = await this.#executeWithRetry(apiCall, 'Embedding Generation', mergedOptions.model);
-    // Return only the processed embeddings result to the caller
-    return resultWithFullResponse.embeddingsResult;
+    // This line should be unreachable
+    throw new Error('OpenAI Embedding Generation failed unexpectedly after retries.');
   }
 }
 
-// Export a singleton instance
-module.exports = new OpenAIService(); 
+// Export the class definition directly
+module.exports = OpenAIService; 

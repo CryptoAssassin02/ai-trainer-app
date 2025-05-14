@@ -3,30 +3,30 @@
 // Real implementation would use actual MSW
 export const server = {
   listen: () => {
-    console.log('MSW Server started');
+    // console.log('MSW Server started');
     return server;
   },
   resetHandlers: () => {
-    console.log('MSW Server handlers reset');
+    // console.log('MSW Server handlers reset');
     return server;
   },
   close: () => {
-    console.log('MSW Server closed');
+    // console.log('MSW Server closed');
     return server;
   },
   use: (...handlers: any[]) => {
-    console.log('Using additional handlers');
+    // console.log('Using additional handlers');
     return server;
   }
 };
 
 export const worker = {
   start: (options = {}) => {
-    console.log('MSW Worker started with options:', options);
+    // console.log('MSW Worker started with options:', options);
     return Promise.resolve(worker);
   },
   use: (...handlers: any[]) => {
-    console.log('Using additional handlers in worker');
+    // console.log('Using additional handlers in worker');
     return worker;
   }
 };
@@ -34,5 +34,5 @@ export const worker = {
 export const handlers = [];
 
 export function initMocks() {
-  console.log('Mock initialization called');
+  // console.log('Mock initialization called');
 } 

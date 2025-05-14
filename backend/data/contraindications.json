@@ -1,0 +1,5 @@
+{
+    "knee pain": ["squats", "lunges", "leg press"],
+    "lower back pain": ["deadlifts", "bent-over rows"],
+    "shoulder pain": ["overhead press", "upright rows"]
+  }

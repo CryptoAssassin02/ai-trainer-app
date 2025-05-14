@@ -6,7 +6,7 @@
 const { logger } = require('../config');
 const supabaseService = require('../services/supabase');
 const jwtUtils = require('../utils/jwt');
-const { AuthenticationError, ValidationError, NotFoundError } = require('../utils/errors');
+const { AuthenticationError, ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 
 /**
  * Register a new user
@@ -17,29 +17,38 @@ const { AuthenticationError, ValidationError, NotFoundError } = require('../util
  */
 const register = async (req, res, next) => {
   try {
+    logger.debug('[RegisterController] Starting registration...');
     const { email, password, name } = req.body;
     
-    // Create user with Supabase Auth
+    // DEBUG: Check if required fields are present
+    if (!email || !password || !name) {
+        logger.error('[RegisterController] Missing required fields', { email: !!email, password: !!password, name: !!name });
+        // Consider throwing ValidationError here if desired
+    }
+
+    logger.debug('[RegisterController] Calling Supabase signUp...');
     const { data: authData, error: authError } = await supabaseService.auth.signUp({
       email,
       password
     });
+    logger.debug('[RegisterController] Supabase signUp response', { hasError: !!authError });
     
     if (authError) {
-      logger.error('User registration failed', { error: authError.message });
-      
-      // Handle specific error cases
+      logger.error('[RegisterController] Supabase signUp Error', { error: authError.message, stack: authError.stack });
       if (authError.message.includes('already registered')) {
-        throw new ValidationError('Email already registered', { field: 'email' });
+        throw new ConflictError('User with this email already exists.');
       }
-      
       throw new Error(authError.message);
     }
     
-    // Get the new user's ID
-    const userId = authData.user.id;
-    
-    // Create user profile in 'profiles' table
+    const userId = authData?.user?.id;
+    if (!userId) {
+        logger.error('[RegisterController] Failed to get userId after signup', { authData });
+        throw new Error('Signup failed: Could not retrieve user ID.');
+    }
+    logger.debug('[RegisterController] User ID obtained', { userId });
+
+    logger.debug('[RegisterController] Inserting profile...');
     const { error: profileError } = await supabaseService.client
       .from('profiles')
       .insert({
@@ -48,24 +57,19 @@ const register = async (req, res, next) => {
         name,
         created_at: new Date().toISOString()
       });
+    logger.debug('[RegisterController] Profile insert response', { hasError: !!profileError });
     
     if (profileError) {
-      logger.error('Failed to create user profile', { userId, error: profileError.message });
+      logger.error('[RegisterController] Profile insert Error', { userId, error: profileError.message, stack: profileError.stack });
       throw new Error('User registration failed');
     }
     
-    // Generate tokens for the user
-    const accessToken = jwtUtils.generateToken({
-      id: userId,
-      email,
-      role: 'user'
-    });
-    
+    logger.debug('[RegisterController] Generating tokens...');
+    const accessToken = jwtUtils.generateToken({ id: userId, email, role: 'user' });
     const refreshToken = jwtUtils.generateRefreshToken(userId);
+    logger.debug('[RegisterController] Tokens generated');
     
     logger.info('User registered successfully', { userId });
-    
-    // Send success response with tokens
     res.status(201).json({
       status: 'success',
       message: 'User registered successfully',
@@ -82,6 +86,7 @@ const register = async (req, res, next) => {
       }
     });
   } catch (error) {
+    logger.error('[RegisterController] CATCH BLOCK', { error: error.message, stack: error.stack });
     next(error);
   }
 };
@@ -95,43 +100,57 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
+    logger.debug('[LoginController] Starting login...');
     const { email, password } = req.body;
-    
-    // Authenticate with Supabase Auth
+
+    // DEBUG: Check fields
+    if (!email || !password) {
+        logger.error('[LoginController] Missing required fields', { email: !!email, password: !!password });
+        // Consider throwing ValidationError
+    }
+
+    logger.debug('[LoginController] Calling Supabase signIn...');
     const { data: authData, error: authError } = await supabaseService.auth.signInWithPassword({
       email,
       password
     });
+    logger.debug('[LoginController] Supabase signIn response', { hasError: !!authError });
     
     if (authError) {
-      logger.warn('Login failed', { email, error: authError.message });
+      logger.warn('[LoginController] Supabase signIn Error', { email, error: authError.message, stack: authError.stack });
       throw new AuthenticationError('Invalid email or password');
     }
     
-    // Get user profile from DB
+    const userId = authData?.user?.id;
+    if (!userId) {
+        logger.error('[LoginController] Failed to get userId after signin', { authData });
+        throw new Error('Login failed: Could not retrieve user ID.');
+    }
+    logger.debug('[LoginController] User ID obtained', { userId });
+
+    logger.debug('[LoginController] Fetching profile...');
     const { data: profileData, error: profileError } = await supabaseService.client
       .from('profiles')
       .select('id, name, email, role')
-      .eq('id', authData.user.id)
+      .eq('id', userId)
       .single();
+    logger.debug('[LoginController] Profile fetch response', { hasError: !!profileError, hasData: !!profileData });
     
     if (profileError || !profileData) {
-      logger.error('Failed to fetch user profile', { userId: authData.user.id });
+      logger.error('[LoginController] Profile fetch Error', { userId, error: profileError?.message, stack: profileError?.stack });
       throw new NotFoundError('User profile not found');
     }
     
-    // Generate tokens for the user
+    logger.debug('[LoginController] Generating tokens...');
     const accessToken = jwtUtils.generateToken({
       id: profileData.id,
       email: profileData.email,
       role: profileData.role || 'user'
     });
-    
     const refreshToken = jwtUtils.generateRefreshToken(profileData.id);
+    logger.debug('[LoginController] Tokens generated');
     
-    logger.info('User logged in successfully', { userId: profileData.id });
-    
-    // Send success response with tokens
+    logger.info('User logged in successfully', { userId });
     res.status(200).json({
       status: 'success',
       message: 'Login successful',
@@ -149,6 +168,7 @@ const login = async (req, res, next) => {
       }
     });
   } catch (error) {
+    logger.error('[LoginController] CATCH BLOCK', { error: error.message, stack: error.stack });
     next(error);
   }
 };

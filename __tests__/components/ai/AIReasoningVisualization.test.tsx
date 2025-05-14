@@ -291,10 +291,8 @@ describe('AIReasoningVisualization', () => {
     expect(brainIcons.length).toBeGreaterThan(0)
   })
   
-  // Skip accessibility test for now since it would be complex to fix in the mock component
-  it.skip('has no accessibility violations', async () => {
+  it('has no accessibility violations', async () => {
     const { container } = render(<AIReasoningVisualization sections={mockReasoningSections} />)
-    
     const results = await axe(container)
     expect(results).toHaveNoViolations()
   })

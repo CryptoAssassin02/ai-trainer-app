@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react-dom/test-utils';
 import { ReactNode } from 'react';
 import { ProfileProvider } from '@/lib/profile-context';
+import { useForm, FormProvider } from 'react-hook-form';
 
 // Mock Supabase client to prevent errors in tests
 jest.mock('@/lib/supabase/client', () => ({
@@ -94,16 +95,24 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 
 const queryClient = new QueryClient();
 
-export function renderWithProviders(ui: ReactNode) {
-  const user = userEvent.setup();
-  const result = render(
+// Helper component to provide Form context
+const TestWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const methods = useForm(); // Create dummy form instance
+  return (
     <QueryClientProvider client={queryClient}>
       <ProfileProvider>
         <WorkoutProvider>
-          {ui}
+          <FormProvider {...methods}>{children}</FormProvider> {/* Wrap children in FormProvider */}
         </WorkoutProvider>
       </ProfileProvider>
     </QueryClientProvider>
+  );
+};
+
+export function renderWithProviders(ui: ReactNode) {
+  const user = userEvent.setup();
+  const result = render(
+    <TestWrapper>{ui}</TestWrapper> // Use the wrapper component
   );
   return {
     ...result,

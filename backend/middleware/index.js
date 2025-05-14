@@ -1,8 +1,20 @@
+/**
+ * @fileoverview Middleware index
+ * Exports all middleware for easy import
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const { env, logger, serverConfig } = require('../config');
+
+const auth = require('./auth');
+const validation = require('./validation');
+const errorMiddleware = require('./error-middleware');
+const rateLimit = require('./rateLimit');
+const security = require('./security');
+const { asyncHandler } = require('../utils/error-handlers');
 
 // Configure all middleware
 function configureMiddleware(app) {
@@ -81,4 +93,12 @@ function configureMiddleware(app) {
   });
 }
 
-module.exports = configureMiddleware; 
+module.exports = {
+  auth,
+  validation,
+  errorMiddleware,
+  rateLimit,
+  security,
+  configureMiddleware,
+  asyncHandler
+}; 

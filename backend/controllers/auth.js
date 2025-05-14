@@ -264,12 +264,18 @@ const refreshToken = async (req, res, next) => {
       
       if (error || !data) {
         logger.warn('Refresh token not found or expired in database', { userId });
-        throw new AuthenticationError('Invalid or expired refresh token');
+        // Throw the specific error to be caught below
+        throw new AuthenticationError('Invalid or expired refresh token'); 
       }
     } catch (dbError) {
-      // If the table doesn't exist or there's another error, log and continue
-      // This makes the endpoint work even if we're not storing tokens
-      logger.warn('Error checking refresh token in database', { error: dbError.message });
+      // Catch ANY error from the DB check (including the thrown AuthError)
+      // and pass it to the central error handler via next()
+      // Log only if it wasn't the specific AuthError we threw.
+      if (!(dbError instanceof AuthenticationError)) { 
+         logger.warn('Error checking refresh token in database', { error: dbError.message });
+      }
+      // Pass the caught error (AuthError or other) to next()
+      return next(dbError); 
     }
     
     // Generate a new access token
@@ -339,7 +345,7 @@ const validateSession = async (req, res, next) => {
  */
 const logout = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken } = req.cookies;
     let userId = null;
     
     // If we have the user ID from authenticated routes
@@ -391,10 +397,24 @@ const logout = async (req, res, next) => {
   }
 };
 
+// Export functions for testing internal rate limit state
+const __test__clearLoginAttempts = () => {
+  for (const ip in loginAttempts) {
+    delete loginAttempts[ip];
+  }
+};
+
+const __test__getLoginAttempts = (ip) => {
+  return loginAttempts[ip];
+};
+
 module.exports = {
   signup,
   login,
   refreshToken,
   validateSession,
-  logout
+  logout,
+  // Export test helpers
+  __test__clearLoginAttempts,
+  __test__getLoginAttempts
 }; 

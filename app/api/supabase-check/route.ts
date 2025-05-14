@@ -11,7 +11,7 @@ export async function GET() {
     const supabase = await createClient()
     
     // Test authentication is initialized
-    const { data, error } = await supabase.auth.getSession()
+    const { error } = await supabase.auth.getSession()
     
     if (error) {
       return NextResponse.json(
@@ -38,12 +38,13 @@ export async function GET() {
         timestamp: new Date().toISOString()
       }
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
     return NextResponse.json(
       {
         status: 'error',
         message: 'Failed to check Supabase connection',
-        error: err.message
+        error: errorMessage
       },
       { status: 500 }
     )

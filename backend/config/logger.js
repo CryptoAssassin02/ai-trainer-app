@@ -43,10 +43,10 @@ const fileFormat = format.combine(
 // Define logger configuration
 const logger = winston.createLogger({
   level: isDevelopment ? 'debug' : 'info',
-  silent: isTest, // Disable logging in test environment
+  // silent: isTest, // <<< Temporarily disable silencing for debugging tests
   format: fileFormat,
   transports: [
-    // Console transport for development
+    // Console transport for development AND test (for debugging)
     new transports.Console({
       format: consoleFormat
     }),

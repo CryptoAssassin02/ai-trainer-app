@@ -69,8 +69,15 @@ function extractJSONFromResponse(responseText) {
      const firstBrace = potentialJson.indexOf('{');
      const lastBrace = potentialJson.lastIndexOf('}');
      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        potentialJson = potentialJson.substring(firstBrace, lastBrace + 1);
-        logger.debug('Extracted potential JSON using brace boundaries.');
+        // Check if the braces encompass the entire trimmed string
+        if (firstBrace === 0 && lastBrace === potentialJson.length - 1) {
+            logger.debug('Potential JSON found using start/end braces, attempting direct parse.');
+            // potentialJson is already correct, just proceed to try/catch
+        } else {
+            // Only extract substring if braces are not at the exact ends
+            potentialJson = potentialJson.substring(firstBrace, lastBrace + 1);
+            logger.debug('Extracted potential JSON using brace boundaries.');
+        }
      } else {
        logger.debug('Could not find clear JSON boundaries (code block or braces), attempting direct parse.');
      }
@@ -181,8 +188,8 @@ function createUserPrompt(content) {
  */
 function createAssistantPrompt(content) {
    // Assistant content can sometimes be null (e.g., before tool calls)
-   if (typeof content !== 'string' && content !== null) {
-    throw new Error('Assistant prompt content must be a string or null.');
+   if ((typeof content !== 'string' || content === '') && content !== null) {
+    throw new Error('Assistant prompt content must be a non-empty string or null.');
   }
   return { role: 'assistant', content };
 }

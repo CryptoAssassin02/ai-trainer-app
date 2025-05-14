@@ -42,20 +42,23 @@ export async function getNodeVersion(): Promise<string | null> {
  * @param version2 - Second version string (e.g., '18.17.0')
  * @returns -1 if version1 < version2, 0 if equal, 1 if version1 > version2
  */
-export function compareVersions(version1: string, version2: string): number {
-  const parts1 = version1.split('.').map(Number);
-  const parts2 = version2.split('.').map(Number);
-  
-  // Compare major, minor, and patch versions
-  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-    const part1 = parts1[i] || 0;
-    const part2 = parts2[i] || 0;
-    
-    if (part1 < part2) return -1;
-    if (part1 > part2) return 1;
+export function compareVersions(v1: string, v2: string): number {
+  const segments1 = v1.split('.').map(Number);
+  const segments2 = v2.split('.').map(Number);
+
+  // Check for NaN which indicates a parsing failure (invalid segment)
+  if (segments1.some(isNaN) || segments2.some(isNaN)) {
+    throw new Error('Invalid version string');
   }
-  
-  return 0; // Versions are equal
+
+  const len = Math.max(segments1.length, segments2.length);
+  for (let i = 0; i < len; i++) {
+    const s1 = segments1[i] || 0;
+    const s2 = segments2[i] || 0;
+    if (s1 < s2) return -1;
+    if (s1 > s2) return 1;
+  }
+  return 0;
 }
 
 /**

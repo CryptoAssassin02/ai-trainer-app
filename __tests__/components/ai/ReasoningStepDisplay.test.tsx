@@ -39,9 +39,6 @@ const ReasoningStepDisplay = ({
       <div 
         className="step-header" 
         data-testid="step-header" 
-        onClick={step.details ? onToggle : undefined}
-        role={step.details ? 'button' : undefined}
-        aria-expanded={step.details ? isExpanded : undefined}
       >
         <div className="step-number" data-testid="step-number">{index + 1}</div>
         {icon && <div className="step-icon" data-testid="step-icon">{icon}</div>}
@@ -51,10 +48,8 @@ const ReasoningStepDisplay = ({
           <button 
             className="toggle-button" 
             data-testid="toggle-button" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
+            onClick={onToggle}
+            aria-expanded={isExpanded}
             aria-label={`Toggle details for ${step.title}`}
           >
             {isExpanded ? (
@@ -269,21 +264,6 @@ describe('ReasoningStepDisplay', () => {
     expect(screen.queryByTestId('icon-chevron-down')).not.toBeInTheDocument()
   })
   
-  it('calls onToggle when header is clicked', () => {
-    const handleToggle = jest.fn()
-    render(
-      <ReasoningStepDisplay 
-        step={mockThoughtStep} 
-        index={0} 
-        isExpanded={false} 
-        onToggle={handleToggle}
-      />
-    )
-    
-    fireEvent.click(screen.getByTestId('step-header'))
-    expect(handleToggle).toHaveBeenCalledTimes(1)
-  })
-  
   it('calls onToggle when toggle button is clicked', () => {
     const handleToggle = jest.fn()
     render(
@@ -327,7 +307,7 @@ describe('ReasoningStepDisplay', () => {
     expect(screen.getByTestId('icon-book')).toBeInTheDocument()
   })
   
-  it.skip('has no accessibility violations', async () => {
+  it('has no accessibility violations', async () => {
     const { container } = render(
       <ReasoningStepDisplay 
         step={mockObservationStep} 
@@ -337,8 +317,7 @@ describe('ReasoningStepDisplay', () => {
       />
     )
     
-    // Skip axe test since we'd need to implement proper ARIA attributes
-    // const results = await axe(container)
-    // expect(results).toHaveNoViolations()
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
   })
 }) 

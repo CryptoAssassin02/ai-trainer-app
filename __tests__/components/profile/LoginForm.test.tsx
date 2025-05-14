@@ -23,7 +23,8 @@ jest.mock('../../../lib/supabase/client', () => ({
         if (global.__SUPABASE_ERROR__) {
           return Promise.resolve({
             data: { user: null, session: null },
-            error: new Error('Invalid credentials')
+            // Return an object mimicking AuthError structure
+            error: { name: 'AuthError', message: 'Invalid credentials' } 
           })
         }
         // For regular case, return success
@@ -91,11 +92,10 @@ describe('LoginForm', () => {
     // Clean up global flag
     global.__SUPABASE_ERROR__ = false;
     
-    // Wait for error message - updated to look for any error message since the exact text may vary
+    // Wait for the status element to show the error message
     await waitFor(() => {
-      // Check if any error message is displayed, regardless of exact text
-      const errorMessages = screen.getAllByRole('alert');
-      expect(errorMessages.length).toBeGreaterThan(0);
+      const statusElement = screen.getByRole('status');
+      expect(statusElement).toHaveTextContent(/invalid credentials/i);
     });
   })
 

@@ -15,7 +15,8 @@ const {
   createConnectionString, 
   getPoolConfig, 
   testConnection,
-  createConnectionWithFallback
+  createConnectionWithFallback,
+  createSupabaseClient
 } = require('./supabase');
 const dns = require('dns').promises;
 
@@ -531,6 +532,288 @@ async function getMigrationStatus() {
   }
 }
 
+/**
+ * @fileoverview Database migrations for Supabase
+ * Contains functions to create and update database tables
+ */
+
+/**
+ * Create profiles table if it doesn't exist
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createProfilesTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('profiles')) {
+      logger.info('Profiles table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create the table
+    const { error } = await supabase.rpc('create_profiles_table');
+    
+    if (error) {
+      logger.error('Error creating profiles table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created profiles table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createProfilesTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Create workouts table if it doesn't exist
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createWorkoutsTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('workouts')) {
+      logger.info('Workouts table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create the table
+    const { error } = await supabase.rpc('create_workouts_table');
+    
+    if (error) {
+      logger.error('Error creating workouts table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created workouts table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createWorkoutsTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Create refresh_tokens table if it doesn't exist
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createRefreshTokensTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('refresh_tokens')) {
+      logger.info('Refresh tokens table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create the table using raw SQL for more control
+    const { error } = await supabase.rpc('create_refresh_tokens_table');
+    
+    if (error) {
+      logger.error('Error creating refresh tokens table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created refresh tokens table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createRefreshTokensTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Create blacklisted_tokens table if it doesn't exist
+ * This table is used for token blacklisting (revocation)
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createBlacklistedTokensTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('blacklisted_tokens')) {
+      logger.info('Blacklisted tokens table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create SQL query for the table
+    const query = `
+      CREATE TABLE blacklisted_tokens (
+        jti TEXT PRIMARY KEY,
+        user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        reason TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Create index for faster lookups
+      CREATE INDEX idx_blacklisted_tokens_expires_at ON blacklisted_tokens(expires_at);
+      
+      -- Create RLS policies
+      ALTER TABLE blacklisted_tokens ENABLE ROW LEVEL SECURITY;
+      
+      -- Policy for admins to see all tokens
+      CREATE POLICY "Admins can see all blacklisted tokens" 
+        ON blacklisted_tokens
+        FOR SELECT
+        TO authenticated
+        USING (auth.jwt() ->> 'role' = 'admin');
+        
+      -- Policy for users to see only their tokens
+      CREATE POLICY "Users can see their own blacklisted tokens" 
+        ON blacklisted_tokens
+        FOR SELECT
+        TO authenticated
+        USING (auth.uid() = user_id);
+        
+      -- Policy to allow insert from server-side code
+      CREATE POLICY "Allow server-side blacklisting" 
+        ON blacklisted_tokens
+        FOR INSERT
+        TO authenticated
+        WITH CHECK (true);
+        
+      -- Policy to allow cleanup of expired tokens
+      CREATE POLICY "Allow deletion of expired tokens by admins" 
+        ON blacklisted_tokens
+        FOR DELETE
+        TO authenticated
+        USING (auth.jwt() ->> 'role' = 'admin' OR expires_at < CURRENT_TIMESTAMP);
+    `;
+    
+    // Execute the query
+    const { error } = await supabase.rpc('execute_sql', { query });
+    
+    if (error) {
+      logger.error('Error creating blacklisted tokens table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created blacklisted tokens table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createBlacklistedTokensTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Create workout_logs table if it doesn't exist
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createWorkoutLogsTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('workout_logs')) {
+      logger.info('Workout logs table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create the table
+    const { error } = await supabase.rpc('create_workout_logs_table');
+    
+    if (error) {
+      logger.error('Error creating workout logs table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created workout logs table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createWorkoutLogsTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Create check_ins table if it doesn't exist
+ * 
+ * @returns {Promise<boolean>} Whether the operation was successful
+ */
+const createCheckInsTable = async () => {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // Check if table exists
+    const { data: existingTables } = await supabase.rpc('get_tables');
+    if (existingTables && existingTables.includes('check_ins')) {
+      logger.info('Check-ins table already exists, skipping creation');
+      return true;
+    }
+    
+    // Create the table
+    const { error } = await supabase.rpc('create_check_ins_table');
+    
+    if (error) {
+      logger.error('Error creating check-ins table:', error);
+      return false;
+    }
+    
+    logger.info('Successfully created check-ins table');
+    return true;
+  } catch (error) {
+    logger.error('Error in createCheckInsTable:', error);
+    return false;
+  }
+};
+
+/**
+ * Run all database migrations
+ * 
+ * @returns {Promise<boolean>} Whether all migrations were successful
+ */
+const runAllTableMigrations = async () => {
+  try {
+    logger.info('Starting database migrations...');
+    
+    // Run all migrations in sequence
+    const profilesSuccess = await createProfilesTable();
+    const workoutsSuccess = await createWorkoutsTable();
+    const refreshTokensSuccess = await createRefreshTokensTable();
+    const blacklistedTokensSuccess = await createBlacklistedTokensTable();
+    const workoutLogsSuccess = await createWorkoutLogsTable();
+    const checkInsSuccess = await createCheckInsTable();
+    
+    // Check if all migrations were successful
+    const allSuccessful = 
+      profilesSuccess && 
+      workoutsSuccess && 
+      refreshTokensSuccess && 
+      blacklistedTokensSuccess &&
+      workoutLogsSuccess && 
+      checkInsSuccess;
+    
+    if (allSuccessful) {
+      logger.info('All database migrations completed successfully');
+    } else {
+      logger.warn('Some database migrations failed');
+    }
+    
+    return allSuccessful;
+  } catch (error) {
+    logger.error('Error running migrations:', error);
+    return false;
+  }
+};
+
 module.exports = {
   ensureMigrationsTable,
   getMigrationFiles,
@@ -539,5 +822,12 @@ module.exports = {
   executeMigration,
   runMigrations,
   getMigrationStatus,
-  createConnectionPool
+  createConnectionPool,
+  createProfilesTable,
+  createWorkoutsTable,
+  createRefreshTokensTable,
+  createBlacklistedTokensTable,
+  createWorkoutLogsTable,
+  createCheckInsTable,
+  runAllTableMigrations
 }; 

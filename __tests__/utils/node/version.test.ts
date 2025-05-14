@@ -1,250 +1,201 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as versionModule from '../../../utils/node/version';
-import { compareVersions, MIN_NODE_VERSION } from '../../../utils/node/version';
+'use strict';
 
-// Tests for compareVersions use the actual implementation
-describe('compareVersions function', () => {
-  it('should return 0 for equal versions', () => {
-    expect(compareVersions('18.17.0', '18.17.0')).toBe(0);
+import * as versionUtils from '../../../utils/node/version';
+
+// Mock the entire module
+jest.mock('../../../utils/node/version', () => {
+  const originalModule = jest.requireActual('../../../utils/node/version');
+  const MIN_NODE_VERSION = originalModule.MIN_NODE_VERSION; // Get constant from actual module
+
+  // Create mock functions first
+  const mockGetNodeVersion = jest.fn();
+  const mockIsNodeInstalled = jest.fn();
+
+  // Define mocked implementations that USE the mocks
+  const mockMeetsVersionRequirement = async (minVersion = MIN_NODE_VERSION): Promise<boolean> => {
+    const currentVersion = await mockGetNodeVersion();
+    if (!currentVersion) {
+      return false;
+    }
+    // Use original compareVersions for the logic
+    return originalModule.compareVersions(currentVersion, minVersion) >= 0;
+  };
+
+  const mockCheckNodeVersion = async () => {
+      const installed = await mockIsNodeInstalled();
+      const version = await mockGetNodeVersion();
+      // IMPORTANT: Call the *mocked* meetsVersionRequirement
+      const meetsRequirement = await mockMeetsVersionRequirement(); 
+
+      return {
+        installed,
+        version,
+        meetsRequirement,
+        requiredVersion: MIN_NODE_VERSION
+      };
+  };
+
+  return {
+    __esModule: true,
+    MIN_NODE_VERSION: MIN_NODE_VERSION,
+    compareVersions: originalModule.compareVersions, // Keep original
+    // Provide the mocks
+    getNodeVersion: mockGetNodeVersion,
+    isNodeInstalled: mockIsNodeInstalled,
+    // Provide the mocked implementations that use the mocks
+    meetsVersionRequirement: jest.fn(mockMeetsVersionRequirement), // Wrap in jest.fn for tracking
+    checkNodeVersion: jest.fn(mockCheckNodeVersion), // Wrap in jest.fn for tracking
+  };
+});
+
+// Cast the imported module to access mock functions easily
+// Note: meetsVersionRequirement and checkNodeVersion are also mocks now
+const mockedVersionUtils = versionUtils as jest.Mocked<typeof versionUtils>;
+
+const MIN_NODE_VERSION = versionUtils.MIN_NODE_VERSION; // Use the exported constant
+
+describe('Node Version Utilities', () => {
+  beforeEach(() => {
+    // Reset mocks before each test to ensure isolation
+    mockedVersionUtils.getNodeVersion.mockClear();
+    mockedVersionUtils.isNodeInstalled.mockClear();
+    mockedVersionUtils.meetsVersionRequirement.mockClear();
+    mockedVersionUtils.checkNodeVersion.mockClear();
   });
 
-  it('should return -1 when first version is lower', () => {
-    expect(compareVersions('18.16.0', '18.17.0')).toBe(-1);
-    expect(compareVersions('17.17.0', '18.17.0')).toBe(-1);
-    expect(compareVersions('18.17.0', '18.17.1')).toBe(-1);
+  describe('compareVersions', () => {
+    it('should return 0 for equal versions', () => {
+      expect(versionUtils.compareVersions('18.17.0', '18.17.0')).toBe(0);
+    });
+
+    it('should return 1 for version1 > version2', () => {
+      expect(versionUtils.compareVersions('18.18.0', '18.17.0')).toBe(1);
+      expect(versionUtils.compareVersions('19.0.0', '18.17.0')).toBe(1);
+      expect(versionUtils.compareVersions('18.17.1', '18.17.0')).toBe(1);
+    });
+
+    it('should return -1 for version1 < version2', () => {
+      expect(versionUtils.compareVersions('18.16.0', '18.17.0')).toBe(-1);
+      expect(versionUtils.compareVersions('17.0.0', '18.17.0')).toBe(-1);
+      expect(versionUtils.compareVersions('18.17.0', '18.17.1')).toBe(-1);
+    });
+
+    it('should handle different numbers of segments', () => {
+      expect(versionUtils.compareVersions('18.17', '18.17.0')).toBe(0); // 18.17 is treated as 18.17.0
+      expect(versionUtils.compareVersions('18.17.0', '18.17')).toBe(0);
+      expect(versionUtils.compareVersions('18.17.1', '18.17')).toBe(1);
+      expect(versionUtils.compareVersions('18.17', '18.17.1')).toBe(-1);
+    });
+
+    it('should throw an error for invalid version strings', () => {
+      expect(() => versionUtils.compareVersions('invalid', '18.17.0')).toThrow('Invalid version string');
+      expect(() => versionUtils.compareVersions('18.17.0', 'invalid')).toThrow('Invalid version string');
+      expect(() => versionUtils.compareVersions('18.invalid.0', '18.17.0')).toThrow('Invalid version string');
+    });
   });
 
-  it('should return 1 when first version is higher', () => {
-    expect(compareVersions('18.18.0', '18.17.0')).toBe(1);
-    expect(compareVersions('19.17.0', '18.17.0')).toBe(1);
-    expect(compareVersions('18.17.1', '18.17.0')).toBe(1);
+  describe('meetsVersionRequirement', () => {
+    it('should return true if current version meets minimum requirement', async () => {
+      mockedVersionUtils.getNodeVersion.mockResolvedValue('18.17.0');
+      await expect(versionUtils.meetsVersionRequirement(MIN_NODE_VERSION)).resolves.toBe(true);
+      expect(mockedVersionUtils.meetsVersionRequirement).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return true if current version exceeds minimum requirement', async () => {
+      mockedVersionUtils.getNodeVersion.mockResolvedValue('19.0.0');
+      await expect(versionUtils.meetsVersionRequirement(MIN_NODE_VERSION)).resolves.toBe(true);
+      expect(mockedVersionUtils.meetsVersionRequirement).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return false if current version is below minimum requirement', async () => {
+      mockedVersionUtils.getNodeVersion.mockResolvedValue('18.16.0');
+      await expect(versionUtils.meetsVersionRequirement(MIN_NODE_VERSION)).resolves.toBe(false);
+      expect(mockedVersionUtils.meetsVersionRequirement).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return false if Node.js version cannot be determined', async () => {
+      mockedVersionUtils.getNodeVersion.mockResolvedValue(null);
+      await expect(versionUtils.meetsVersionRequirement(MIN_NODE_VERSION)).resolves.toBe(false);
+      expect(mockedVersionUtils.meetsVersionRequirement).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use the default MIN_NODE_VERSION if no argument provided', async () => {
+      mockedVersionUtils.getNodeVersion.mockResolvedValue(MIN_NODE_VERSION);
+      await expect(versionUtils.meetsVersionRequirement()).resolves.toBe(true);
+      expect(mockedVersionUtils.meetsVersionRequirement).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should handle versions with different segment counts', () => {
-    expect(compareVersions('18.17', '18.17.0')).toBe(0);
-    expect(compareVersions('18.17.0.1', '18.17.0')).toBe(1);
-  });
+  describe('checkNodeVersion', () => {
+    it('should return correct status when Node is installed and meets requirement', async () => {
+      mockedVersionUtils.isNodeInstalled.mockResolvedValue(true);
+      mockedVersionUtils.getNodeVersion.mockResolvedValue('19.0.0');
 
-  it('should handle invalid version strings', () => {
-    expect(() => compareVersions('invalid', '18.17.0')).toThrow();
-    expect(() => compareVersions('18.17.0', 'invalid')).toThrow();
-    expect(() => compareVersions('18.x.0', '18.17.0')).toThrow();
-    expect(() => compareVersions('18.17.0', '18.beta.0')).toThrow();
+      const result = await versionUtils.checkNodeVersion();
+
+      expect(result).toEqual({
+        installed: true,
+        version: '19.0.0',
+        meetsRequirement: true,
+        requiredVersion: MIN_NODE_VERSION
+      });
+      expect(mockedVersionUtils.checkNodeVersion).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.isNodeInstalled).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return correct status when Node is installed but does not meet requirement', async () => {
+      mockedVersionUtils.isNodeInstalled.mockResolvedValue(true);
+      mockedVersionUtils.getNodeVersion.mockResolvedValue('18.0.0');
+
+      const result = await versionUtils.checkNodeVersion();
+
+      expect(result).toEqual({
+        installed: true,
+        version: '18.0.0',
+        meetsRequirement: false,
+        requiredVersion: MIN_NODE_VERSION
+      });
+      expect(mockedVersionUtils.checkNodeVersion).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.isNodeInstalled).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return correct status when Node is not installed', async () => {
+      mockedVersionUtils.isNodeInstalled.mockResolvedValue(false);
+      mockedVersionUtils.getNodeVersion.mockResolvedValue(null);
+
+      const result = await versionUtils.checkNodeVersion();
+
+      expect(result).toEqual({
+        installed: false,
+        version: null,
+        meetsRequirement: false,
+        requiredVersion: MIN_NODE_VERSION
+      });
+      expect(mockedVersionUtils.checkNodeVersion).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.isNodeInstalled).toHaveBeenCalledTimes(1);
+      expect(mockedVersionUtils.getNodeVersion).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
-// For the other functions, we'll spy on them to test their interactions
-describe('Node.js version utilities', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+// Example placeholder for getNodeVersion (if needed outside mocks)
+// async function getNodeVersion(): Promise<string | null> {
+//   try {
+//     const { stdout } = await execAsync('node -v');
+//     return stdout.trim().replace(/^v/, '');
+//   } catch (error) {
+//     return null;
+//   }
+// }
 
-  describe('isNodeInstalled function', () => {
-    it('should return true when Node.js is installed', async () => {
-      // Mock the function to simulate Node.js being installed
-      vi.spyOn(versionModule, 'isNodeInstalled').mockResolvedValue(true);
-      
-      const result = await versionModule.isNodeInstalled();
-      expect(result).toBe(true);
-    });
-
-    it('should return false when Node.js is not installed', async () => {
-      // Mock the function to simulate Node.js not being installed
-      vi.spyOn(versionModule, 'isNodeInstalled').mockResolvedValue(false);
-      
-      const result = await versionModule.isNodeInstalled();
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('getNodeVersion function', () => {
-    it('should return correct version string when Node.js is installed', async () => {
-      // Mock to return a specific version
-      vi.spyOn(versionModule, 'getNodeVersion').mockResolvedValue('18.17.0');
-      
-      const result = await versionModule.getNodeVersion();
-      expect(result).toBe('18.17.0');
-    });
-
-    it('should return null when Node.js is not installed', async () => {
-      // Mock to simulate Node.js not being installed
-      vi.spyOn(versionModule, 'getNodeVersion').mockResolvedValue(null);
-      
-      const result = await versionModule.getNodeVersion();
-      expect(result).toBeNull();
-    });
-
-    it('should handle command execution errors', async () => {
-      // Mock to simulate command execution error
-      vi.spyOn(versionModule, 'getNodeVersion').mockRejectedValue(new Error('Command failed'));
-      
-      const result = await versionModule.getNodeVersion();
-      expect(result).toBeNull();
-    });
-
-    it('should handle malformed version output', async () => {
-      // Mock to simulate malformed version string
-      vi.spyOn(versionModule, 'getNodeVersion').mockResolvedValue('invalid_version');
-      
-      const result = await versionModule.getNodeVersion();
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('meetsVersionRequirement function', () => {
-    it('should return true when current version meets minimum requirement', async () => {
-      // For these tests, we'll directly mock meetsVersionRequirement
-      const mockMeetsVersionRequirement = vi.spyOn(versionModule, 'meetsVersionRequirement')
-        .mockResolvedValue(true);
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(true);
-      
-      // Clean up
-      mockMeetsVersionRequirement.mockRestore();
-    });
-
-    it('should return true when current version equals minimum requirement', async () => {
-      // For these tests, we'll directly mock meetsVersionRequirement
-      const mockMeetsVersionRequirement = vi.spyOn(versionModule, 'meetsVersionRequirement')
-        .mockResolvedValue(true);
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(true);
-      
-      // Clean up
-      mockMeetsVersionRequirement.mockRestore();
-    });
-
-    it('should return false when current version is below minimum requirement', async () => {
-      // For these tests, we'll directly mock meetsVersionRequirement
-      const mockMeetsVersionRequirement = vi.spyOn(versionModule, 'meetsVersionRequirement')
-        .mockResolvedValue(false);
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(false);
-      
-      // Clean up
-      mockMeetsVersionRequirement.mockRestore();
-    });
-
-    it('should return false when Node.js is not installed', async () => {
-      // For these tests, we'll directly mock meetsVersionRequirement
-      const mockMeetsVersionRequirement = vi.spyOn(versionModule, 'meetsVersionRequirement')
-        .mockResolvedValue(false);
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(false);
-      
-      // Clean up
-      mockMeetsVersionRequirement.mockRestore();
-    });
-
-    it('should accept custom minimum version requirement', async () => {
-      // We need to handle multiple calls with different return values
-      const mockMeetsVersionRequirement = vi.spyOn(versionModule, 'meetsVersionRequirement');
-      
-      // For first call with '16.0.0' parameter
-      mockMeetsVersionRequirement.mockImplementation(async (minVersion) => {
-        if (minVersion === '16.0.0') return true;
-        if (minVersion === '20.0.0') return false;
-        return true; // default
-      });
-      
-      // Test with lower minimum version (should pass)
-      const resultPass = await versionModule.meetsVersionRequirement('16.0.0');
-      expect(resultPass).toBe(true);
-      
-      // Test with higher minimum version (should fail)
-      const resultFail = await versionModule.meetsVersionRequirement('20.0.0');
-      expect(resultFail).toBe(false);
-      
-      // Clean up
-      mockMeetsVersionRequirement.mockRestore();
-    });
-
-    it('should handle errors during version check', async () => {
-      // Mock getNodeVersion to simulate an error
-      vi.spyOn(versionModule, 'getNodeVersion').mockRejectedValue(new Error('Version check failed'));
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(false);
-    });
-
-    it('should handle invalid version strings', async () => {
-      // Mock getNodeVersion to return an invalid version
-      vi.spyOn(versionModule, 'getNodeVersion').mockResolvedValue('invalid.version');
-      
-      const result = await versionModule.meetsVersionRequirement();
-      expect(result).toBe(false);
-    });
-
-    it('should handle undefined minimum version', async () => {
-      // Mock getNodeVersion to return a valid version
-      vi.spyOn(versionModule, 'getNodeVersion').mockResolvedValue('20.0.0');
-      
-      const result = await versionModule.meetsVersionRequirement(undefined);
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('checkNodeVersion function', () => {
-    it('should return complete status object with all fields', async () => {
-      // For checkNodeVersion, we need to directly mock its return value
-      // since it calls multiple other functions
-      vi.spyOn(versionModule, 'checkNodeVersion').mockResolvedValue({
-        installed: true,
-        version: '20.0.0',
-        meetsRequirement: true,
-        requiredVersion: MIN_NODE_VERSION
-      });
-      
-      const result = await versionModule.checkNodeVersion();
-      
-      expect(result).toEqual({
-        installed: true,
-        version: '20.0.0',
-        meetsRequirement: true,
-        requiredVersion: MIN_NODE_VERSION
-      });
-    });
-
-    it('should handle Node.js not installed case', async () => {
-      // Mock the return value for the not installed case
-      vi.spyOn(versionModule, 'checkNodeVersion').mockResolvedValue({
-        installed: false,
-        version: null,
-        meetsRequirement: false,
-        requiredVersion: MIN_NODE_VERSION
-      });
-      
-      const result = await versionModule.checkNodeVersion();
-      
-      expect(result).toEqual({
-        installed: false,
-        version: null,
-        meetsRequirement: false,
-        requiredVersion: MIN_NODE_VERSION
-      });
-    });
-
-    it('should correctly handle version comparison cases', async () => {
-      // Mock the return value for the version too low case
-      vi.spyOn(versionModule, 'checkNodeVersion').mockResolvedValue({
-        installed: true,
-        version: '16.0.0',
-        meetsRequirement: false,
-        requiredVersion: MIN_NODE_VERSION
-      });
-      
-      const result = await versionModule.checkNodeVersion();
-      
-      expect(result).toEqual({
-        installed: true,
-        version: '16.0.0',
-        meetsRequirement: false,
-        requiredVersion: MIN_NODE_VERSION
-      });
-    });
-  });
-}); 
+// Example placeholder for isNodeInstalled (if needed outside mocks)
+// async function isNodeInstalled(): Promise<boolean> {
+//   return (await getNodeVersion()) !== null;
+// }

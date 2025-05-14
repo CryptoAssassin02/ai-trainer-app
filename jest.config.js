@@ -5,54 +5,96 @@ const createJestConfig = nextJest({
   dir: './',
 });
 
+// Determine if we're running integration tests
+const isIntegrationTest = process.env.RUN_INTEGRATION_TESTS === 'true';
+
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jest-environment-jsdom',
-  modulePaths: ['<rootDir>'],
-  moduleNameMapper: {
-    // Specific mapping for the problematic import
-    '^@/lib/supabase/browser$': '<rootDir>/lib/supabase/browser.ts',
-    // Handle module aliases (should match tsconfig.json)
-    '^@/(.*)$': '<rootDir>/$1',
-  },
-  testMatch: [
-    '**/__tests__/**/*.+(ts|tsx|js)',
-    '**/?(*.)+(spec|test).+(ts|tsx|js)'
+  // Use different setup files based on whether we're running integration tests
+  setupFilesAfterEnv: isIntegrationTest 
+    ? ['<rootDir>/jest.integration.setup.js'] 
+    : ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.ts'],
+  // testEnvironment: 'jest-environment-jsdom', // REMOVED - Handled by projects
+  projects: [
+    {
+      displayName: 'frontend',
+      testEnvironment: 'jest-environment-jsdom',
+      testMatch: [
+        '**/__tests__/**/*.+(ts|tsx|js)',
+        '**/?(*.)+(spec|test).+(ts|tsx|js)',
+        '!**/backend/**' // Exclude backend tests
+      ],
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.ts'],
+      moduleNameMapper: {
+        // Frontend specific mappers
+        '^@/lib/supabase/browser$': '<rootDir>/lib/supabase/browser.ts',
+        '\\.(css|less|sass|scss)$' : 'identity-obj-proxy',
+        '\\.(gif|ttf|eot|svg|png)$' : '<rootDir>/__mocks__/fileMock.js',
+        '^lucide-react$': '<rootDir>/__mocks__/lucideMock.js',
+        '^@/(.*)$': '<rootDir>/$1',
+        '^uuid$': require.resolve('uuid'),
+        '^@/components/(.*)$': '<rootDir>/components/$1',
+        '^@/lib/(.*)$': '<rootDir>/lib/$1',
+        '^@/utils/(.*)$': '<rootDir>/utils/$1',
+      },
+      transform: {
+        '^.+\\.js$': 'babel-jest',
+        '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: './tsconfig.json' }],
+      },
+      transformIgnorePatterns: [
+        '/node_modules/(?!(uuid)/).+\\.(js|jsx|mjs|cjs|ts|tsx)$',
+        '^.+\\.module\\.(css|sass|scss)$',
+      ],
+    },
+    {
+      displayName: 'backend',
+      testEnvironment: 'node', // Use node environment for backend tests
+      testMatch: [
+        '**/backend/tests/**/*.test.js' // Match only backend tests
+      ],
+      rootDir: '.', 
+      setupFilesAfterEnv: ['<rootDir>/backend/tests/setup-tests.js'],
+      moduleNameMapper: {
+        // No mappings needed here, setup-tests handles mocks
+      },
+      transform: { // Ensure backend JS/TS files are transformed if needed
+          '^.+\\.(js|jsx|ts|tsx)$': 'ts-jest'
+      },
+      transformIgnorePatterns: [
+        '/node_modules/' // Standard node ignore pattern
+      ],
+      // Add backend-specific coverage collection paths
+      collectCoverageFrom: [
+        'backend/**/*.{js,ts}',
+        '!**/node_modules/**',
+        '!backend/tests/**', 
+        '!backend/migrations/**',
+        '!backend/scripts/**', // Might want to ignore scripts too
+        '!backend/migration-tools/**',
+        '!backend/diagnostics/**', 
+        '!backend/examples/**',
+        '!backend/index.js', // Exclude top-level index if it's just an entry point
+        '!backend/server.js', // Exclude server entry point
+        '!**/*.config.js',
+        '!**/*.d.ts'
+      ],
+    }
   ],
   collectCoverage: true,
-  collectCoverageFrom: [
-    'app/**/*.{js,jsx,ts,tsx}',
-    'components/**/*.{js,jsx,ts,tsx}',
-    'contexts/**/*.{js,jsx,ts,tsx}',
-    'lib/**/*.{js,jsx,ts,tsx}',
-    'utils/**/*.{js,jsx,ts,tsx}',
-    '!**/node_modules/**',
-    '!**/.storybook/**',
-    '!**/cypress/**',
-    '!**/coverage/**',
-  ],
   coverageReporters: ['json', 'lcov', 'text', 'clover'],
-  // Temporarily disable coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 0,
-      functions: 0,
-      lines: 0,
-      statements: 0,
+      branches: 70,
+      functions: 80,
+      lines: 80,
+      statements: 0, 
     },
   },
-  // Temporarily exclude test-utils and the problematic SignupForm test
   testPathIgnorePatterns: [
-    '/node_modules/',
-    '/__tests__/utils/',
-    '/__tests__/components/profile/SignupForm.test.tsx', // Temporarily ignore this test
-  ],
-  // Handle ESM modules
-  transformIgnorePatterns: [
-    '/node_modules/(?!(lucide-react|date-fns|@date-fns|recharts|d3-*|internmap|msw))'
+    '<rootDir>/node_modules/',
+    '<rootDir>/.next/',
+    '/e2e/',
   ],
 };
 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
 module.exports = createJestConfig(customJestConfig); 

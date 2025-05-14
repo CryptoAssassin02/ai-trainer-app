@@ -43,12 +43,14 @@ const PlanEditing = ({
           type="text" 
           defaultValue={workoutPlan.name} 
           onChange={(e) => workoutPlan.name = e.target.value} 
+          aria-label="Workout Plan Name"
         />
         <input 
           type="text" 
           defaultValue={workoutPlan.description} 
+          aria-label="Workout Plan Description"
         />
-        <select defaultValue={workoutPlan.level}>
+        <select defaultValue={workoutPlan.level} aria-label="Workout Level">
           <option value="beginner">Beginner</option>
           <option value="intermediate">Intermediate</option>
           <option value="advanced">Advanced</option>
@@ -56,14 +58,17 @@ const PlanEditing = ({
         <input 
           type="text" 
           defaultValue={workoutPlan.duration} 
+          aria-label="Workout Duration"
         />
         <input 
           type="text" 
           defaultValue={workoutPlan.frequency} 
+          aria-label="Workout Frequency"
         />
         <input 
           type="text" 
           defaultValue={workoutPlan.goal} 
+          aria-label="Workout Goal"
         />
         
         {workoutPlan.schedule.map((day: any, dayIndex: number) => (
@@ -72,6 +77,7 @@ const PlanEditing = ({
             <input 
               type="text" 
               defaultValue={day.name} 
+              aria-label={`Workout name for ${day.day}`}
             />
             
             {day.exercises.map((exercise: any, exIndex: number) => (
@@ -80,10 +86,12 @@ const PlanEditing = ({
                 <input 
                   type="number" 
                   defaultValue={exercise.sets} 
+                  aria-label={`Sets for ${exercise.name}`}
                 />
                 <input 
                   type="text" 
                   defaultValue={exercise.reps} 
+                  aria-label={`Reps for ${exercise.name}`}
                 />
                 <button 
                   data-testid="delete-exercise-button" 
@@ -425,8 +433,8 @@ describe('PlanEditing', () => {
     // Check plan details are displayed
     expect(screen.getByDisplayValue(mockWorkoutPlan.name)).toBeInTheDocument()
     expect(screen.getByDisplayValue(mockWorkoutPlan.description)).toBeInTheDocument()
-    // For select elements, we need to check differently
-    const levelSelect = screen.getByRole('combobox', { name: '' })
+    // Correctly query the select element using its accessible name (aria-label)
+    const levelSelect = screen.getByRole('combobox', { name: 'Workout Level' })
     expect(levelSelect).toHaveValue(mockWorkoutPlan.level)
     expect(screen.getByDisplayValue(mockWorkoutPlan.duration)).toBeInTheDocument()
     expect(screen.getByDisplayValue(mockWorkoutPlan.frequency)).toBeInTheDocument()
@@ -802,7 +810,7 @@ describe('PlanEditing', () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   })
   
-  it.skip('has no accessibility violations', async () => {
+  it('has no accessibility violations', async () => {
     const { container } = render(
       <PlanEditing 
         workoutPlan={mockWorkoutPlan}

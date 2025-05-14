@@ -137,7 +137,7 @@ interface WorkoutContextType {
   agentMessages: AgentMessageType[]
   
   // Functions
-  fetchUserWorkoutPlans: () => Promise<void>
+  fetchUserWorkoutPlans: (userId?: string | null) => Promise<void>
   fetchWorkoutPlan: (planId: string) => Promise<WorkoutPlanType | null>
   generateWorkoutPlan: (goals: string[], preferences: Record<string, any>) => Promise<void>
   adjustWorkoutPlan: (planId: string, feedback: string) => Promise<void>
@@ -148,7 +148,7 @@ interface WorkoutContextType {
   logWorkoutProgress: (progress: WorkoutProgressType) => Promise<string | null>
   logCheckIn: (checkIn: WorkoutCheckInType) => Promise<string | null>
   getProgressHistory: (planId: string) => Promise<WorkoutProgressType[]>
-  getCheckInHistory: () => Promise<WorkoutCheckInType[]>
+  getCheckInHistory: (userId?: string | null) => Promise<WorkoutCheckInType[]>
   
   // Agent interaction
   sendMessageToAgent: (message: string) => Promise<void>
@@ -179,44 +179,211 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   
   // Get user ID - since we don't have an id in the profile, we'll use name as a unique identifier
   // or create a temporary ID for testing purposes
-  const getUserId = () => {
-    // In a real implementation, this would be the user's authenticated ID
-    // For now, we'll use the profile name or a session-based ID
-    return profile?.name || sessionStorage.getItem('tempUserId') || createTempUserId()
-  }
-  
-  // Create a temporary user ID for demo purposes
-  const createTempUserId = () => {
-    const tempId = uuidv4()
-    sessionStorage.setItem('tempUserId', tempId)
-    return tempId
+  const getUserId = async (): Promise<string | null> => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Error getting Supabase session:', sessionError);
+      return null;
+    }
+    if (!session?.user?.id) {
+      console.error('No active user session found.');
+      // Optionally try temp ID as fallback if needed for specific flows,
+      // but primary operations should rely on auth.uid()
+      return sessionStorage.getItem('tempUserId') || null;
+    }
+    return session.user.id; // Return the actual authenticated user ID
   }
   
   // Fetch user's workout plans on mount
   useEffect(() => {
-    if (profile?.name) {
-      fetchUserWorkoutPlans()
-      getCheckInHistory()
-    }
-  }, [profile?.name])
+    // Use an async IIFE to call async getUserId if needed here
+    // Or adjust fetchUserWorkoutPlans/getCheckInHistory to accept userId
+    (async () => {
+      const userId = await getUserId();
+      if (userId) {
+        // Pass userId to functions if they need it, or they can call getUserId internally
+        fetchUserWorkoutPlans(userId);
+        getCheckInHistory(userId);
+      }
+    })();
+  }, [profile]); // Dependency array might need adjustment based on actual auth flow
   
+  // Transformation Helper Function (can be defined outside or inside the provider)
+  const transformDbPlanToFrontend = (dbPlan: any): WorkoutPlanType | null => {
+    if (!dbPlan) return null;
+    
+    // Safely parse plan_data JSON
+    let exercises: ExerciseType[] = [];
+    if (dbPlan.plan_data) {
+      try {
+        const parsedExercises = typeof dbPlan.plan_data === 'string' 
+          ? JSON.parse(dbPlan.plan_data) 
+          : dbPlan.plan_data;
+        if (Array.isArray(parsedExercises)) {
+          exercises = parsedExercises as ExerciseType[];
+        }
+      } catch (e) {
+        console.error(`Failed to parse plan_data for plan ${dbPlan.id}:`, e);
+      }
+    }
+    
+    // Safely parse ai_reasoning JSON
+    let aiReasoning: WorkoutGenerationReasoning | undefined = undefined;
+    if (dbPlan.ai_reasoning) {
+      try {
+        const parsedReasoning = typeof dbPlan.ai_reasoning === 'string' 
+          ? JSON.parse(dbPlan.ai_reasoning) 
+          : dbPlan.ai_reasoning;
+        aiReasoning = parsedReasoning as WorkoutGenerationReasoning;
+      } catch (e) {
+        console.error(`Failed to parse ai_reasoning for plan ${dbPlan.id}:`, e);
+      }
+    }
+
+    return {
+      id: dbPlan.id,
+      user_id: dbPlan.user_id,
+      title: dbPlan.name || 'Untitled Plan',
+      description: dbPlan.description || '',
+      duration: dbPlan.estimated_duration ? `${dbPlan.estimated_duration} mins` : 'N/A',
+      level: dbPlan.difficulty_level || 'Intermediate',
+      sessions: dbPlan.schedule_frequency ? (parseInt(dbPlan.schedule_frequency.match(/^\d+/)?.[0] || '0', 10) || 0) : 0,
+      tags: dbPlan.tags || [],
+      exercises: exercises,
+      created_at: dbPlan.created_at || undefined,
+      updated_at: dbPlan.updated_at || undefined,
+      instructions: undefined, // No direct mapping from DB shown
+      goals: dbPlan.goals || [],
+      ai_reasoning: aiReasoning,
+    };
+  };
+
+  // Transformation Helper for Saving (Frontend to DB)
+  const transformFrontendPlanToDb = (plan: WorkoutPlanType, userId: string) => {
+    // Basic validation or defaults
+    const estimatedDurationMatch = plan.duration.match(/^\d+/);
+    const estimatedDuration = estimatedDurationMatch ? parseInt(estimatedDurationMatch[0], 10) : null;
+    
+    // Simple conversion for frequency - assumes format like "3x per week"
+    const scheduleFrequency = plan.sessions > 0 ? `${plan.sessions}x per week` : null;
+    
+    return {
+      // Fields matching DB schema
+      id: plan.id, // Include if updating
+      user_id: plan.user_id || userId,
+      name: plan.title,
+      description: plan.description,
+      estimated_duration: estimatedDuration,
+      difficulty_level: plan.level,
+      schedule_frequency: scheduleFrequency,
+      goals: plan.goals,
+      tags: plan.tags,
+      // Stringify JSON fields
+      plan_data: JSON.stringify(plan.exercises || []),
+      ai_reasoning: plan.ai_reasoning ? JSON.stringify(plan.ai_reasoning) : null,
+      // Add other DB fields if necessary (e.g., ai_generated, status, version)
+      // updated_at will likely be handled by DB trigger or Supabase
+    };
+  };
+
+  // Transformation Helper for Logs (DB to Frontend)
+  const transformDbLogToFrontend = (dbLog: any): WorkoutProgressType | null => {
+     if (!dbLog) return null;
+     
+     let exercisesCompleted: WorkoutProgressType['exercises_completed'] = [];
+      if (dbLog.exercises_completed) {
+        try {
+          const parsed = typeof dbLog.exercises_completed === 'string' 
+            ? JSON.parse(dbLog.exercises_completed) 
+            : dbLog.exercises_completed;
+          if (Array.isArray(parsed)) {
+            // TODO: Validate structure further
+            exercisesCompleted = parsed;
+          }
+        } catch (e) {
+          console.error(`Failed to parse exercises_completed for log ${dbLog.id}:`, e);
+        }
+      }
+
+     return {
+       id: dbLog.id,
+       user_id: dbLog.user_id,
+       plan_id: dbLog.plan_id || '', // Ensure plan_id is always string
+       date: dbLog.date,
+       completed: dbLog.completed || false,
+       exercises_completed: exercisesCompleted,
+       overall_difficulty: dbLog.overall_difficulty || 0,
+       energy_level: dbLog.energy_level || 0,
+       satisfaction: dbLog.satisfaction || 0,
+       feedback: dbLog.feedback || undefined,
+     };
+   };
+
+  // Transformation Helper for Check-ins (DB to Frontend)
+  const transformDbCheckInToFrontend = (dbCheckIn: any): WorkoutCheckInType | null => {
+    if (!dbCheckIn) return null;
+    
+    let measurements: WorkoutCheckInType['measurements'] = undefined;
+    if (dbCheckIn.measurements) {
+      try {
+        const parsed = typeof dbCheckIn.measurements === 'string' 
+          ? JSON.parse(dbCheckIn.measurements) 
+          : dbCheckIn.measurements;
+        // Basic check if it's an object - further validation could be added
+        if (typeof parsed === 'object' && parsed !== null) {
+          measurements = parsed;
+        }
+      } catch (e) {
+        console.error(`Failed to parse measurements for check-in ${dbCheckIn.id}:`, e);
+      }
+    }
+
+    // Explicitly map mood and sleep_quality to the expected union types or default
+    const moodMap: { [key: string]: WorkoutCheckInType['mood'] } = {
+      poor: 'poor', fair: 'fair', good: 'good', excellent: 'excellent'
+    };
+    const sleepQualityMap: { [key: string]: WorkoutCheckInType['sleep_quality'] } = {
+      poor: 'poor', fair: 'fair', good: 'good', excellent: 'excellent'
+    };
+
+    return {
+      id: dbCheckIn.id,
+      user_id: dbCheckIn.user_id,
+      date: dbCheckIn.date,
+      // Convert null from DB to undefined for optional number fields
+      weight: dbCheckIn.weight === null ? undefined : dbCheckIn.weight,
+      body_fat_percentage: dbCheckIn.body_fat_percentage === null ? undefined : dbCheckIn.body_fat_percentage,
+      measurements: measurements,
+      mood: dbCheckIn.mood && moodMap[dbCheckIn.mood] ? moodMap[dbCheckIn.mood] : 'good', // Default if invalid
+      sleep_quality: dbCheckIn.sleep_quality && sleepQualityMap[dbCheckIn.sleep_quality] ? sleepQualityMap[dbCheckIn.sleep_quality] : 'good', // Default if invalid
+      energy_level: dbCheckIn.energy_level === null ? 0 : dbCheckIn.energy_level, // Default to 0
+      stress_level: dbCheckIn.stress_level === null ? 0 : dbCheckIn.stress_level, // Default to 0
+      notes: dbCheckIn.notes === null ? undefined : dbCheckIn.notes,
+    };
+  };
+
   /**
    * Fetch all workout plans for the current user
    */
-  const fetchUserWorkoutPlans = async () => {
-    const userId = getUserId()
-    if (!userId) return
+  const fetchUserWorkoutPlans = async (userId?: string | null) => {
+    const currentUserId = userId || await getUserId();
+    if (!currentUserId) {
+      console.error("User ID not available for fetching plans.");
+      return;
+    }
     
     try {
-      const { data, error } = await supabase
+      const { data: dbData, error } = await supabase
         .from('workout_plans')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', currentUserId)
         .order('created_at', { ascending: false })
       
-      if (error) throw error
+      if (error) throw error;
       
-      setWorkoutPlans(data || [])
+      const transformedPlans = (dbData || []).map(transformDbPlanToFrontend).filter(p => p !== null) as WorkoutPlanType[];
+      
+      setWorkoutPlans(transformedPlans)
     } catch (error) {
       console.error('Error fetching workout plans:', error)
       toast({
@@ -230,9 +397,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   /**
    * Fetch a specific workout plan by ID
    */
-  const fetchWorkoutPlan = async (planId: string) => {
+  const fetchWorkoutPlan = async (planId: string): Promise<WorkoutPlanType | null> => {
     try {
-      const { data, error } = await supabase
+      const { data: dbPlan, error } = await supabase
         .from('workout_plans')
         .select('*')
         .eq('id', planId)
@@ -240,8 +407,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       
       if (error) throw error
       
-      setSelectedPlan(data)
-      return data
+      const transformedPlan = transformDbPlanToFrontend(dbPlan); // Transform here
+      setSelectedPlan(transformedPlan) // Set state with transformed plan
+      return transformedPlan // Return transformed plan
     } catch (error) {
       console.error('Error fetching workout plan:', error)
       toast({
@@ -274,7 +442,13 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       resetAgentConversation()
       
       // Create agent memory system
-      const userId = getUserId()
+      const userId = await getUserId()
+      if (!userId) {
+        console.error("Cannot generate plan without user ID.");
+        toast({ title: 'Error', description: 'User session not found.', variant: 'destructive' });
+        setGenerationStatus('error');
+        return;
+      }
       const memorySystem = new AgentMemorySystem(userId)
       
       // Initialize agents
@@ -402,7 +576,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         level: generationResult.data.level || 'beginner',
         tags: generationResult.data.tags || [],
         exercises: generationResult.data.exercises || [],
-        user_id: getUserId(),
+        user_id: userId,
         ai_reasoning: {
           research: {
             profile_analysis: researchResult.data.profile_analysis || '',
@@ -501,10 +675,18 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         throw new Error(adjustmentResult.error || 'Plan adjustment failed')
       }
       
-      // Convert the adjusted plan to match our WorkoutPlanType
-      const adjustedPlan: WorkoutPlanType = {
+      // Prepare the updated plan object
+      const currentUserId = currentPlan.user_id || await getUserId();
+      if (!currentUserId) {
+        console.error("Cannot adjust plan without user ID.");
+        toast({ title: 'Error', description: 'User session not found.', variant: 'destructive' });
+        setGenerationStatus('error');
+        return;
+      }
+
+      const updatedPlanData: WorkoutPlanType = {
         ...currentPlan,
-        ...adjustmentResult.data,
+        // Apply adjustments from AI
         title: adjustmentResult.data.title || currentPlan.title,
         description: adjustmentResult.data.description || currentPlan.description,
         duration: adjustmentResult.data.duration || currentPlan.duration,
@@ -512,10 +694,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         level: adjustmentResult.data.level || currentPlan.level,
         tags: adjustmentResult.data.tags || currentPlan.tags,
         exercises: adjustmentResult.data.exercises || currentPlan.exercises,
-        user_id: currentPlan.user_id || getUserId(),
+        user_id: currentUserId,
         // Additional adjustment information
         updated_at: new Date().toISOString()
-      }
+      };
       
       // Show adjustment reasoning in UI
       setAgentMessages([
@@ -528,7 +710,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       ])
       
       // Save the adjusted plan
-      const adjustedPlanId = await saveWorkoutPlan(adjustedPlan)
+      const adjustedPlanId = await saveWorkoutPlan(updatedPlanData)
       
       if (adjustedPlanId) {
         // Fetch the saved plan with its ID
@@ -558,38 +740,50 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
    * Save a workout plan to the database
    */
   const saveWorkoutPlan = async (plan: WorkoutPlanType): Promise<string | null> => {
-    const userId = getUserId()
-    if (!userId) return null
+    const userId = await getUserId();
+    if (!userId) return null;
     
     try {
-      const planWithUserId = {
-        ...plan,
-        user_id: plan.user_id || userId,
-      }
-      
+      // Transform frontend plan to DB structure
+      const dbPlanData = transformFrontendPlanToDb(plan, userId);
+
       if (plan.id) {
         // Update existing plan
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('workout_plans')
-          .update(planWithUserId)
+          // Use transformed data, remove id explicitly if update expects no id in payload
+          .update({ ...dbPlanData, id: undefined })
           .eq('id', plan.id)
+          .eq('user_id', userId)
         
         if (error) throw error
         
+        // Optimistically update local state or refetch
+        await fetchUserWorkoutPlans(userId) // Refetch list after update
+        if (selectedPlan?.id === plan.id) {
+          setSelectedPlan(plan); // Update selected plan immediately
+        }
+
         return plan.id
       } else {
         // Insert new plan
         const { data, error } = await supabase
           .from('workout_plans')
-          .insert(planWithUserId)
+          .insert(dbPlanData) // Use transformed data
           .select()
+          .single() // Expecting a single row back
         
         if (error) throw error
         
-        // Update local state
-        await fetchUserWorkoutPlans()
-        
-        return data?.[0]?.id || null
+        // Update local state with the newly created plan (transform back if needed)
+        if (data) {
+           const newPlan = transformDbPlanToFrontend(data);
+           if (newPlan) {
+             setWorkoutPlans(prev => [newPlan, ...prev]);
+             return newPlan.id || null;
+           }
+        }
+        return null; // Return null if insert succeeded but no data returned
       }
     } catch (error) {
       console.error('Error saving workout plan:', error)
@@ -641,8 +835,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
    * Log workout progress
    */
   const logWorkoutProgress = async (progress: WorkoutProgressType): Promise<string | null> => {
-    const userId = getUserId()
-    if (!userId) return null
+    const userId = await getUserId();
+    if (!userId) return null;
     
     try {
       const progressWithUserId = {
@@ -652,7 +846,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       }
       
       const { data, error } = await supabase
-        .from('workout_progress')
+        .from('workout_logs') // Corrected table name
         .insert(progressWithUserId)
         .select()
       
@@ -682,40 +876,44 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
    * Log user check-in data
    */
   const logCheckIn = async (checkIn: WorkoutCheckInType): Promise<string | null> => {
-    const userId = getUserId()
-    if (!userId) return null
-    
+    const userId = await getUserId();
+    if (!userId) {
+      console.error("Cannot log check-in without user ID.");
+      toast({ title: 'Error', description: 'User session not found.', variant: 'destructive' });
+      return null;
+    }
+
     try {
+      // Ensure user_id being inserted IS the authenticated user's ID
       const checkInWithUserId = {
         ...checkIn,
-        user_id: checkIn.user_id || userId,
+        user_id: userId,
         date: checkIn.date || new Date().toISOString().split('T')[0],
-      }
-      
+      };
+
       const { data, error } = await supabase
         .from('user_check_ins')
         .insert(checkInWithUserId)
-        .select()
-      
-      if (error) throw error
-      
-      // Update local state
-      setUserCheckIns(prev => [...prev, {...checkInWithUserId, id: data?.[0]?.id}])
-      
+        .select();
+
+      if (error) throw error;
+
+      setUserCheckIns(prev => [...prev, { ...checkInWithUserId, id: data?.[0]?.id }]);
+
       toast({
         title: 'Check-in Logged',
         description: 'Your fitness check-in has been saved',
-      })
-      
-      return data?.[0]?.id || null
+      });
+
+      return data?.[0]?.id || null;
     } catch (error) {
-      console.error('Error logging check-in:', error)
+      console.error('Error logging check-in:', error);
       toast({
         title: 'Error',
-        description: 'Failed to log check-in data',
+        description: `Failed to log check-in data: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
-      })
-      return null
+      });
+      return null;
     }
   }
   
@@ -723,20 +921,22 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
    * Get progress history for a specific plan
    */
   const getProgressHistory = async (planId: string): Promise<WorkoutProgressType[]> => {
-    const userId = getUserId()
-    if (!userId) return []
+    const userId = await getUserId();
+    if (!userId) return [];
     
     try {
-      const { data, error } = await supabase
-        .from('workout_progress')
+      const { data: dbLogs, error } = await supabase
+        .from('workout_logs')
         .select('*')
         .eq('user_id', userId)
         .eq('plan_id', planId)
-        .order('date', { ascending: false })
+        .order('date', { ascending: false });
       
       if (error) throw error
       
-      return data || []
+      // Transform logs
+      const transformedLogs = (dbLogs || []).map(transformDbLogToFrontend).filter(l => l !== null) as WorkoutProgressType[];
+      return transformedLogs
     } catch (error) {
       console.error('Error fetching progress history:', error)
       toast({
@@ -751,21 +951,24 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   /**
    * Get user check-in history
    */
-  const getCheckInHistory = async (): Promise<WorkoutCheckInType[]> => {
-    const userId = getUserId()
-    if (!userId) return []
+  const getCheckInHistory = async (userId?: string | null): Promise<WorkoutCheckInType[]> => {
+    const currentUserId = userId || await getUserId();
+    if (!currentUserId) return [];
     
     try {
-      const { data, error } = await supabase
+      const { data: dbCheckIns, error } = await supabase
         .from('user_check_ins')
         .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
+        .eq('user_id', currentUserId)
+        .order('date', { ascending: false });
       
       if (error) throw error
       
-      setUserCheckIns(data || [])
-      return data || []
+      // Transform check-ins
+      const transformedCheckIns = (dbCheckIns || []).map(transformDbCheckInToFrontend).filter(c => c !== null) as WorkoutCheckInType[];
+      
+      setUserCheckIns(transformedCheckIns) // Set state with transformed data
+      return transformedCheckIns // Return transformed data
     } catch (error) {
       console.error('Error fetching check-in history:', error)
       toast({

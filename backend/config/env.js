@@ -5,10 +5,12 @@
 
 const dotenv = require('dotenv');
 const path = require('path');
+const os = require('os');
 const Joi = require('joi');
 
 // Load environment variables from .env file
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// REMOVE THIS LINE - Let Next.js handle .env loading
+dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Use relative path
 // Or use absolute path for certainty:
 // dotenv.config({ path: '/Users/dylanloberg/ai-trainer-app/backend/.env' });
 
@@ -82,6 +84,9 @@ const { value: env, error } = envSchema.prefs({ errors: { label: 'key' } }).vali
 if (error) {
   throw new Error(`Environment validation error: ${error.message}`);
 }
+
+// Debug log removed
+// console.log('[backend/config/env.js] Validated OPENAI_API_KEY:', env.OPENAI_API_KEY ? 'Yes' : 'No');
 
 // Organize environment variables into categories for easier access
 module.exports = {

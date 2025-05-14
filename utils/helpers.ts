@@ -1,6 +1,7 @@
 import type { Tables } from '@/types/database.types';
 
-type Price = Tables<'prices'>;
+// Remove unused/invalid Price type alias, as 'prices' table is not in database types
+// type Price = Tables<'prices'>;
 
 export const getURL = (path: string = '') => {
   // Check if NEXT_PUBLIC_SITE_URL is set and non-empty. Set this to your site URL in production env.
@@ -26,28 +27,17 @@ export const getURL = (path: string = '') => {
   return path ? `${url}/${path}` : url;
 };
 
-export const postData = async ({
-  url,
-  data
-}: {
-  url: string;
-  data?: { price: Price };
-}) => {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: new Headers({ 'Content-Type': 'application/json' }),
-    credentials: 'same-origin',
-    body: JSON.stringify(data)
-  });
-
-  return res.json();
-};
-
-export const toDateTime = (secs: number) => {
-  var t = new Date(+0); // Unix epoch start.
-  t.setSeconds(secs);
-  return t;
-};
+/**
+ * Converts seconds to a Date object.
+ * @param seconds The number of seconds since the Unix epoch.
+ * @returns A Date object.
+ */
+export function toDateTime(seconds: number) {
+  const timestamp = new Date(0);
+  // timestamp.setSeconds(seconds); // Use local time
+  timestamp.setUTCSeconds(seconds); // Use UTC time for consistency
+  return timestamp;
+}
 
 export const calculateTrialEndUnixTimestamp = (
   trialPeriodDays: number | null | undefined

@@ -1,5 +1,7 @@
 "use client"
 
+import React from 'react';
+
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -33,6 +35,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircledIcon, CrossCircledIcon, ReloadIcon } from "@radix-ui/react-icons"
 import { useWorkout } from "@/contexts/workout-context"
 import { useProfile } from "@/lib/profile-context"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 
 // Define form schema with Zod
 const checkInFormSchema = z.object({
@@ -45,8 +48,8 @@ const checkInFormSchema = z.object({
     chest: z.coerce.number().min(1).optional(),
     waist: z.coerce.number().min(1).optional(),
     hips: z.coerce.number().min(1).optional(),
-    arms: z.coerce.number().min(1).optional(),
-    thighs: z.coerce.number().min(1).optional(),
+    bicep_r: z.coerce.number().min(1).optional(),
+    thigh_r: z.coerce.number().min(1).optional(),
   }).optional(),
   mood: z.enum(["poor", "fair", "good", "excellent"]),
   sleepQuality: z.enum(["poor", "fair", "good", "excellent"]),
@@ -64,8 +67,12 @@ interface FormState {
 }
 
 export function CheckInForm() {
+  // --- TEMPORARILY REPLACE ENTIRE COMPONENT BODY ---
+  // return <div>Simple CheckInForm Mock</div>;
+  // --- ORIGINAL CODE BELOW COMMENTED OUT ---
   const { logCheckIn } = useWorkout()
-  const { profile } = useProfile()
+  // Use the correct property name: isLoading
+  const { profile, isLoading } = useProfile()
   const [formState, setFormState] = useState<FormState>({
     isSubmitting: false,
     isSuccess: false,
@@ -81,6 +88,13 @@ export function CheckInForm() {
       energyLevel: 7,
       stressLevel: 4,
       notes: "",
+      measurements: {
+        chest: undefined,
+        waist: undefined,
+        hips: undefined,
+        bicep_r: undefined,
+        thigh_r: undefined,
+      }
     },
   })
 
@@ -97,8 +111,8 @@ export function CheckInForm() {
           chest: data.measurements.chest,
           waist: data.measurements.waist,
           hips: data.measurements.hips,
-          arms: data.measurements.arms,
-          thighs: data.measurements.thighs,
+          arms: data.measurements.bicep_r,
+          thighs: data.measurements.thigh_r,
         } : undefined,
         mood: data.mood,
         sleep_quality: data.sleepQuality,
@@ -120,6 +134,7 @@ export function CheckInForm() {
           energyLevel: 7,
           stressLevel: 4,
           notes: "",
+          measurements: { chest: undefined, waist: undefined, hips: undefined, bicep_r: undefined, thigh_r: undefined }
         })
       } else {
         throw new Error("Failed to save check-in data")
@@ -130,10 +145,24 @@ export function CheckInForm() {
     }
   }
 
-  // Get unit display based on preference
+  // --- Loading State --- 
+  if (isLoading) {
+    return <div>Loading profile...</div>; // Or a proper skeleton loader
+  }
+
+  // --- Profile not loaded/available (handle error or edge case) ---
+  if (!profile) {
+     return <Alert variant="destructive">
+              <CrossCircledIcon className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>User profile could not be loaded. Cannot display check-in form.</AlertDescription>
+            </Alert>;
+  }
+
+  // Get unit display based on preference (profile is guaranteed to exist here)
+  const units = profile.unit_preference ?? 'imperial' // Default still useful if unit_preference itself is null/undefined
   const getUnitLabel = (type: 'weight' | 'length') => {
-    if (!profile) return type === 'weight' ? 'lbs' : 'in'
-    return profile.unit_preference === 'imperial' 
+    return units === 'imperial' 
       ? (type === 'weight' ? 'lbs' : 'in')
       : (type === 'weight' ? 'kg' : 'cm')
   }
@@ -158,50 +187,50 @@ export function CheckInForm() {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Check-in Date */}
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Check-in Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[240px] pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Date Field */}
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Check-in Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
             {/* Weight Field */}
             <FormField
               control={form.control}
@@ -212,19 +241,18 @@ export function CheckInForm() {
                   <FormControl>
                     <Input 
                       type="number" 
-                      placeholder={`Enter your weight in ${getUnitLabel('weight')}`} 
+                      step="0.1" 
+                      placeholder={`Enter your weight in ${getUnitLabel('weight')}`}
                       {...field} 
                       value={field.value ?? ''} 
+                      onChange={e => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Body Fat Percentage */}
+            {/* Body Fat Field */}
             <FormField
               control={form.control}
               name="bodyFatPercentage"
@@ -234,27 +262,104 @@ export function CheckInForm() {
                   <FormControl>
                     <Input 
                       type="number" 
-                      placeholder="Enter your body fat percentage" 
+                      step="0.1" 
+                      placeholder="Enter body fat percentage" 
                       {...field} 
                       value={field.value ?? ''} 
+                      onChange={e => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {/* Mood Field */}
+          </div>
+
+          {/* Body Measurements Accordion */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="body-measurements">
+              <AccordionTrigger>Body Measurements</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="measurements.chest"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Chest ({getUnitLabel('length')})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="measurements.waist"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Waist ({getUnitLabel('length')})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="measurements.hips"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hips ({getUnitLabel('length')})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="measurements.bicep_r"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bicep R ({getUnitLabel('length')})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="measurements.thigh_r"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thigh R ({getUnitLabel('length')})</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.1" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Health Metrics - Using Select and Slider */}
+          <div className="grid gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="mood"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Mood</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select your mood" />
@@ -271,132 +376,16 @@ export function CheckInForm() {
                 </FormItem>
               )}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">Body Measurements</h3>
-            <p className="text-sm text-muted-foreground">All measurements are optional</p>
-            
-            <div className="grid gap-6 md:grid-cols-2 mt-4">
-              {/* Chest Measurement */}
-              <FormField
-                control={form.control}
-                name="measurements.chest"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Chest ({getUnitLabel('length')})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder={`Chest measurement in ${getUnitLabel('length')}`} 
-                        {...field} 
-                        value={field.value ?? ''} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Waist Measurement */}
-              <FormField
-                control={form.control}
-                name="measurements.waist"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Waist ({getUnitLabel('length')})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder={`Waist measurement in ${getUnitLabel('length')}`} 
-                        {...field} 
-                        value={field.value ?? ''} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Hips Measurement */}
-              <FormField
-                control={form.control}
-                name="measurements.hips"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hips ({getUnitLabel('length')})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder={`Hips measurement in ${getUnitLabel('length')}`} 
-                        {...field} 
-                        value={field.value ?? ''} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Arms Measurement */}
-              <FormField
-                control={form.control}
-                name="measurements.arms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Arms ({getUnitLabel('length')})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder={`Arms measurement in ${getUnitLabel('length')}`} 
-                        {...field} 
-                        value={field.value ?? ''} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Thighs Measurement */}
-              <FormField
-                control={form.control}
-                name="measurements.thighs"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thighs ({getUnitLabel('length')})</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder={`Thighs measurement in ${getUnitLabel('length')}`} 
-                        {...field} 
-                        value={field.value ?? ''} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium">Health Metrics</h3>
-            
-            {/* Sleep Quality */}
             <FormField
               control={form.control}
               name="sleepQuality"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Sleep Quality</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Rate your sleep quality" />
+                        <SelectValue placeholder="Select sleep quality" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -410,57 +399,56 @@ export function CheckInForm() {
                 </FormItem>
               )}
             />
-            
-            {/* Energy Level */}
+          </div> 
+
+          <div className="grid gap-6">
             <FormField
               control={form.control}
               name="energyLevel"
-              render={({ field: { value, onChange, ...fieldProps } }) => (
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Energy Level (1-10): {value}</FormLabel>
+                  <FormLabel>
+                    Energy Level (1-10): {field.value}
+                  </FormLabel>
                   <FormControl>
                     <Slider
-                      min={1}
+                      aria-label="Energy Level"
+                      defaultValue={[field.value]}
+                      onValueChange={(value) => field.onChange(value[0])}
                       max={10}
                       step={1}
-                      defaultValue={[value]}
-                      onValueChange={(vals) => onChange(vals[0])}
-                      {...fieldProps}
+                      className="mt-2"
                     />
                   </FormControl>
-                  <FormDescription>
-                    1 = Very low energy, 10 = Extremely energetic
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {/* Stress Level */}
             <FormField
               control={form.control}
               name="stressLevel"
-              render={({ field: { value, onChange, ...fieldProps } }) => (
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stress Level (1-10): {value}</FormLabel>
+                  <FormLabel>
+                    Stress Level (1-10): {field.value}
+                  </FormLabel>
                   <FormControl>
                     <Slider
-                      min={1}
+                      aria-label="Stress Level"
+                      defaultValue={[field.value]}
+                      onValueChange={(value) => field.onChange(value[0])}
                       max={10}
                       step={1}
-                      defaultValue={[value]}
-                      onValueChange={(vals) => onChange(vals[0])}
-                      {...fieldProps}
+                      className="mt-2"
                     />
                   </FormControl>
-                  <FormDescription>
-                    1 = Very relaxed, 10 = Extremely stressed
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+          </div> 
+          
+          <div className="space-y-6">
             {/* Notes */}
             <FormField
               control={form.control}
@@ -472,6 +460,7 @@ export function CheckInForm() {
                     <Textarea 
                       placeholder="Any additional notes about your check-in..."
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -499,4 +488,5 @@ export function CheckInForm() {
       </Form>
     </div>
   )
+  // */
 } 

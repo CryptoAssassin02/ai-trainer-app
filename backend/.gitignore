@@ -2,12 +2,14 @@
 node_modules/
 
 # Environment files
-.env
+# .env
 .env.local
 .env*.local
 .env.development
 .env.test
 .env.production
+# Don't ignore example env file
+!.env.example
 
 # Logs
 logs/

@@ -58,7 +58,10 @@ export default function LoginForm() {
 
       setStatus('Sign in successful!')
     } catch (error) {
-      const message = error instanceof AuthError ? error.message : 'An error occurred'
+      // Check error type more reliably using name property
+      const isAuthError = error && typeof error === 'object' && 'name' in error && error.name === 'AuthError';
+      const message = isAuthError ? (error as AuthError).message : 'An error occurred';
+      
       setStatus(message)
       if (message.toLowerCase().includes('email')) {
         setEmailError(message)
