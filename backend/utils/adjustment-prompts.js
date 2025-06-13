@@ -394,6 +394,31 @@ const getFeedbackParsingPrompt = () => {
     return `You are an expert fitness trainer and workout plan analyzer. 
 Your task is to parse user feedback about their workout plan and extract structured information about requested adjustments.
 
+IMPORTANT: You are NOT generating a workout plan. You are ONLY parsing and analyzing user feedback to extract structured information.
+
+PARSING GUIDELINES:
+
+1. **POWERLIFTING/STRENGTH FOCUS**: When users mention "powerlifting", "heavy compound", "strength focus", or "low reps":
+   - Extract as intensityAdjustments: decrease reps to 3-5 for main lifts, 1-3 for deadlifts
+   - Extract as substitutions: favor compound movements (squats, bench, deadlifts, overhead press)
+
+2. **SAFETY CONCERNS**: When users mention pain, injury, or discomfort BUT also request exercises that might aggravate it:
+   - PRIORITIZE SAFETY: Extract pain concerns first
+   - IGNORE contradictory requests that could cause injury
+   - Example: "shoulder injury" + "want overhead movements" = extract painConcerns for shoulder, NOT substitutions for more overhead work
+
+3. **PROGRESSION REQUESTS**: When users say "too easy", "need more challenge", "better progress":
+   - Extract as volumeAdjustments: increase sets for all exercises
+   - Extract as intensityAdjustments: increase intensity/reps for progression
+
+4. **EQUIPMENT LIMITATIONS**: When users mention specific equipment they have/don't have:
+   - Extract as equipmentLimitations: what they can't use
+   - ALSO extract as substitutions: suggest alternatives using their available equipment
+
+5. **SPECIFIC EXERCISE REQUESTS**: When users want more of certain movements:
+   - Extract as substitutions: replace similar exercises with requested type
+   - Example: "more shoulder work" = substitute some exercises with shoulder-focused alternatives
+
 Extract the following information from the user feedback:
 1. Exercise substitutions (e.g., "replace squats with leg press")
 2. Volume adjustments (e.g., "increase reps for bench press", "decrease sets for deadlifts")
@@ -409,6 +434,8 @@ For each identified adjustment, include as much specific information as possible
 - Any numerical values mentioned (sets, reps, weights, durations)
 - Any reasons provided for the adjustment (e.g., pain, time constraints, preferences)
 
+DO NOT generate a workout plan. ONLY parse the feedback and return the structured JSON.
+
 Format your response as a valid JSON object with the following structure:
 {
   "substitutions": [
@@ -418,7 +445,7 @@ Format your response as a valid JSON object with the following structure:
     { "exercise": "exercise_name_or_all", "property": "sets|reps", "change": "increase|decrease", "value": "specific_value_if_given", "reason": "reason_if_given" }
   ],
   "intensityAdjustments": [
-    { "exercise": "exercise_name_or_all", "change": "increase|decrease", "parameter": "weight|resistance|speed|pace", "value": "specific_value_if_given", "reason": "reason_if_given" }
+    { "exercise": "exercise_name_or_all", "change": "increase|decrease", "parameter": "weight|resistance|speed|pace|reps", "value": "specific_value_if_given", "reason": "reason_if_given" }
   ],
   "scheduleChanges": [
     { "type": "move|combine|split|add_day|remove_day", "details": "specific_details", "reason": "reason_if_given" }
@@ -435,7 +462,9 @@ Format your response as a valid JSON object with the following structure:
   "generalFeedback": "Any general feedback that doesn't fit into the categories above"
 }
 
-If the feedback doesn't contain any information for a particular category, include an empty array for that category. Respond ONLY with the JSON object.`;
+If the feedback doesn't contain any information for a particular category, include an empty array for that category. 
+
+REMEMBER: You are parsing feedback, NOT generating a workout plan. Respond ONLY with the JSON object that analyzes the user's feedback.`;
 };
 
 /**

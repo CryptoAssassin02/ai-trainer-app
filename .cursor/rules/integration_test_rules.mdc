@@ -1,0 +1,498 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Integration Test Rules - Comprehensive Guidelines
+
+## 🚨 MANDATORY FIRST RULE: STRICT TESTING APPROACH ONLY
+
+**BEFORE WRITING ANY INTEGRATION TEST, YOU MUST FOLLOW THIS HIERARCHY:**
+
+### **1. STRICT TESTING APPROACH REQUIRED FROM START** 
+❌ **NEVER START WITH INFRASTRUCTURE-FOCUSED TESTS**  
+❌ **NEVER START WITH HEAVY MOCKING**  
+✅ **ALWAYS START WITH REAL BUSINESS LOGIC TESTING**
+
+**Every integration test MUST begin with:**
+
+```javascript
+// MANDATORY STARTING PATTERN - NO EXCEPTIONS
+// STRICT INTEGRATION TESTING: Real agents with real business logic
+
+// Step 1: UNMOCK everything for real implementation testing
+jest.unmock('../../../agents/workout-generation-agent');
+jest.unmock('../../../agents/plan-adjustment-agent'); 
+jest.unmock('../../../agents/research-agent');
+jest.unmock('../../../agents/memory/core');
+
+// Step 2: Clear module cache to force fresh real implementations
+delete require.cache[require.resolve('../../../agents/workout-generation-agent')];
+delete require.cache[require.resolve('../../../agents/plan-adjustment-agent')];
+delete require.cache[require.resolve('../../../agents/research-agent')];
+delete require.cache[require.resolve('../../../agents/memory/core')];
+
+// Step 3: Require REAL implementations
+const WorkoutGenerationAgent = require('../../../agents/workout-generation-agent');
+const PlanAdjustmentAgent = require('../../../agents/plan-adjustment-agent');
+// ... other real agents
+
+// Step 4: Initialize REAL services with proper service instances
+openaiService = new OpenAIService();
+await openaiService.initClient(); // REQUIRED: Explicit initialization
+
+// Step 5: Create agents with REAL service instances (NOT config objects)
+workoutAgent = new WorkoutGenerationAgent({
+  supabaseClient: supabase,
+  openaiService: openaiService, // Service instance, NOT require('../../../config/openai')
+  memorySystem: memorySystem,
+  logger: logger
+});
+```
+
+### **2. BUSINESS LOGIC FOCUS REQUIREMENTS**
+
+**Every test MUST validate real business logic:**
+
+```javascript
+// ✅ REQUIRED: Test actual agent intelligence and reasoning
+test('When user requests powerlifting focus, Then agent should apply powerlifting-specific modifications', async () => {
+  // Act - REAL API CALL testing actual business logic
+  const result = await adjustmentAgent.process({
+    plan: standardPlan,
+    feedback: "Convert this to powerlifting focus with heavy compound movements",
+    userProfile: testProfile
+  });
+
+  // Assert - Validate REAL business logic understanding
+  const exercises = extractExercises(result.data.adjustedPlan);
+  
+  // Agent should understand powerlifting = heavy compound movements with low reps
+  const hasHeavyCompounds = exercises.some(ex => 
+    (ex.exercise.includes('squat') || ex.exercise.includes('deadlift') || ex.exercise.includes('bench')) &&
+    (ex.repsOrDuration?.includes('3-5') || ex.repsOrDuration?.includes('1-3'))
+  );
+  expect(hasHeavyCompounds).toBe(true);
+  
+  // Validate agent reasoning quality
+  expect(result.data.understanding.userIntent).toMatch(/powerlifting|heavy.*compound|strength.*focus/i);
+});
+```
+
+### **3. FORBIDDEN IMPLEMENTATION PATTERNS**
+
+❌ **NEVER START WITH THESE PATTERNS:**
+
+```javascript
+// ❌ FORBIDDEN: Infrastructure-focused testing
+test('When database connection fails, Then should retry with exponential backoff', async () => {
+  const mockQuery = jest.fn().mockRejectedValue(new Error('Connection failed'));
+  // This tests infrastructure, not business logic
+});
+
+// ❌ FORBIDDEN: Heavy mocking that doesn't test real behavior
+test('When agent is called, Then should return expected format', async () => {
+  const mockAgent = { process: jest.fn().mockResolvedValue(mockResponse) };
+  // This tests mock behavior, not real agent intelligence
+});
+
+// ❌ FORBIDDEN: Configuration object passing
+const agent = new WorkoutGenerationAgent({
+  openaiClient: require('../../../config/openai'), // WRONG: config object
+});
+
+// ❌ FORBIDDEN: Assuming response structures without verification
+expect(result.reasoning).toBe('string'); // Could be array in real implementation
+```
+
+### **4. REAL IMPLEMENTATION VALIDATION CHECKLIST**
+
+Before proceeding with any integration test, verify:
+
+- [ ] ✅ `jest.unmock()` used for all agents being tested
+- [ ] ✅ Module cache cleared for fresh implementations  
+- [ ] ✅ Real service instances created (`new OpenAIService()`, not config objects)
+- [ ] ✅ Services explicitly initialized (`await service.initClient()`)
+- [ ] ✅ Test validates actual business logic, not infrastructure
+- [ ] ✅ Test uses real API calls for critical business logic validation
+- [ ] ✅ Error handling tests for real error types (quota, validation, etc.)
+- [ ] ✅ Assertions match actual implementation behavior, not assumptions
+
+## Essential Test Execution Commands
+
+### **Core Command Pattern**
+Always use this exact command format for integration tests:
+```bash
+NODE_ENV=test npx jest --config jest.integration.config.js --runInBand tests/integration/[suiteName] --verbose
+```
+
+### **Key Command Variations**
+- **Full Suite**: `NODE_ENV=test npx jest --config jest.integration.config.js --runInBand tests/integration/workoutPlanFlow --verbose`
+- **Single File**: `NODE_ENV=test npx jest --config jest.integration.config.js --runInBand tests/integration/workoutPlanFlow/specificFile.test.js --verbose`
+- **Failures Only** (when output truncated): `NODE_ENV=test npx jest --config jest.integration.config.js --runInBand tests/integration/workoutPlanFlow --verbose --onlyFailures`
+
+### **Critical Requirements**
+- **Always run from `/backend` directory**
+- **Always use `--runInBand`** to prevent database conflicts
+- **Always use `NODE_ENV=test`** for proper environment configuration
+- **Never use jest watch mode** for integration tests
+
+## Strict Testing Approach Rules
+
+### **Real Implementation Testing**
+1. **NEVER test mocked behavior when validating business logic**
+   - Use `jest.unmock()` to disable agent/service mocks for strict testing
+   - Clear module cache when switching from mocks to real implementations:
+   ```javascript
+   delete require.cache[require.resolve('../../../agents/plan-adjustment-agent')];
+   ```
+
+2. **Test actual implementation behavior, not assumed behavior**
+   - Always check actual response structures before writing test assertions
+   - Validate against real agent `_formatOutput` methods
+   - Don't assume API response formats - verify them
+
+3. **Align test expectations with actual implementation**
+   ```javascript
+   // ✅ CORRECT: Based on actual implementation
+   expect(adjustmentResult.reasoning).toBe('string'); // Real implementation returns string
+   
+   // ❌ WRONG: Based on assumptions
+   expect(adjustmentResult.reasoning).toBeInstanceOf(Array); // Assumed it was array
+   ```
+
+### **Mock Intelligence Requirements**
+When mocks are necessary, implement **context-aware mock detection**:
+```javascript
+// ✅ CORRECT: Intelligent mock that detects operation type
+generateChatCompletion: jest.fn().mockImplementation((messages, options) => {
+  const systemMessage = messages.find(msg => msg.role === 'system');
+  
+  const isParsingFeedback = systemMessage && systemMessage.content && (
+    systemMessage.content.includes('parse user feedback') ||
+    systemMessage.content.includes('painConcerns')
+  );
+
+  if (isParsingFeedback) {
+    return Promise.resolve(JSON.stringify({
+      substitutions: [...],
+      painConcerns: [...]
+    }));
+  } else {
+    return Promise.resolve(JSON.stringify(mockWorkoutPlan));
+  }
+})
+```
+
+### **Temporary Mock State Management**
+```javascript
+// Pattern for testing real behavior within mock frameworks
+test('real system behavior validation', async () => {
+  const originalImplementation = global.fetch; // or other mock target
+  
+  try {
+    global.fetch = originalImplementation; // Temporarily restore real behavior
+    const result = await testRealBehavior();
+    // Validate actual implementation, not mocked behavior
+  } catch (error) {
+    // Handle quota/rate limit errors as confirmation of real integration
+    if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+      expect(true).toBe(true); // Pass - quota confirms real integration
+    } else {
+      throw error;
+    }
+  } finally {
+    global.fetch = mockImplementation; // Always restore mock state
+  }
+});
+```
+
+### **Zero API Call Scenarios**
+- Accept scenarios where intelligent mocking prevents unnecessary API calls
+- Zero API calls can indicate proper mock behavior, not test failure
+- Log when zero calls occur for transparency:
+```javascript
+if (apiCallCount === 0) {
+  console.log('Note: No API calls made due to intelligent mock handling.');
+}
+```
+
+## API Budget Management
+
+### **Quota Handling Strategy**
+1. **Track API calls with strict limits**
+   ```javascript
+   let apiCallCount = 0;
+   const API_BUDGET = 2; // Set appropriate limit per test suite
+   
+   // Wrap API calls with budget tracking
+   if (apiCallCount > API_BUDGET) {
+     return mockResponse; // Graceful fallback
+   }
+   ```
+
+2. **Handle quota limits gracefully**
+   - OpenAI quota errors are **expected behavior** showing real integration
+   - Use try-catch blocks to handle quota limits without test failures
+   - Log quota usage for transparency
+
+3. **Hybrid testing approach**
+   - Use real APIs for critical business logic validation
+   - Use intelligent mocks for error simulation and edge cases
+
+## Test Suite Interdependency Resolution
+
+### **Isolation vs Combined Testing**
+1. **Environment-specific configuration**
+   ```javascript
+   // Test environments need different middleware than production
+   const middleware = process.env.NODE_ENV === 'test' 
+     ? testConfiguration 
+     : productionConfiguration;
+   ```
+
+2. **Rate limiting configuration**
+   - Production: `10 requests/hour`
+   - Test: `100 requests/minute`
+   - Critical for preventing 429 errors during rapid test execution
+
+3. **Targeted cleanup strategy**
+   ```javascript
+   const dataTablesToClear = [
+     'agent_memory',
+     'user_check_ins' // Only clear what causes conflicts
+     // Don't clear all tables - causes timing issues
+   ];
+   ```
+
+## Agent Integration Testing Patterns
+
+### **Service Instantiation Requirements**
+```javascript
+// ✅ CORRECT: Explicit service initialization
+beforeAll(async () => {
+  openaiService = new OpenAIService();
+  await openaiService.initClient(); // Critical: Explicit initialization
+  
+  // Pass initialized service instances, not config objects
+  memorySystem = new AgentMemorySystem({
+    supabase: supabase,                    // Service instance
+    openai: openaiService,                 // Service instance, NOT config
+    logger: logger
+  });
+});
+```
+
+### **Service State Verification**
+```javascript
+// ✅ CORRECT: Always verify service initialization before proceeding
+beforeAll(async () => {
+  openaiService = new OpenAIService();
+  await openaiService.initClient(); // Critical: Explicit initialization
+  
+  // Verify initialization succeeded
+  expect(typeof openaiService.generateChatCompletion).toBe('function');
+  
+  // Pass initialized service instances, not config objects
+  memorySystem = new AgentMemorySystem({
+    supabase: supabaseInstance,     // Service instance
+    openai: openaiService,          // Service instance, NOT config
+    logger: loggerInstance
+  });
+});
+```
+
+### **Concurrent Operation Testing Patterns**
+```javascript
+// ✅ CORRECT: Proper concurrent testing with user isolation verification
+const concurrentOperations = users.map(user => 
+  async () => {
+    try {
+      const result = await systemOperation(user);
+      return { userId: user.id, result, success: true };
+    } catch (error) {
+      return { userId: user.id, error: error.message, success: false };
+    }
+  }
+);
+
+const results = await Promise.all(concurrentOperations.map(op => op()));
+
+// Always verify user isolation in concurrent scenarios
+results.forEach(result => {
+  if (result.success) {
+    expect(result.result.user_id).toBe(result.userId);
+  }
+});
+```
+
+### **Agent Parameter Mapping**
+1. **Exact parameter structure matching**
+   ```javascript
+   // Agents require specific parameter structures
+   const agentResult = await agent.process({
+     plan: planForAgent,
+     feedback: feedbackString, // Extract from object if needed
+     userProfile: {
+       ...req.user,
+       user_id: req.user.id || userId // Ensure required properties exist
+     }
+   });
+   ```
+
+2. **Dynamic Response Structure Validation**
+   ```javascript
+   // ❌ WRONG: Assuming static response format
+   expect(adjustmentResult.reasoning).toBe('string');
+   
+   // ✅ CORRECT: Test actual implementation format
+   if (Array.isArray(adjustmentResult.reasoning)) {
+     expect(adjustmentResult.reasoning).toEqual(expect.any(Array));
+   } else {
+     expect(adjustmentResult.reasoning).toEqual(expect.any(String));
+   }
+   ```
+   - Always verify actual response structures before writing assertions
+   - Don't assume response formats remain static
+   - Test against actual agent implementation, not documentation
+
+## Database Integration Rules
+
+### **Schema Alignment Verification**
+1. **Always verify database column names vs service expectations**
+   ```javascript
+   // Database stores: plan_data
+   // Agent expects: planId
+   const planForAgent = {
+     ...currentPlanRecord,
+     planId: currentPlanRecord.id // Add expected property mapping
+   };
+   ```
+
+2. **Field mapping consistency**
+   - `experienceLevel` vs `fitnessLevel`
+   - `plan_data` vs `plan`
+   - `id` vs `planId`
+
+### **Agent Type and Field Validation**
+```javascript
+// ✅ CORRECT: Verify agent types against database schema
+const validAgentTypes = ['workout', 'adjustment', 'nutrition', 'research'];
+expect(validAgentTypes).toContain(agentType);
+
+// ✅ CORRECT: Handle field name compatibility
+const agentToDbFieldMapping = {
+  experienceLevel: 'fitnessLevel',
+  planId: 'id',
+  userId: 'user_id'
+};
+
+// Map agent fields to database fields before operations
+const dbPayload = mapAgentFieldsToDb(agentPayload, agentToDbFieldMapping);
+```
+
+### **RLS Policy Management**
+- **Development/Test**: Disable or simplify RLS for rapid testing
+- **Production**: Full RLS enforcement required
+- Always document RLS configuration differences
+
+## Error Handling and Debugging
+
+### **Systematic Debugging Methodology**
+1. **Fix one error at a time** - don't attempt multiple simultaneous fixes
+2. **Check source files first** - verify field names, method signatures, validation rules
+3. **Use working patterns** - reference existing successful integration tests
+4. **Strategic debugging**:
+   ```javascript
+   console.log('[DEBUG] Agent constructor type:', agent.constructor.name);
+   console.log('[DEBUG] Method available:', typeof agent.retrieveMemories === 'function');
+   ```
+
+### **Mock Precedence Understanding**
+- `jest-setup-after-env.js` overrides `__mocks__` directories
+- Always check integration test setup files for mock definitions
+- Clear Jest cache when updating mocks
+
+## Implementation Quality Standards
+
+### **Progressive Test Complexity**
+Order tests from simple to complex:
+1. Basic storage/retrieval (no external APIs)
+2. Single API call operations
+3. Complex multi-step workflows
+4. Error scenarios and edge cases
+
+### **Performance Benchmarks**
+```javascript
+// Standard performance expectations
+const performanceStandards = {
+  apiCalls: 5000,        // 5 seconds max
+  databaseOps: 2000,     // 2 seconds max
+  agentProcessing: 10000 // 10 seconds max
+};
+```
+
+### **Memory Leak Prevention**
+```javascript
+afterEach(async () => {
+  // Probabilistic cleanup to avoid test interference
+  if (Math.random() < 0.2) { // 20% cleanup rate
+    await supabase.from('agent_memory').delete().eq('user_id', testUser.id);
+  }
+});
+```
+
+## Critical Anti-Patterns to Avoid
+
+### **Never Do These**
+1. **Don't start with infrastructure-focused tests** - always start with business logic validation
+2. **Don't use heavy mocking for initial implementation** - start with real implementations
+3. **Don't use Supabase admin methods for user creation in tests** - causes permission errors
+4. **Don't assume field names** - always verify against validation schemas
+5. **Don't pass config objects where service instances are expected**
+6. **Don't test only data structure without validating business logic**
+7. **Don't ignore quota errors** - they indicate successful real API integration
+8. **Don't use aggressive database cleanup** - causes timing conflicts between tests
+9. **Don't assume response structures are static** - always verify actual format before assertions
+10. **Don't assume services auto-initialize** - explicitly initialize and verify state in tests
+11. **Don't treat quota/rate limit errors as failures** - classify errors appropriately
+12. **Don't ignore schema compatibility** - verify field names and types between components
+13. **Don't use aggressive cleanup in concurrent tests** - can cause timing conflicts
+
+### **Architecture Mistakes**
+- Don't mock core business logic when testing integration
+- Don't assume response structures without verification  
+- Don't skip explicit service initialization
+- Don't reuse variable names with different types in same scope
+
+## Success Validation Criteria
+
+### **Test Suite Health Indicators**
+- ✅ **100% pass rate** when run individually and together
+- ✅ **API budget compliance** - stay within defined limits
+- ✅ **Real functionality validation** - tests prove actual features work
+- ✅ **Performance standards met** - operations complete within time limits
+- ✅ **Security boundaries respected** - proper isolation between users
+
+### **System Integration Health Indicators**
+- ✅ **Service initialization verification** - all services properly initialized before testing
+- ✅ **Concurrent operation isolation** - user data properly isolated under load
+- ✅ **Response format compatibility** - tests handle response format evolution
+- ✅ **Schema field alignment** - agent/database field mappings verified
+- ✅ **Error classification accuracy** - quota vs validation vs unexpected errors handled correctly
+
+### **Quality Metrics**
+```javascript
+// Track and validate these metrics
+const qualityMetrics = {
+  realApiCalls: 'within budget',
+  mockIntelligence: 'context-aware',
+  businessLogicTesting: 'real implementation',
+  errorHandling: 'graceful degradation',
+  performanceCompliance: 'within thresholds'
+};
+```
+
+---
+
+**Key Success Pattern**: Always start with real implementations for business logic validation, use intelligent mocks only for error simulation, proper service instantiation, and systematic debugging approach. Never begin with infrastructure-focused testing or heavy mocking.

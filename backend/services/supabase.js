@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { env, logger } = require('../config');
-const { createSupabaseClient, isDevelopment, isTest } = require('../config/supabase');
+const { createSupabaseClient: actualCreateSupabaseClient, isDevelopment, isTest } = require('../config/supabase');
 const { Pool } = require('pg');
 
 /**
@@ -28,7 +28,9 @@ const RETRY_CONFIG = {
 };
 
 /**
- * Initialize or return the existing Supabase client instance
+ * Initialize or return the existing Supabase client instance.
+ * This client uses the anonymous key by default and is NOT automatically RLS-scoped for a specific user.
+ * For RLS-scoped operations, use `getSupabaseClientWithToken` or ensure the JWT is passed in request options.
  * @returns {import('@supabase/supabase-js').SupabaseClient} Supabase client
  */
 function getSupabaseClient() {
@@ -41,8 +43,8 @@ function getSupabaseClient() {
      */
     if (
       isTest &&
-      createSupabaseClient.mock &&
-      createSupabaseClient.mock.calls.length === 0
+      actualCreateSupabaseClient.mock &&
+      actualCreateSupabaseClient.mock.calls.length === 0
     ) {
       supabaseInstance = null;
     } else {
@@ -52,7 +54,7 @@ function getSupabaseClient() {
 
   try {
     logger.info('Initializing Supabase client');
-    supabaseInstance = createSupabaseClient(env, logger, env.env, false); // Use the environment-specific config
+    supabaseInstance = actualCreateSupabaseClient(env, logger, env.env, false, null); // Pass null for jwtToken
     logger.info('Supabase client initialized successfully');
     return supabaseInstance;
   } catch (error) {
@@ -72,7 +74,7 @@ function getSupabaseAdminClient() {
 
   try {
     logger.info('Initializing Supabase admin client');
-    supabaseAdminInstance = createSupabaseClient(env, logger, env.env, true); // Use service role
+    supabaseAdminInstance = actualCreateSupabaseClient(env, logger, env.env, true, null); // Pass null for jwtToken, true for useServiceRole
     logger.info('Supabase admin client initialized successfully');
     return supabaseAdminInstance;
   } catch (error) {
@@ -378,9 +380,25 @@ async function rawQuery(sql, params = []) {
   }, operationName);
 }
 
+/**
+ * Creates a Supabase client instance scoped with the provided JWT token for RLS-enforced operations.
+ * @param {string} jwtToken - The JWT of the authenticated user.
+ * @returns {import('@supabase/supabase-js').SupabaseClient} An RLS-scoped Supabase client.
+ * @throws {Error} If jwtToken is not provided.
+ */
+function getSupabaseClientWithToken(jwtToken) {
+  if (!jwtToken) {
+    logger.error('getSupabaseClientWithToken called without a JWT. A user-specific token is required for RLS.');
+    throw new Error('JWT token is required to create a user-scoped Supabase client.');
+  }
+  // Call the actual createSupabaseClient from config/supabase.js, passing the JWT
+  return actualCreateSupabaseClient(env, logger, process.env.NODE_ENV, false, jwtToken);
+}
+
 module.exports = {
   getSupabaseClient,
   getSupabaseAdminClient,
+  getSupabaseClientWithToken,
   handleSupabaseError,
   query,
   getById,

@@ -2,7 +2,7 @@
  * @fileoverview Nutrition service for handling nutrition data operations
  */
 
-const { getSupabaseClient } = require('./supabase');
+const { getSupabaseClientWithToken } = require('./supabase');
 const { 
   ValidationError, 
   NotFoundError, 
@@ -19,13 +19,14 @@ const MEAL_LOGS_TABLE = 'meal_logs';
  * Get a nutrition plan by user ID
  * 
  * @param {string} userId - UUID of the user
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Object>} User nutrition plan data
  * @throws {NotFoundError} If plan doesn't exist
  * @throws {InternalError} If database operation fails
  */
-async function getNutritionPlanByUserId(userId) {
+async function getNutritionPlanByUserId(userId, jwtToken) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     const { data, error } = await supabase
       .from(NUTRITION_PLANS_TABLE)
@@ -58,15 +59,16 @@ async function getNutritionPlanByUserId(userId) {
  * Create or update a nutrition plan
  * 
  * @param {Object} planData - Nutrition plan data to save
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Object>} Created or updated plan
  * @throws {ValidationError} If plan data is invalid
  * @throws {InternalError} If database operation fails
  */
-async function createOrUpdateNutritionPlan(planData) {
+async function createOrUpdateNutritionPlan(planData, jwtToken) {
   try {
     validateNutritionPlanData(planData);
     
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     // Prepare data for storage
     const dataToStore = prepareNutritionPlanForStorage(planData);
@@ -99,13 +101,14 @@ async function createOrUpdateNutritionPlan(planData) {
  * Get dietary preferences for a user
  * 
  * @param {string} userId - UUID of the user
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Object>} User dietary preferences
  * @throws {NotFoundError} If preferences don't exist
  * @throws {InternalError} If database operation fails
  */
-async function getDietaryPreferences(userId) {
+async function getDietaryPreferences(userId, jwtToken) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     const { data, error } = await supabase
       .from(DIETARY_PREFERENCES_TABLE)
@@ -138,15 +141,16 @@ async function getDietaryPreferences(userId) {
  * Create or update dietary preferences
  * 
  * @param {Object} preferencesData - Dietary preferences data to save
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Object>} Created or updated preferences
  * @throws {ValidationError} If preferences data is invalid
  * @throws {InternalError} If database operation fails
  */
-async function createOrUpdateDietaryPreferences(preferencesData) {
+async function createOrUpdateDietaryPreferences(preferencesData, jwtToken) {
   try {
     validateDietaryPreferences(preferencesData);
     
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     // Prepare data for storage
     const dataToStore = prepareDietaryPreferencesForStorage(preferencesData);
@@ -179,15 +183,16 @@ async function createOrUpdateDietaryPreferences(preferencesData) {
  * Log a meal for a user
  * 
  * @param {Object} mealLogData - Meal log data to save
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Object>} Created meal log
  * @throws {ValidationError} If meal log data is invalid
  * @throws {InternalError} If database operation fails
  */
-async function logMeal(mealLogData) {
+async function logMeal(mealLogData, jwtToken) {
   try {
     validateMealLogData(mealLogData);
     
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     // Prepare data for storage
     const dataToStore = prepareMealLogForStorage(mealLogData);
@@ -218,11 +223,12 @@ async function logMeal(mealLogData) {
  * @param {string} userId - UUID of the user
  * @param {string} startDate - Start date in YYYY-MM-DD format
  * @param {string} endDate - End date in YYYY-MM-DD format
+ * @param {string} jwtToken - JWT token for RLS-scoped client
  * @returns {Promise<Array<Object>>} Array of meal logs
  * @throws {ValidationError} If date format is invalid
  * @throws {InternalError} If database operation fails
  */
-async function getMealLogs(userId, startDate, endDate) {
+async function getMealLogs(userId, startDate, endDate, jwtToken) {
   try {
     // Validate date inputs
     if (startDate && !isValidDateFormat(startDate)) {
@@ -232,7 +238,7 @@ async function getMealLogs(userId, startDate, endDate) {
       throw new ValidationError('Invalid endDate format. Use YYYY-MM-DD.');
     }
     
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClientWithToken(jwtToken);
     
     // First construct the base query
     let query = supabase

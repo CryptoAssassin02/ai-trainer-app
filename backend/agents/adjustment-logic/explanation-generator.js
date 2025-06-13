@@ -122,13 +122,19 @@ class ExplanationGenerator {
          const prompt = getExplanationSummaryPrompt(appliedChanges);
          
          try {
-              const response = await this.openaiService.createChatCompletion({
-                  model: this.config.model || 'gpt-4o', 
-                  messages: [{ role: 'system', content: 'You are a helpful fitness coach explaining plan changes.' }, { role: 'user', content: prompt }],
-                  temperature: 0.5,
-                  max_tokens: 500 
-              });
-              return response?.choices?.[0]?.message?.content || "Summary generation failed.";
+             // Call OpenAI using the correct method signature
+             const response = await this.openaiService.generateChatCompletion(
+                 [
+                     { role: 'system', content: 'You are a helpful fitness coach explaining plan changes.' }, 
+                     { role: 'user', content: prompt }
+                 ],
+                 {
+                     model: this.config.model || 'gpt-4o', 
+                     temperature: 0.5,
+                     max_tokens: 500 
+                 }
+             );
+             return response || "Summary generation failed.";
          } catch (error) {
               this.logger.error(`[ExplanationGenerator] LLM summary generation failed: ${error.message}`);
               return "Could not generate a narrative summary due to an error.";

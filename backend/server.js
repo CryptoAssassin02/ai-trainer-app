@@ -122,11 +122,11 @@ const gracefulShutdown = (signal) => {
 };
 
 // Start the server
-const startServer = () => {
-  const port = env.port || 8000;
+const startServer = (port) => {
+  const serverPort = port || env.port || 8000;
   
-  const server = app.listen(port, () => {
-    logger.info(`Server running in ${env.env} mode on port ${port}`);
+  const server = app.listen(serverPort, () => {
+    logger.info(`Server running in ${env.env} mode on port ${serverPort}`);
     
     // Store server reference globally for handleFatalError
     global.server = server;
@@ -140,6 +140,32 @@ const startServer = () => {
   server.headersTimeout = 66000; // 66 seconds (slightly more than keepAliveTimeout)
   
   return server;
+};
+
+// Close the server gracefully
+const closeServer = async (server) => {
+  return new Promise((resolve, reject) => {
+    if (!server) {
+      logger.warn('No server instance provided to closeServer');
+      return resolve();
+    }
+    
+    logger.info('Closing server...');
+    
+    // Stop cleanup tasks
+    stopCleanupInterval();
+    
+    // Close the server
+    server.close((err) => {
+      if (err) {
+        logger.error('Error closing server:', err);
+        return reject(err);
+      }
+      
+      logger.info('Server closed successfully');
+      resolve();
+    });
+  });
 };
 
 // Handle graceful shutdown signals
@@ -165,5 +191,6 @@ if (require.main === module) {
 module.exports = {
   app,
   startServer,
-  stopCleanupInterval
+  stopCleanupInterval,
+  closeServer
 }; 

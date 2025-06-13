@@ -1,3 +1,199 @@
 const Handlebars = require('handlebars');
 
-// --- Template Definitions ---\n\nconst baseTemplate = Handlebars.compile(\n`You are an expert AI Fitness Coach, with decades of experience in all aspects of fitness. Your task is to generate a safe, effective, and personalized weekly workout plan based on the provided user profile, goals, and research insights. You should also determine the appropriate periodization - e.g., how many weeks should the plan run - of the specific plan, based on the specific user's goals and preferences. Focus on evidence-based practices.\n\n## User Profile:\n- Fitness Level: {{userProfile.fitnessLevel}}\n{{#if userProfile.age}}- Age: {{userProfile.age}}{{/if}}\n{{#if userProfile.gender}}- Gender: {{userProfile.gender}}{{/if}}\n{{#if userProfile.preferences.exerciseTypes}}- Preferred Exercise Types: {{join userProfile.preferences.exerciseTypes ', '}}{{/if}}\n{{#if userProfile.preferences.equipment}}- Available Equipment: {{join userProfile.preferences.equipment ', '}}{{/if}}\n{{#if userProfile.preferences.workoutFrequency}}- Desired Workout Frequency: {{userProfile.preferences.workoutFrequency}}{{/if}}\n\n## Fitness Goals:\n- Primary Goals: {{join goals ', '}}\n\n## Relevant Research Insights:\n{{#if researchData.exercises}}\n- Recommended Exercises (based on research):\n{{#each (limit researchData.exercises 5)}}  - {{this.name}}: {{this.summary}} (Reliability: {{#if this.isReliable}}High{{else}}Check Citations{{/if}})\n{{/each}}\n{{else}}\n- No specific exercise research provided.\n{{/if}}\n{{#if researchData.techniques}}\n- Key Technique Focus:\n{{#each (limit researchData.techniques 2)}}  - {{this.exercise}}: {{this.summary}}\n{{/each}}\n{{/if}}\n{{#if researchData.progressions}}\n- Progression Strategies:\n{{#each (limit researchData.progressions 2)}}  - {{this.strategy_name}}: {{this.description}}\n{{/each}}\n{{/if}}\n{{#unless (or researchData.exercises researchData.techniques researchData.progressions)}}\n- No specific research data provided. Rely on general best practices.\n{{/unless}}\n\n## Safety Guidelines & Constraints:\n- Prioritize safety and proper form in all exercise selections.\n- Ensure the workout intensity matches the user's specified fitness level ({{userProfile.fitnessLevel}}).\n- Include appropriate warm-up and cool-down phases (or mention their importance).\n{{#if injuryPrompt}}\n{{{injuryPrompt}}} {{! <<< Use the provided injuryPrompt directly }}}\n{{else if userProfile.injuries}} {{! Fallback just in case, though unlikely needed now }}\n- CRITICAL: Avoid exercises known to aggravate the user's injuries:\n{{#each userProfile.injuries}}  - Injury: {{this}}. Avoid exercises that may aggravate this condition.\n{{/each}}\n{{/if}}\n{{#if userProfile.preferences.constraints}}\n- Adhere to user constraints: {{join userProfile.preferences.constraints ', '}}\n{{/if}}\n\n{{#if goalSpecificInstructions}}\n## Goal-Specific Focus ({{primaryGoal}}):\n{{{goalSpecificInstructions}}}\n{{/if}}\n\n## Output Format:\nGenerate the workout plan strictly as a valid JSON object matching the following schema. Do NOT include any introductory text, markdown formatting, or explanations outside the JSON structure.\n\`\`\`json\n{{{jsonSchemaString}}}\n\`\`\`\n`);\n\nconst goalTemplates = {\n    strength: \"Focus on compound lifts (e.g., squats, deadlifts, bench press) with moderate reps (e.g., 5-8) and sufficient rest. Incorporate progressive overload.\",\n    hypertrophy: \"Include a mix of compound and isolation exercises with moderate to high reps (e.g., 8-15). Focus on time under tension and achieving muscle fatigue.\",\n    endurance: \"Emphasize higher reps (e.g., 15+) or longer duration sets with shorter rest periods. Include cardiovascular exercises if appropriate.\",\n    flexibility: \"Incorporate dynamic stretches in the warm-up and static stretches or yoga poses in the cool-down or dedicated sessions.\",\n    weight_loss: \"Combine strength training with cardiovascular exercise. Focus on calorie expenditure through compound movements and moderate-intensity cardio.\",\n    general_fitness: \"Provide a balanced routine covering major muscle groups, cardiovascular health, and basic flexibility.\"\n};\n\nconst levelTemplates = {\n    beginner: \"Use simple exercises with clear instructions. Focus on mastering form before increasing weight. Keep intensity low to moderate.\",\n    intermediate: \"Increase exercise complexity and intensity. Introduce techniques like supersets or drop sets cautiously. Ensure adequate recovery.\",\n    advanced: \"Incorporate advanced techniques (e.g., periodization, complex lifts, intensity methods). Volume and intensity should be challenging but sustainable.\"\n};\n\nconst outputSchema = {\n    type: \"object\",\n    properties: {\n        planName: { type: \"string\", description: \"A concise name for the workout plan (e.g., 'Intermediate Strength Plan - 3 Days').\" },\n        weeklySchedule: {\n            type: \"object\",\n            description: \"An object mapping day names (e.g., 'Monday', 'Wednesday') to workout sessions or 'Rest'.\",\n            patternProperties: {\n                \"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$\": {\n                    oneOf: [\n                        { type: \"string\", enum: [\"Rest\"] },\n                        {\n                            type: \"object\",\n                            properties: {\n                                sessionName: { type: \"string\", description: \"Name for the session (e.g., 'Upper Body Strength', 'Cardio & Core').\" },\n                                exercises: {\n                                    type: \"array\",\n                                    items: {\n                                        type: \"object\",\n                                        properties: {\n                                            exercise: { type: \"string\", description: \"Name of the exercise.\" },\n                                            sets: { type: \"number\", description: \"Number of sets.\" },\n                                            repsOrDuration: { type: \"string\", description: \"Rep range (e.g., '8-12'), specific reps (e.g., '10'), or duration (e.g., '30 seconds').\" },\n                                            rest: { type: \"string\", description: \"Rest period between sets (e.g., '60-90 seconds').\", optional: true },\n                                            notes: { type: \"string\", description: \"Optional notes (e.g., 'Focus on form', 'Tempo 3-1-1').\", optional: true }\n                                        },\n                                        required: [\"exercise\", \"sets\", \"repsOrDuration\"]\n                                    }\n                                }\n                            },\n                            required: [\"sessionName\", \"exercises\"]\n                        }\n                    ]\n                }\n            },\n            additionalProperties: false\n        },\n        warmupSuggestion: { type: \"string\", description: \"Brief suggestion for a dynamic warm-up routine.\", optional: true },\n        cooldownSuggestion: { type: \"string\", description: \"Brief suggestion for a cool-down routine (e.g., static stretching).\", optional: true }\n    },\n    required: [\"planName\", \"weeklySchedule\"]\n};\n\n// --- Handlebars Helpers ---\nHbars.registerHelper(\'join\', function(arr, separator) {\n    return arr ? arr.join(separator) : \'\';\n});\n\nHbars.registerHelper(\'limit\', function(arr, limit) {\n    return arr ? arr.slice(0, limit) : [];\n});\n\nHbars.registerHelper(\'or\', function(...args) {\n    // Remove the options object added by Handlebars\n    const options = args.pop();\n    return args.some(Boolean);\n});\n\n// --- Public Function ---\n\n/**\n * Generates a complete workout system prompt using Handlebars templates.\n * @param {Object} userProfile - User profile data.\n * @param {string[]} goals - User fitness goals.\n * @param {Object} researchData - Research insights.\n * @param {string} [injuryPrompt=\'\'] - Pre-formatted string detailing injury constraints.\n * @returns {string} The compiled system prompt string.\n */\nfunction generateWorkoutPrompt(userProfile, goals, researchData, injuryPrompt = '') { // Added injuryPrompt parameter\n    const primaryGoal = goals[0]?.toLowerCase().replace(' ', '_') || 'general_fitness';\n    const userLevel = userProfile.fitnessLevel?.toLowerCase() || 'beginner';\n\n    const goalInstruction = goalTemplates[primaryGoal] || goalTemplates.general_fitness;\n    const levelInstruction = levelTemplates[userLevel] || levelTemplates.beginner;\n\n    const context = {\n        userProfile: {\n            ...userProfile,\n            preferences: { // Ensure preferences object exists\n                ...(userProfile.preferences || {}),\n                exerciseTypes: userProfile.preferences?.exerciseTypes || [],\n                equipment: userProfile.preferences?.equipment || [],\n                constraints: userProfile.preferences?.constraints || []\n            },\n            injuries: userProfile.injuries || [] // Keep for potential fallback or other uses\n        },\n        goals,\n        researchData: {\n            // Ensure research data arrays exist even if empty\n            exercises: researchData?.exercises || [],\n            techniques: researchData?.techniques || [],\n            progressions: researchData?.progressions || []\n        },\n        primaryGoal: primaryGoal.replace('_', ' '), // For display\n        goalSpecificInstructions: `${goalInstruction}\\n${levelInstruction}`,\n        jsonSchemaString: JSON.stringify(outputSchema, null, 2),\n        injuryPrompt // Pass the parameter to the template context\n    };\n\n    try {\n        return baseTemplate(context);\n    } catch (error) {\n        console.error(\"[WorkoutPrompts] Error compiling Handlebars template:\", error);\n        // Fallback to a very basic prompt\n        return `Generate a safe workout plan for a ${userLevel} user with goals: ${goals.join(', ')}. ${injuryPrompt}. Output as JSON.`; // Include fallback injury prompt\n    }\n}\n\nmodule.exports = { generateWorkoutPrompt }; 
+// --- Template Definitions ---
+
+const baseTemplate = Handlebars.compile(`
+You are an expert AI Fitness Coach, with decades of experience in all aspects of fitness. Your task is to generate a safe, effective, and personalized weekly workout plan based on the provided user profile, goals, and research insights. You should also determine the appropriate periodization - e.g., how many weeks should the plan run - of the specific plan, based on the specific user's goals and preferences. Focus on evidence-based practices.
+
+## User Profile:
+- Fitness Level: {{userProfile.fitnessLevel}}
+{{#if userProfile.age}}- Age: {{userProfile.age}}{{/if}}
+{{#if userProfile.gender}}- Gender: {{userProfile.gender}}{{/if}}
+{{#if userProfile.preferences.exerciseTypes}}- Preferred Exercise Types: {{join userProfile.preferences.exerciseTypes ', '}}{{/if}}
+{{#if userProfile.equipment}}- Available Equipment: {{join userProfile.equipment ', '}}{{/if}}
+{{#if userProfile.preferences.workoutFrequency}}- Desired Workout Frequency: {{userProfile.preferences.workoutFrequency}}{{/if}}
+
+## CRITICAL EQUIPMENT CONSTRAINTS:
+{{#if userProfile.equipment}}
+YOU MUST ONLY use exercises that can be performed with the following available equipment: {{join userProfile.equipment ', '}}.
+DO NOT include any exercises that require equipment not listed above. If an exercise typically requires unavailable equipment, suggest a modification using only the available equipment or use bodyweight alternatives.
+{{else}}
+USER HAS NO EQUIPMENT - Use only bodyweight exercises. DO NOT include any exercises requiring weights, machines, or equipment.
+{{/if}}
+
+## Fitness Goals:
+- Primary Goals: {{join goals ', '}}
+
+## Relevant Research Insights:
+{{#if researchData.exercises}}
+- Recommended Exercises (based on research):
+{{#each (limit researchData.exercises 5)}}  - {{this.name}}: {{this.summary}} (Reliability: {{#if this.isReliable}}High{{else}}Check Citations{{/if}})
+{{/each}}
+{{else}}
+- No specific exercise research provided.
+{{/if}}
+{{#if researchData.techniques}}
+- Key Technique Focus:
+{{#each (limit researchData.techniques 2)}}  - {{this.exercise}}: {{this.summary}}
+{{/each}}
+{{/if}}
+{{#if researchData.progressions}}
+- Progression Strategies:
+{{#each (limit researchData.progressions 2)}}  - {{this.strategy_name}}: {{this.description}}
+{{/each}}
+{{/if}}
+{{#unless (or researchData.exercises researchData.techniques researchData.progressions)}}
+- No specific research data provided. Rely on general best practices.
+{{/unless}}
+
+## Safety Guidelines & Constraints:
+- Prioritize safety and proper form in all exercise selections.
+- Ensure the workout intensity matches the user's specified fitness level ({{userProfile.fitnessLevel}}).
+- Include appropriate warm-up and cool-down phases (or mention their importance).
+{{#if injuryPrompt}}
+{{{injuryPrompt}}}
+{{else if userProfile.injuries}}
+- CRITICAL: Avoid exercises known to aggravate the user's injuries:
+{{#each userProfile.injuries}}  - Injury: {{this}}. Avoid exercises that may aggravate this condition.
+{{/each}}
+{{/if}}
+{{#if userProfile.preferences.constraints}}
+- Adhere to user constraints: {{join userProfile.preferences.constraints ', '}}
+{{/if}}
+
+{{#if goalSpecificInstructions}}
+## Goal-Specific Focus ({{primaryGoal}}):
+{{{goalSpecificInstructions}}}
+{{/if}}
+
+## Output Format:
+Generate the workout plan strictly as a valid JSON object matching the following schema. Do NOT include any introductory text, markdown formatting, or explanations outside the JSON structure.
+
+\`\`\`json
+{{{jsonSchemaString}}}
+\`\`\`
+`);
+
+const goalTemplates = {
+    strength: "Focus on compound lifts (e.g., squats, deadlifts, bench press) with moderate reps (e.g., 5-8) and sufficient rest. Incorporate progressive overload.",
+    hypertrophy: "Include a mix of compound and isolation exercises with moderate to high reps (e.g., 8-15). Focus on time under tension and achieving muscle fatigue.",
+    endurance: "Emphasize higher reps (e.g., 15+) or longer duration sets with shorter rest periods. Include cardiovascular exercises if appropriate.",
+    flexibility: "Incorporate dynamic stretches in the warm-up and static stretches or yoga poses in the cool-down or dedicated sessions.",
+    weight_loss: "Combine strength training with cardiovascular exercise. Focus on calorie expenditure through compound movements and moderate-intensity cardio.",
+    general_fitness: "Provide a balanced routine covering major muscle groups, cardiovascular health, and basic flexibility."
+};
+
+const levelTemplates = {
+    beginner: "Use simple exercises with clear instructions. Focus on mastering form before increasing weight. Keep intensity low to moderate.",
+    intermediate: "Increase exercise complexity and intensity. Introduce techniques like supersets or drop sets cautiously. Ensure adequate recovery.",
+    advanced: "Incorporate advanced techniques (e.g., periodization, complex lifts, intensity methods). Volume and intensity should be challenging but sustainable."
+};
+
+const outputSchema = {
+    type: "object",
+    properties: {
+        planName: { type: "string", description: "A concise name for the workout plan (e.g., 'Intermediate Strength Plan - 3 Days')." },
+        weeklySchedule: {
+            type: "object",
+            description: "An object mapping day names (e.g., 'Monday', 'Wednesday') to workout sessions or 'Rest'.",
+            patternProperties: {
+                "^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$": {
+                    oneOf: [
+                        { type: "string", enum: ["Rest"] },
+                        {
+                            type: "object",
+                            properties: {
+                                sessionName: { type: "string", description: "Name for the session (e.g., 'Upper Body Strength', 'Cardio & Core')." },
+                                exercises: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            exercise: { type: "string", description: "Name of the exercise." },
+                                            sets: { type: "number", description: "Number of sets." },
+                                            repsOrDuration: { type: "string", description: "Rep range (e.g., '8-12'), specific reps (e.g., '10'), or duration (e.g., '30 seconds')." },
+                                            rest: { type: "string", description: "Rest period between sets (e.g., '60-90 seconds').", optional: true },
+                                            notes: { type: "string", description: "Optional notes (e.g., 'Focus on form', 'Tempo 3-1-1').", optional: true }
+                                        },
+                                        required: ["exercise", "sets", "repsOrDuration"]
+                                    }
+                                }
+                            },
+                            required: ["sessionName", "exercises"]
+                        }
+                    ]
+                }
+            },
+            additionalProperties: false
+        },
+        warmupSuggestion: { type: "string", description: "Brief suggestion for a dynamic warm-up routine.", optional: true },
+        cooldownSuggestion: { type: "string", description: "Brief suggestion for a cool-down routine (e.g., static stretching).", optional: true }
+    },
+    required: ["planName", "weeklySchedule"]
+};
+
+// --- Handlebars Helpers ---
+Handlebars.registerHelper('join', function(arr, separator) {
+    return arr ? arr.join(separator) : '';
+});
+
+Handlebars.registerHelper('limit', function(arr, limit) {
+    return arr ? arr.slice(0, limit) : [];
+});
+
+Handlebars.registerHelper('or', function(...args) {
+    // Remove the options object added by Handlebars
+    const options = args.pop();
+    return args.some(Boolean);
+});
+
+// --- Public Function ---
+
+/**
+ * Generates a complete workout system prompt using Handlebars templates.
+ * @param {Object} userProfile - User profile data.
+ * @param {string[]} goals - User fitness goals.
+ * @param {Object} researchData - Research insights.
+ * @param {string} [injuryPrompt=''] - Pre-formatted string detailing injury constraints.
+ * @returns {string} The compiled system prompt string.
+ */
+function generateWorkoutPrompt(userProfile, goals, researchData, injuryPrompt = '') {
+    const primaryGoal = goals[0]?.toLowerCase().replace(' ', '_') || 'general_fitness';
+    const userLevel = userProfile.fitnessLevel?.toLowerCase() || 'beginner';
+
+    const goalInstruction = goalTemplates[primaryGoal] || goalTemplates.general_fitness;
+    const levelInstruction = levelTemplates[userLevel] || levelTemplates.beginner;
+
+    const context = {
+        userProfile: {
+            ...userProfile,
+            preferences: {
+                ...(userProfile.preferences || {}),
+                exerciseTypes: userProfile.preferences?.exerciseTypes || [],
+                equipment: userProfile.equipment || [],
+                constraints: userProfile.preferences?.constraints || []
+            },
+            injuries: userProfile.injuries || []
+        },
+        goals,
+        researchData: {
+            exercises: researchData?.exercises || [],
+            techniques: researchData?.techniques || [],
+            progressions: researchData?.progressions || []
+        },
+        primaryGoal: primaryGoal.replace('_', ' '),
+        goalSpecificInstructions: `${goalInstruction}\n${levelInstruction}`,
+        jsonSchemaString: JSON.stringify(outputSchema, null, 2),
+        injuryPrompt
+    };
+
+    try {
+        return baseTemplate(context);
+    } catch (error) {
+        console.error("[WorkoutPrompts] Error compiling Handlebars template:", error);
+        // Fallback to a very basic prompt
+        return `Generate a safe workout plan for a ${userLevel} user with goals: ${goals.join(', ')}. ${injuryPrompt}. Output as JSON.`;
+    }
+}
+
+module.exports = { generateWorkoutPrompt }; 

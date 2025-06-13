@@ -1,6 +1,6 @@
 /**
  * @fileoverview Authentication Middleware
- * Provides middleware functions for JWT authentication and role-based authorization
+ * Provides middleware functions for JWT authentication and ownership-based authorization
  */
 
 const { env, logger } = require('../config');
@@ -39,315 +39,64 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   
   try {
-    // Verify token
-    const decoded = jwtUtils.verifyToken(token);
+    const supabase = supabaseService.getSupabaseClient(); // Get Supabase client instance
     
-    // Check if token has a JWT ID (jti)
-    if (!decoded.jti) {
-      logger.warn('Authentication failed: Token missing JTI', { url: req.originalUrl });
+    // Verify the token and fetch user data using Supabase
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !supabaseUser) {
+      logger.warn('Supabase authentication failed or user not found', { 
+        error: authError ? authError.message : 'No user returned', 
+        status: authError ? authError.status : null,
+        url: req.originalUrl 
+      });
+      // Provide a more specific error message if token is expired
+      if (authError && (authError.message.includes('token is expired') || authError.message.includes('JWT expired'))) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Authentication failed: Token has expired',
+          error: 'Token has expired',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
       return res.status(401).json({
         status: 'error',
-        message: 'Authentication failed',
-        error: 'Invalid token format'
-      });
-    }
-    
-    // Check if token is blacklisted
-    const isBlacklisted = await jwtUtils.isTokenBlacklisted(decoded.jti);
-    if (isBlacklisted) {
-      logger.warn('Authentication failed: Token is blacklisted', { 
-        jti: decoded.jti,
-        url: req.originalUrl
-      });
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication failed',
-        error: 'Token has been revoked'
+        message: 'Authentication failed: Invalid or expired token',
+        error: authError ? authError.message : 'Invalid token or user not found'
       });
     }
     
     // Attach user data to request
-    req.user = decoded;
-    req.tokenJti = decoded.jti; // Store JTI for potential blacklisting later
+    // Populate req.user with essential, non-sensitive user details from supabaseUser
+    req.user = { 
+      id: supabaseUser.id, 
+      email: supabaseUser.email, 
+      role: supabaseUser.role || 'authenticated', // Default to 'authenticated' for logged-in users
+      ...supabaseUser.app_metadata, // Include app_metadata which might contain roles, etc.
+      ...supabaseUser.user_metadata // Include user_metadata which contains name, etc.
+    };
+    req.tokenString = token; // Attach the validated token string to the request object
     
-    logger.debug('Authentication successful', { 
-      userId: decoded.id || decoded.sub,
+    logger.debug('Authentication successful via Supabase', { 
+      userId: supabaseUser.id,
       url: req.originalUrl
     });
     
     next();
   } catch (error) {
-    logger.error('Authentication failed: Invalid token', { 
+    // This catch block might be redundant if supabase.auth.getUser handles all its errors gracefully
+    // and returns them in authError. However, keeping it for unexpected issues.
+    logger.error('Unexpected error during Supabase authentication', { 
       error: error.message,
       url: req.originalUrl
     });
     
-    // Handle token expiration specially
-    if (error.message === 'Token has expired') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication failed',
-        error: 'Token has expired',
-        code: 'TOKEN_EXPIRED' // Add code for client to know it should try refresh
-      });
-    }
-    
-    return res.status(401).json({
+    return res.status(500).json({ // Changed to 500 as this implies an unexpected server error
       status: 'error',
-      message: 'Authentication failed',
+      message: 'Authentication failed due to an unexpected server error',
       error: error.message
     });
   }
-};
-
-/**
- * Middleware for token rotation - implements logout by blacklisting the current token
- */
-const logout = async (req, res, next) => {
-  try {
-    // Need to be authenticated first
-    if (!req.user || !req.tokenJti) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication required',
-        error: 'Not authenticated'
-      });
-    }
-    
-    // Get token details for blacklisting
-    const userId = req.user.id || req.user.sub;
-    const jti = req.tokenJti;
-    
-    // Get token expiration for cleanup
-    const authHeader = req.headers.authorization;
-    const token = authHeader.split(' ')[1];
-    const decoded = jwtUtils.decodeToken(token);
-    const expiresAt = new Date(decoded.exp * 1000); // Convert UNIX timestamp to Date
-    
-    // Blacklist the token
-    await jwtUtils.blacklistToken(jti, expiresAt, userId, 'logout');
-    
-    // If there's a refresh token in the request, revoke it too
-    const refreshToken = req.body.refreshToken;
-    if (refreshToken) {
-      try {
-        await jwtUtils.revokeRefreshToken(refreshToken);
-      } catch (error) {
-        // Just log, don't halt the logout process
-        logger.warn('Error revoking refresh token during logout:', error);
-      }
-    }
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Successfully logged out'
-    });
-  } catch (error) {
-    logger.error('Logout failed:', error);
-    next(error);
-  }
-};
-
-/**
- * Middleware for handling token refresh
- */
-const refreshToken = async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body;
-    
-    if (!refreshToken) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Refresh token is required'
-      });
-    }
-    
-    // Verify the refresh token
-    const decoded = await jwtUtils.verifyRefreshToken(refreshToken);
-    
-    // Extract userId from token (handle both sub and userId formats)
-    const userId = decoded.sub || decoded.userId;
-    
-    // Use the imported config directly for clarity
-    const config = require('../config');
-    
-    // Special test case for token generation error
-    const isTokenGenerationFailureTest = refreshToken === 'refresh-token-gen-fail';
-    
-    // Check if token rotation is enabled or this is the specific test case
-    if (config.env.auth.useTokenRotation || isTokenGenerationFailureTest) {
-      // Fetch user profile to get role for token generation
-      try {
-        let profile;
-        let error;
-        
-        // For the specific test case, use the test mock directly
-        if (isTokenGenerationFailureTest) {
-          // The test already mocks this
-          profile = { id: userId, role: 'user' };
-          error = null;
-        } else {
-          // Normal case - fetch from database
-          const result = await supabaseService.client
-            .from('profiles')
-            .select('id, role')
-            .eq('id', userId)
-            .single();
-            
-          profile = result.data;
-          error = result.error;
-        }
-          
-        if (error) {
-          logger.error('Profile lookup failed during token refresh:', {
-            userId,
-            error: error.message
-          });
-          throw new AuthenticationError('Invalid refresh token: Profile not found');
-        }
-        
-        const userRole = profile.role || 'user';
-        
-        // Generate new tokens - this will throw in the token generation failure test
-        const newAccessToken = jwtUtils.generateToken(userId, userRole);
-        const newRefreshToken = await jwtUtils.generateRefreshToken(userId);
-        
-        // Revoke the old refresh token
-        await jwtUtils.revokeRefreshToken(refreshToken);
-        
-        return res.status(200).json({
-          status: 'success',
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        });
-      } catch (profileError) {
-        logger.error('Error fetching user profile during token refresh:', profileError);
-        return next(profileError);
-      }
-    } else {
-      // If token rotation is disabled, just attach user data to request for controller to use
-      try {
-        // Still need to verify the user exists in database
-        const { data: profile, error } = await supabaseService.client
-          .from('profiles')
-          .select('user_id')
-          .eq('user_id', userId)
-          .single();
-          
-        if (error) {
-          logger.error('Profile lookup failed during token refresh (no rotation):', {
-            userId,
-            error: error.message
-          });
-          // Use AuthenticationError instead of NotFoundError to match the test expectation
-          return next(new AuthenticationError('Invalid refresh token: Profile not found or lookup error.'));
-        }
-        
-        // Attach user data to request
-        req.user = {
-          id: userId,
-          role: 'user'
-        };
-        
-        // Continue to controller
-        return next();
-      } catch (profileError) {
-        logger.error('Error fetching user profile during token refresh (no rotation):', profileError);
-        // Use AuthenticationError for all profile lookup errors to match the test expectation
-        return next(new AuthenticationError('Invalid refresh token: Profile not found or lookup error.'));
-      }
-    }
-  } catch (error) {
-    logger.error('Error refreshing token:', error);
-    
-    // Specific error handling for token issues
-    if (error.message === 'Token has been revoked' || 
-        error.message === 'Token not found' ||
-        error.message === 'Invalid refresh token') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Invalid refresh token',
-        error: error.message
-      });
-    }
-    
-    return next(error);
-  }
-};
-
-/**
- * Middleware factory to check if user has required role(s)
- * 
- * @param {string|string[]} roles - Required role(s) for access
- * @returns {Function} Express middleware
- */
-const requireRole = (roles) => {
-  return (req, res, next) => {
-    // Check if user is authenticated
-    if (!req.user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Authentication required',
-        error: 'User not authenticated'
-      });
-    }
-    
-    // Convert single role to array for consistent processing
-    const requiredRoles = Array.isArray(roles) ? roles : [roles];
-    const userRole = req.user.role;
-    
-    // Check if user has any of the required roles
-    if (requiredRoles.includes(userRole)) {
-      return next();
-    }
-    
-    // Log access denial
-    logger.warn('Authorization failed: Insufficient permissions', {
-      userId: req.user.id || req.user.sub,
-      userRole,
-      requiredRoles,
-      url: req.originalUrl
-    });
-    
-    return res.status(403).json({
-      status: 'error',
-      message: 'Authorization failed',
-      error: 'Insufficient permissions'
-    });
-  };
-};
-
-/**
- * Middleware to check if user is an admin
- * Shorthand for requireRole('admin')
- */
-const requireAdmin = (req, res, next) => {
-  // Check if user is authenticated
-  if (!req.user) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'Authentication required',
-      error: 'User not authenticated'
-    });
-  }
-  
-  // Check if user is an admin
-  if (req.user.role === 'admin') {
-    return next();
-  }
-  
-  // Log access denial
-  logger.warn('Authorization failed: Admin access required', {
-    userId: req.user.id || req.user.sub,
-    userRole: req.user.role,
-    url: req.originalUrl
-  });
-  
-  return res.status(403).json({
-    status: 'error',
-    message: 'Authorization failed',
-    error: 'Admin access required'
-  });
 };
 
 /**
@@ -368,13 +117,7 @@ const requireOwnership = (getResourceOwnerId) => {
         });
       }
       
-      const userId = req.user.id || req.user.sub;
-      
-      // Admins can bypass ownership check if configured
-      if (req.user.role === 'admin' && env.auth.adminBypassOwnership) {
-        logger.debug('Admin bypass for ownership check', { userId, url: req.originalUrl });
-        return next();
-      }
+      const userId = req.user.id;
       
       // Get the resource owner ID
       const resourceOwnerId = await getResourceOwnerId(req);
@@ -422,7 +165,7 @@ const optionalAuth = async (req, res, next) => {
   // Default to null user
   req.user = null;
   
-  // If no auth header, continue without authentication
+  // If no auth header, or not Bearer type, continue without attempting authentication
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();
   }
@@ -431,49 +174,53 @@ const optionalAuth = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   
   try {
-    // Verify token
-    const decoded = jwtUtils.verifyToken(token);
+    const supabase = supabaseService.getSupabaseClient(); // Get Supabase client instance
     
-    // Check if token has a JWT ID (jti)
-    if (!decoded.jti) {
-      // Continue with null user
-      logger.debug('Optional authentication failed: Token missing JTI', { url: req.originalUrl });
-      return next();
+    // Attempt to verify the token and fetch user data using Supabase
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !supabaseUser) {
+      // Log the reason for failure but proceed with req.user = null
+      logger.debug('Optional authentication: Supabase token verification failed or user not found', { 
+        error: authError ? authError.message : 'No user returned', 
+        status: authError ? authError.status : null,
+        url: req.originalUrl 
+      });
+      return next(); // Proceed with req.user = null
     }
     
-    // Check if token is blacklisted
-    const isBlacklisted = await jwtUtils.isTokenBlacklisted(decoded.jti);
-    if (isBlacklisted) {
-      // Continue with null user
-      logger.debug('Optional authentication failed: Token is blacklisted', { url: req.originalUrl });
-      return next();
-    }
+    // Attach user data to request if token is valid
+    req.user = { 
+      id: supabaseUser.id, 
+      email: supabaseUser.email, 
+      role: supabaseUser.role || 'authenticated', // Default to 'authenticated' for logged-in users
+      ...supabaseUser.app_metadata, // Include app_metadata
+      ...supabaseUser.user_metadata // Include user_metadata
+    };
+    req.tokenString = token; // Attach the validated token string to the request object for optionalAuth as well
     
-    // Attach user data to request
-    req.user = decoded;
-    req.tokenJti = decoded.jti;
-    
-    logger.debug('Optional authentication successful', { 
-      userId: decoded.id || decoded.sub,
+    logger.debug('Optional authentication successful via Supabase', { 
+      userId: supabaseUser.id,
       url: req.originalUrl
     });
+
   } catch (error) {
-    // Log but continue with null user
-    logger.debug('Optional authentication failed', { 
+    // Catch any unexpected errors during the process
+    logger.debug('Optional authentication: Unexpected error during Supabase token verification', { 
       error: error.message,
       url: req.originalUrl
     });
+    // req.user remains null, proceed
   }
   
   next();
 };
 
+// Add authenticate.optional as an alias to optionalAuth for backward compatibility
+authenticate.optional = optionalAuth;
+
 module.exports = {
   authenticate,
-  requireRole,
-  requireAdmin,
   requireOwnership,
   optionalAuth,
-  logout,
-  refreshToken
 }; 

@@ -8,11 +8,20 @@ const path = require('path');
 const os = require('os');
 const Joi = require('joi');
 
-// Load environment variables from .env file
-// REMOVE THIS LINE - Let Next.js handle .env loading
-dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Use relative path
-// Or use absolute path for certainty:
-// dotenv.config({ path: '/Users/dylanloberg/ai-trainer-app/backend/.env' });
+// Load environment variables from appropriate .env file based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+let envFile = '.env';
+
+if (nodeEnv === 'test') {
+  envFile = '.env.test';
+} else if (nodeEnv === 'production') {
+  envFile = '.env.production';
+}
+
+const envPath = path.resolve(__dirname, '..', envFile);
+console.log(`[env.js] Loading environment from: ${envPath} (NODE_ENV: ${nodeEnv})`);
+
+dotenv.config({ path: envPath });
 
 // Schema for environment variable validation
 const envSchema = Joi.object()
@@ -61,9 +70,9 @@ const envSchema = Joi.object()
     CONNECTION_TIMEOUT: Joi.number().default(30000),
     
     // Auth
-    JWT_SECRET: Joi.string().required().min(32),
-    JWT_EXPIRES_IN: Joi.string().default('1h'),
-    REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'),
+    // JWT_SECRET: Joi.string().required().min(32), // Removed - Supabase handles JWT secrets
+    // JWT_EXPIRES_IN: Joi.string().default('1h'), // Removed - Supabase handles JWT expiry
+    // REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'), // Removed - Supabase handles refresh token expiry
     
     // Security
     RATE_LIMIT_WINDOW_MS: Joi.number().default(60000), // 1 minute
@@ -136,9 +145,9 @@ module.exports = {
   },
   
   auth: {
-    jwtSecret: env.JWT_SECRET,
-    jwtExpiresIn: env.JWT_EXPIRES_IN,
-    refreshTokenExpiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
+    // jwtSecret: env.JWT_SECRET, // Removed
+    // jwtExpiresIn: env.JWT_EXPIRES_IN, // Removed
+    // refreshTokenExpiresIn: env.REFRESH_TOKEN_EXPIRES_IN, // Removed
     adminBypassOwnership: true // Config flag that allows admins to bypass ownership checks
   },
   

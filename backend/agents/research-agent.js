@@ -35,12 +35,14 @@ class ResearchAgent extends BaseAgent {
      * Create a new ResearchAgent instance
      * @param {Object} options - Agent configuration options
      * @param {PerplexityService} options.perplexityService - Instance of the PerplexityService
+     * @param {Object} options.supabaseClient - Instance of the Supabase client for database queries
+     * @param {Object} [options.memorySystem=null] - Memory system for storing and retrieving agent memories
      * @param {Object} [options.config={}] - Agent-specific configuration
      * @param {Object} [options.logger=console] - Logger instance (passed to BaseAgent)
      */
-    constructor({ perplexityService, config = {}, logger: agentLogger } = {}) {
-        // Pass logger to BaseAgent, default to console if not provided
-        super({ logger: agentLogger || logger }); 
+    constructor({ perplexityService, supabaseClient, memorySystem = null, config = {}, logger: agentLogger } = {}) {
+        // Pass logger and memorySystem to BaseAgent, default to console if not provided
+        super({ memorySystem, logger: agentLogger || logger }); 
         
         // Use this.logger provided by BaseAgent after super() call
         this.logger.debug('Constructing ResearchAgent...');
@@ -52,7 +54,17 @@ class ResearchAgent extends BaseAgent {
                 ERROR_CODES.CONFIGURATION_ERROR
             );
         }
+        
+        if (!supabaseClient) {
+            this.logger.error('ResearchAgent constructor missing Supabase client instance.');
+            throw new AgentError(
+                'Supabase client instance is required for database operations.',
+                ERROR_CODES.CONFIGURATION_ERROR
+            );
+        }
+        
         this.perplexityService = perplexityService;
+        this.supabaseClient = supabaseClient;
         this.config = {
             maxRetries: config.maxRetries || 3,
             initialDelay: config.initialDelay || 1000,
@@ -270,7 +282,7 @@ class ResearchAgent extends BaseAgent {
             state.cleanedExercises = this.cleanExerciseData(state.parsedExercises);
             
             // Filter exercises based on user contraindications
-            state.filteredExercises = this.filterExercisesForInjuries(state.cleanedExercises, userProfile);
+            state.filteredExercises = await this.filterExercisesForInjuries(state.cleanedExercises, userProfile);
             state.stats.filteredOut = state.cleanedExercises.length - state.filteredExercises.length;
             
             // Check reliability of sources
@@ -540,12 +552,12 @@ class ResearchAgent extends BaseAgent {
     }
 
     /**
-     * Filters exercises based on user injuries
+     * Filters exercises based on user injuries using database-powered fuzzy matching
      * @param {Array} exercises - The exercises to filter
      * @param {Object} userProfile - The user profile with injuries
-     * @returns {Array} - Filtered exercises
+     * @returns {Promise<Array>} - Filtered exercises
      */
-    filterExercisesForInjuries(exercises, userProfile) {
+    async filterExercisesForInjuries(exercises, userProfile) {
         if (!exercises || !Array.isArray(exercises)) {
             return [];
         }
@@ -554,28 +566,339 @@ class ResearchAgent extends BaseAgent {
             return exercises; // No injuries to filter
         }
         
-        return exercises.map(exercise => {
-            // Check for contraindications
+        const filteredExercises = [];
+        
+        for (const exercise of exercises) {
+            let exerciseIsSafe = true;
+            let contraindication = null;
+            
+            // Check database-powered contraindications for each injury
             for (const injury of userProfile.injuries) {
                 const injuryType = injury.type?.toLowerCase();
-                if (!injuryType || !INJURY_CONTRAINDICATIONS[injuryType]) continue;
+                if (!injuryType) continue;
                 
-                const contraindicatedTerms = INJURY_CONTRAINDICATIONS[injuryType];
-                const exerciseText = `${exercise.name} ${exercise.description}`.toLowerCase();
+                const contraindictionResult = await this._checkDatabaseContraindication(
+                    exercise.name,
+                    exercise.description || '',
+                    injuryType
+                );
                 
-                for (const term of contraindicatedTerms) {
-                    if (exerciseText.includes(term.toLowerCase())) {
-                return { 
-                    ...exercise, 
-                    isReliable: false, 
-                            warning: `May be contraindicated for ${injuryType} injury: ${term}`
-                        };
+                if (!contraindictionResult.isSafe) {
+                    exerciseIsSafe = false;
+                    contraindication = contraindictionResult;
+                    break;
+                }
+            }
+            
+            // Apply result
+            if (exerciseIsSafe) {
+                filteredExercises.push(exercise);
+            } else {
+                filteredExercises.push({
+                    ...exercise,
+                    isReliable: false,
+                    warning: contraindication.warning
+                });
+            }
+        }
+        
+        return filteredExercises;
+    }
+
+    /**
+     * Checks exercise contraindications using database fuzzy matching and muscle group analysis
+     * @param {string} exerciseName - The exercise name
+     * @param {string} exerciseDescription - The exercise description
+     * @param {string} injuryType - The injury type (e.g., 'knee', 'shoulder')
+     * @returns {Promise<{isSafe: boolean, warning?: string, matchedExercise?: string}>}
+     * @private
+     */
+    async _checkDatabaseContraindication(exerciseName, exerciseDescription, injuryType) {
+        try {
+            // First, try to find the exercise in the database using fuzzy matching
+            const exerciseKeywords = this._extractExerciseKeywords(exerciseName);
+            
+            let query = this.supabaseClient
+                .from('exercises')
+                .select('exercise_name, primary_muscles, secondary_muscles, equipment, category, force_type');
+            
+            // Build flexible query using keywords
+            if (exerciseKeywords.length > 0) {
+                const orConditions = exerciseKeywords.map(keyword => 
+                    `exercise_name.ilike.%${keyword}%`
+                ).join(',');
+                query = query.or(orConditions);
+            } else {
+                query = query.ilike('exercise_name', `%${exerciseName}%`);
+            }
+            
+            const { data: exerciseMatches, error } = await query.limit(5);
+            
+            if (error) {
+                this.logger.warn(`Database error checking contraindication for ${exerciseName}: ${error.message}`);
+                return this._fallbackContraindicationCheck(exerciseName, exerciseDescription, injuryType);
+            }
+            
+            // Check each database match for contraindications
+            if (exerciseMatches && exerciseMatches.length > 0) {
+                for (const dbExercise of exerciseMatches) {
+                    const similarity = this._calculateExerciseNameSimilarity(exerciseName, dbExercise.exercise_name);
+                    
+                    if (similarity >= 0.4) { // Similarity threshold for matching
+                        const riskAssessment = this._assessInjuryRisk(dbExercise, injuryType);
+                        
+                        if (riskAssessment.hasRisk) {
+                            return {
+                                isSafe: false,
+                                warning: `May be contraindicated for ${injuryType} injury: ${riskAssessment.reason} (DB match: ${dbExercise.exercise_name})`,
+                                matchedExercise: dbExercise.exercise_name
+                            };
+                        }
                     }
                 }
             }
             
-            return exercise; // No contraindications found
-        });
+            // If no database match found, use fallback hardcoded rules
+            return this._fallbackContraindicationCheck(exerciseName, exerciseDescription, injuryType);
+            
+        } catch (dbError) {
+            this.logger.error(`Database error in contraindication check: ${dbError.message}`);
+            return this._fallbackContraindicationCheck(exerciseName, exerciseDescription, injuryType);
+        }
+    }
+
+    /**
+     * Assesses injury risk based on database exercise information
+     * @param {Object} dbExercise - Database exercise record
+     * @param {string} injuryType - The injury type
+     * @returns {{hasRisk: boolean, reason?: string}}
+     * @private
+     */
+    _assessInjuryRisk(dbExercise, injuryType) {
+        const primaryMuscles = dbExercise.primary_muscles || [];
+        const secondaryMuscles = dbExercise.secondary_muscles || [];
+        const allMuscles = [...primaryMuscles, ...secondaryMuscles];
+        const category = dbExercise.category?.toLowerCase() || '';
+        const forceType = dbExercise.force_type?.toLowerCase() || '';
+        
+        switch (injuryType) {
+            case 'knee':
+                // Check if exercise targets knee-related muscle groups
+                const kneeRelatedMuscles = ['quadriceps', 'hamstrings', 'calves', 'glutes'];
+                const hasKneeMuscles = allMuscles.some(muscle => 
+                    kneeRelatedMuscles.some(kneeM => muscle.toLowerCase().includes(kneeM))
+                );
+                
+                // Check for high-impact or jumping movements
+                const isHighImpact = category.includes('plyometric') || 
+                                   category.includes('explosive') ||
+                                   forceType.includes('explosive') ||
+                                   dbExercise.exercise_name.toLowerCase().includes('jump');
+                
+                if (hasKneeMuscles || isHighImpact) {
+                    return {
+                        hasRisk: true,
+                        reason: hasKneeMuscles ? 
+                            `targets knee-related muscles (${allMuscles.filter(m => kneeRelatedMuscles.some(km => m.toLowerCase().includes(km))).join(', ')})` :
+                            'involves high-impact movement'
+                    };
+                }
+                break;
+                
+            case 'shoulder':
+                // Check for shoulder-related muscle groups
+                const shoulderRelatedMuscles = ['shoulders', 'deltoids', 'trapezius', 'rotator cuff'];
+                const hasShoulderMuscles = allMuscles.some(muscle => 
+                    shoulderRelatedMuscles.some(shoulderM => muscle.toLowerCase().includes(shoulderM))
+                );
+                
+                // Check for overhead movements
+                const isOverhead = forceType.includes('overhead') ||
+                                 category.includes('overhead') ||
+                                 dbExercise.exercise_name.toLowerCase().includes('overhead');
+                
+                if (hasShoulderMuscles || isOverhead) {
+                    return {
+                        hasRisk: true,
+                        reason: hasShoulderMuscles ? 
+                            `targets shoulder muscles (${allMuscles.filter(m => shoulderRelatedMuscles.some(sm => m.toLowerCase().includes(sm))).join(', ')})` :
+                            'involves overhead movement'
+                    };
+                }
+                break;
+                
+            case 'back':
+                // Check for back-related muscle groups
+                const backRelatedMuscles = ['back', 'lats', 'rhomboids', 'erector spinae', 'lower back'];
+                const hasBackMuscles = allMuscles.some(muscle => 
+                    backRelatedMuscles.some(backM => muscle.toLowerCase().includes(backM))
+                );
+                
+                // Check for spine-loading movements
+                const isSpineLoading = category.includes('deadlift') ||
+                                     forceType.includes('pull') ||
+                                     dbExercise.exercise_name.toLowerCase().includes('deadlift');
+                
+                if (hasBackMuscles || isSpineLoading) {
+                    return {
+                        hasRisk: true,
+                        reason: hasBackMuscles ? 
+                            `targets back muscles (${allMuscles.filter(m => backRelatedMuscles.some(bm => m.toLowerCase().includes(bm))).join(', ')})` :
+                            'involves spine loading'
+                    };
+                }
+                break;
+                
+            case 'ankle':
+            case 'foot':
+                // Check for weight-bearing or impact movements
+                const isWeightBearing = category.includes('cardio') ||
+                                      category.includes('plyometric') ||
+                                      dbExercise.exercise_name.toLowerCase().includes('running') ||
+                                      dbExercise.exercise_name.toLowerCase().includes('jump');
+                
+                if (isWeightBearing) {
+                    return {
+                        hasRisk: true,
+                        reason: 'involves weight-bearing movement'
+                    };
+                }
+                break;
+        }
+        
+        return { hasRisk: false };
+    }
+
+    /**
+     * Extracts keywords from exercise name for better database matching
+     * @param {string} exerciseName - The exercise name
+     * @returns {string[]} Array of keywords
+     * @private
+     */
+    _extractExerciseKeywords(exerciseName) {
+        if (!exerciseName || typeof exerciseName !== 'string') return [];
+        
+        const name = exerciseName.toLowerCase().trim();
+        
+        // Common exercise keyword mappings for better matching
+        const keywordMap = {
+            'bench press': ['bench', 'press'],
+            'shoulder press': ['shoulder', 'press'], 
+            'deadlift': ['deadlift'],
+            'squat': ['squat'],
+            'row': ['row'],
+            'pull up': ['pull', 'up'],
+            'push up': ['push', 'up'],
+            'lateral raise': ['lateral', 'raise'],
+            'bicep curl': ['bicep', 'curl'],
+            'tricep': ['tricep']
+        };
+        
+        // Check for exact matches first
+        if (keywordMap[name]) {
+            return keywordMap[name];
+        }
+        
+        // Extract meaningful words
+        const stopWords = ['the', 'a', 'an', 'and', 'or', 'with', 'using'];
+        const words = name.split(/\s+/)
+            .filter(word => word.length > 2 && !stopWords.includes(word))
+            .filter(word => /^[a-z]+$/.test(word));
+        
+        return words.length > 0 ? words : [name];
+    }
+
+    /**
+     * Calculates similarity between exercise names using word overlap
+     * @param {string} name1 - First exercise name
+     * @param {string} name2 - Second exercise name
+     * @returns {number} Similarity score between 0 and 1
+     * @private
+     */
+    _calculateExerciseNameSimilarity(name1, name2) {
+        if (!name1 || !name2) return 0;
+        
+        const str1 = name1.toLowerCase().trim();
+        const str2 = name2.toLowerCase().trim();
+        
+        if (str1 === str2) return 1;
+        
+        // Word-based similarity calculation
+        const words1 = str1.split(/\s+/);
+        const words2 = str2.split(/\s+/);
+        
+        const commonWords = words1.filter(word => 
+            words2.some(w2 => 
+                w2.includes(word) || 
+                word.includes(w2) || 
+                this._levenshteinDistance(word, w2) <= 2
+            )
+        );
+        
+        return commonWords.length / Math.max(words1.length, words2.length);
+    }
+
+    /**
+     * Calculates Levenshtein distance between two strings
+     * @param {string} str1 - First string
+     * @param {string} str2 - Second string  
+     * @returns {number} Edit distance
+     * @private
+     */
+    _levenshteinDistance(str1, str2) {
+        const matrix = [];
+        
+        for (let i = 0; i <= str2.length; i++) {
+            matrix[i] = [i];
+        }
+        
+        for (let j = 0; j <= str1.length; j++) {
+            matrix[0][j] = j;
+        }
+        
+        for (let i = 1; i <= str2.length; i++) {
+            for (let j = 1; j <= str1.length; j++) {
+                if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+        
+        return matrix[str2.length][str1.length];
+    }
+
+    /**
+     * Fallback contraindication check using hardcoded INJURY_CONTRAINDICATIONS
+     * @param {string} exerciseName - The exercise name
+     * @param {string} exerciseDescription - The exercise description
+     * @param {string} injuryType - The injury type
+     * @returns {{isSafe: boolean, warning?: string}}
+     * @private
+     */
+    _fallbackContraindicationCheck(exerciseName, exerciseDescription, injuryType) {
+        if (!INJURY_CONTRAINDICATIONS[injuryType]) {
+            return { isSafe: true };
+        }
+        
+        const contraindicatedTerms = INJURY_CONTRAINDICATIONS[injuryType];
+        const exerciseText = `${exerciseName} ${exerciseDescription}`.toLowerCase();
+        
+        for (const term of contraindicatedTerms) {
+            if (exerciseText.includes(term.toLowerCase())) {
+                return { 
+                    isSafe: false,
+                    warning: `May be contraindicated for ${injuryType} injury: ${term} (fallback rule)`
+                };
+            }
+        }
+        
+        return { isSafe: true };
     }
 
     /**
@@ -707,28 +1030,30 @@ class ResearchAgent extends BaseAgent {
     }
 
     /**
-     * Checks if an exercise is contraindicated for user injuries
+     * Checks if an exercise is contraindicated for user injuries using database-powered matching
      * @param {Object} exercise - Exercise to check  
      * @param {Array} injuries - User injuries
-     * @returns {Object|null} - Contraindication details or null
+     * @returns {Promise<Object|null>} - Contraindication details or null
      * @private
      */
-    _checkInjuryContraindication(exercise, injuries) {
+    async _checkInjuryContraindication(exercise, injuries) {
         for (const injury of injuries) {
             const injuryType = injury.type?.toLowerCase();
-            if (!injuryType || !INJURY_CONTRAINDICATIONS[injuryType]) continue;
+            if (!injuryType) continue;
             
-            const contraindicatedTerms = INJURY_CONTRAINDICATIONS[injuryType];
-            const exerciseLower = `${exercise.name} ${exercise.description}`.toLowerCase();
+            const contraindictionResult = await this._checkDatabaseContraindication(
+                exercise.name,
+                exercise.description || '',
+                injuryType
+            );
             
-            for (const term of contraindicatedTerms) {
-                if (exerciseLower.includes(term.toLowerCase())) {
-        return {
-                        injuryType, 
-                        reason: term,
-                        severity: injury.severity || 'unknown'
-                    };
-                }
+            if (!contraindictionResult.isSafe) {
+                return {
+                    injuryType, 
+                    reason: contraindictionResult.warning,
+                    severity: injury.severity || 'unknown',
+                    matchedExercise: contraindictionResult.matchedExercise
+                };
             }
         }
         return null;

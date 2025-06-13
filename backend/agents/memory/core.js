@@ -66,34 +66,42 @@ class AgentMemorySystem {
   
   /** Delegates to storage.storeMemory */
   async storeMemory(userId, agentType, content, metadata = {}) {
-    return storage.storeMemory(
+    const result = await storage.storeMemory(
       this.supabase, this.openai, this.config, this.logger, this.validators,
       userId, agentType, content, metadata
     );
+    // Return just the ID string, not the full object
+    return result?.id || null;
   }
   
   /** Delegates to storage.storeAgentResult */
   async storeAgentResult(userId, agentType, result) {
-    return storage.storeAgentResult(
+    const memoryResult = await storage.storeAgentResult(
       this.supabase, this.openai, this.config, this.logger, this.validators,
       userId, agentType, result
     );
+    // Return just the ID string, not the full object
+    return memoryResult?.id || null;
   }
   
   /** Delegates to storage.storeUserFeedback */
   async storeUserFeedback(userId, memoryId, feedback) {
-    return storage.storeUserFeedback(
+    const result = await storage.storeUserFeedback(
       this.supabase, this.config, this.logger, this.validators,
       userId, memoryId, feedback
     );
+    // Return just the ID string, not the full object
+    return result?.id || null;
   }
   
   /** Delegates to storage.storeSystemEvent */
   async storeSystemEvent(userId, eventType, eventData) {
-    return storage.storeSystemEvent(
+    const result = await storage.storeSystemEvent(
       this.supabase, this.config, this.logger, this.validators,
       userId, eventType, eventData
     );
+    // Return just the ID string, not the full object
+    return result?.id || null;
   }
   
   // --- Retrieval Methods --- //

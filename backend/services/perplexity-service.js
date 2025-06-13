@@ -2,7 +2,23 @@
 
 const defaultLogger = require('../config/logger');
 const defaultConfig = require('../config/perplexity');
-const defaultFetch = require('node-fetch').default;
+
+// Fix for node-fetch ES module compatibility with Jest/CommonJS
+let defaultFetch;
+try {
+  // Try to require node-fetch v2 style (CommonJS)
+  defaultFetch = require('node-fetch');
+} catch (error) {
+  // If that fails, try the .default export for v3+
+  try {
+    defaultFetch = require('node-fetch').default;
+  } catch (error2) {
+    // Fallback to a mock fetch for testing
+    defaultFetch = async () => {
+      throw new Error('node-fetch not available - using mock fetch');
+    };
+  }
+}
 
 class PerplexityServiceError extends Error {
     constructor(message, status, details = null) {

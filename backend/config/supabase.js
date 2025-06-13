@@ -255,88 +255,115 @@ function isProduction(env, nodeEnv) {
 
 /**
  * Create a Supabase client with environment-specific configuration
- * @param {Object} env - The environment configuration object.
- * @param {Object} logger - The logger instance.
- * @param {string} nodeEnv - The current NODE_ENV value.
+ * @param {Object} env - The environment configuration object (passed from main config/index.js).
+ * @param {Object} logger - The logger instance (passed from main config/index.js).
+ * @param {string} nodeEnv - The current NODE_ENV value (e.g., process.env.NODE_ENV).
  * @param {boolean} [useServiceRole=false] Whether to use the service role key for admin operations
+ * @param {string} [jwtToken=null] Optional JWT token to scope the client for RLS
  * @returns {import('@supabase/supabase-js').SupabaseClient} Configured Supabase client
  */
-function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false) {
-  // Use injected logger and env
-  // const { logger, env } = require('./index'); // Removed
+function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false, jwtToken = null) {
   const effectiveNodeEnv = nodeEnv || process.env.NODE_ENV;
+  const shouldUseMock = process.env.USE_MOCK_SUPABASE === 'true';
 
-  // Special case for tests - check if we're in a test environment
-  if (effectiveNodeEnv === 'test') {
+  // console.log(`[SupabaseConfig] createSupabaseClient called. Env: ${effectiveNodeEnv}, Mock: ${shouldUseMock}, ServiceRole: ${useServiceRole}, JWT: ${jwtToken ? 'Present' : 'Absent'}`); // Debug log
+
+  if (effectiveNodeEnv === 'test' && shouldUseMock) {
+    logger.debug('Attempting to use MOCK Supabase client (USE_MOCK_SUPABASE=true)');
     try {
-      // For tests, try to load and return a mock client from the test mocks
-      // Note: This require might still cause issues if the mock itself has dependencies
-      const mockSupabase = require('../tests/mocks/supabase');
+      const mockSupabase = require('../../tests/mocks/supabase'); // Adjusted path
       if (mockSupabase && typeof mockSupabase.createMockClient === 'function') {
-        logger.debug('Using mock Supabase client from tests/mocks');
+        logger.debug('Using mock Supabase client from tests/mocks/supabase.js');
         return mockSupabase.createMockClient();
       }
     } catch (err) {
-      // Ignore error, will fall back to creating a minimal mock below
-      logger.debug('Failed to load mock Supabase client from tests/mocks, using fallback mock');
+      logger.debug('Failed to load mock from tests/mocks/supabase.js, trying tests/__mocks__/supabase.js', err.message);
     }
 
     try {
-      // Try to load from __mocks__ directory (Jest automatic mocking)
-      const mockSupabase = require('../tests/__mocks__/supabase');
+      const mockSupabase = require('../../tests/__mocks__/supabase'); // Adjusted path
       if (mockSupabase && typeof mockSupabase.createSupabaseClient === 'function') {
-         logger.debug('Using mock Supabase client from __mocks__');
+        logger.debug('Using mock Supabase client from tests/__mocks__/supabase.js');
         return mockSupabase.createSupabaseClient();
       }
     } catch (err) {
-      // Ignore error, will fall back to creating a minimal mock below
-      logger.debug('Failed to load mock Supabase client from __mocks__, using fallback mock');
+      logger.debug('Failed to load mock from tests/__mocks__/supabase.js, using fallback mock', err.message);
     }
-
-    // Create a minimal mock for tests if no other mock is available
-    logger.debug('Creating minimal fallback mock Supabase client for test');
-    const fallbackClient = minimalFallbackMock; // Use the exported definition
-    logger.debug('Fallback client definition:', fallbackClient);
-    // Log specifically if the from function is defined
-    logger.debug('Is fallbackClient.from a function?', typeof fallbackClient.from === 'function');
-    return fallbackClient;
+    
+    logger.debug('Creating minimal fallback mock Supabase client for unit test (USE_MOCK_SUPABASE=true)');
+    return minimalFallbackMock; 
   }
 
-  // For non-test environments, proceed with normal configuration
+  // For non-mocked test environments (integration tests) OR development/production
   try {
-    // Pass injected dependencies to helper functions
-    const config = getEnvironmentConfig(env, logger, effectiveNodeEnv);
-    const key = useServiceRole && env?.supabase?.serviceRoleKey
-      ? env.supabase.serviceRoleKey
-      : config.key;
+    // getEnvironmentConfig will use process.env.NODE_ENV if nodeEnv param is not overriding.
+    // For integration tests (effectiveNodeEnv === 'test' && !shouldUseMock), 
+    // testingConfig() inside getEnvironmentConfig already tries to use process.env variables.
+    const configDetails = getEnvironmentConfig(env, logger, effectiveNodeEnv);
+    
+    let supabaseUrlToUse, supabaseKeyToUse, clientOptionsToUse;
 
-    // Log connection details for development environments (or test if it wasn't caught above)
-    if (isDevelopment(env, effectiveNodeEnv)) { // Simplified logging condition
-      logger.debug('Creating Supabase client with config:', {
-        environment: env?.env || effectiveNodeEnv,
-        url: config.url,
-        usingServiceRole: useServiceRole,
-        rlsEnabled: config.rls.enabled
-      });
+    clientOptionsToUse = configDetails.options || {}; // Initialize clientOptionsToUse early
+
+    if (jwtToken) {
+      supabaseUrlToUse = configDetails.url; // Should be env.supabase.url from higher level config
+      supabaseKeyToUse = configDetails.key; // Use anon key for JWT-scoped client
+      clientOptionsToUse = {
+        ...clientOptionsToUse,
+        global: {
+          ...(clientOptionsToUse.global || {}),
+          headers: {
+            ...(clientOptionsToUse.global?.headers || {}),
+            Authorization: `Bearer ${jwtToken}`,
+          },
+        },
+      };
+      logger.info(`[SupabaseConfig] Creating Supabase client WITH JWT. Environment: ${effectiveNodeEnv}`);
+    } else if (effectiveNodeEnv === 'test' && !shouldUseMock) {
+        // Integration Test Path: Directly use .env.test variables (via process.env)
+        supabaseUrlToUse = process.env.SUPABASE_URL; 
+        supabaseKeyToUse = useServiceRole 
+            ? process.env.SUPABASE_SERVICE_ROLE_KEY 
+            : process.env.SUPABASE_ANON_KEY;
+        // Options from testingConfig are already part of configDetails.options if effectiveNodeEnv is test
+        // clientOptionsToUse = testingConfig(env /*testingConfig might not need env*/).options || {}; 
+        logger.debug(`[SupabaseConfig] Integration Test REAL client. URL: ${supabaseUrlToUse}, Key Set: ${!!supabaseKeyToUse}, ServiceRole: ${useServiceRole}`);
+    } else {
+        // Development/Production Path (or if a test somehow missed the above)
+        supabaseUrlToUse = configDetails.url;
+        supabaseKeyToUse = useServiceRole && env?.supabase?.serviceRoleKey // env here is the one passed to createSupabaseClient
+            ? env.supabase.serviceRoleKey
+            : configDetails.key;
+        // clientOptionsToUse are already set from configDetails.options
+        // logger.debug(`[SupabaseConfig] Dev/Prod REAL client. URL: ${supabaseUrlToUse}, Key Set: ${!!supabaseKeyToUse}, ServiceRole: ${useServiceRole}`);
     }
 
-    // Basic check for required config before calling createClient
-    if (!config.url || !key) {
-        throw new Error('Supabase URL or Key is missing in the resolved configuration.');
+    if (!supabaseUrlToUse || !supabaseKeyToUse) {
+        const message = `Supabase URL or Key is MISSING for client creation. URL: ${supabaseUrlToUse}, Key Set: ${!!supabaseKeyToUse}, ServiceRole: ${useServiceRole}, Env: ${effectiveNodeEnv}, Mock: ${shouldUseMock}`;
+        logger.error(message);
+        // If this happens in integration tests, we want it to fail loudly rather than use a mock.
+        if (effectiveNodeEnv === 'test' && !shouldUseMock) {
+            throw new Error(message + " - Integration tests require valid .env.test credentials.");
+        }
+        // For other scenarios (like unit tests that were supposed to mock but failed, or dev/prod misconfig),
+        // falling back to mock might hide issues, so prefer throwing.
+        // However, the original code had a fallback to minimal mock in case of error during *client creation*.
+        // Let's re-evaluate the fallback for errors during createClient() itself.
+        throw new Error(message); 
     }
+    
+    logger.info(`[SupabaseConfig] Creating Supabase client. Environment: ${effectiveNodeEnv}, ServiceRole: ${useServiceRole}, Mocked: ${shouldUseMock}`);
+    return createClient(supabaseUrlToUse, supabaseKeyToUse, clientOptionsToUse);
 
-    return createClient(config.url, key, config.options);
   } catch (error) {
-    logger.error('Error creating Supabase client:', error);
-    // Only return fallback mock in test env, otherwise rethrow
+    logger.error(`[SupabaseConfig] Error creating Supabase client: ${error.message}`, { stack: error.stack });
+    // Fallback for TEST environment only if client creation ITSELF fails, to prevent widespread unit test breaks
+    // if mocks weren't explicitly requested but real client setup had an issue.
     if (effectiveNodeEnv === 'test') {
-      logger.debug('Returning minimal fallback mock due to error during client creation in test');
-      const errorFallbackClient = minimalFallbackMock; // Use the exported definition
-       logger.debug('Error fallback client definition:', errorFallbackClient);
-       logger.debug('Is errorFallbackClient.from a function?', typeof errorFallbackClient.from === 'function');
-       return errorFallbackClient;
+      logger.warn('[SupabaseConfig] Real Supabase client creation failed in test environment, falling back to minimal mock to prevent complete test suite failure. THIS IS UNEXPECTED FOR INTEGRATION TESTS.');
+      return minimalFallbackMock;
     }
-    throw error; // Rethrow for non-test environments
+    throw error; // Rethrow for non-test environments or if no fallback desired
   }
 }
 
@@ -736,58 +763,55 @@ Best Practices:
  * @returns {import('@supabase/supabase-js').SupabaseClient} Admin Supabase client
  */
 function getSupabaseAdmin(env, logger, nodeEnv) {
-  // Use injected logger
-  // const { logger } = require('./index'); // Removed
   const effectiveNodeEnv = nodeEnv || process.env.NODE_ENV;
-  // Special case for tests
-  if (effectiveNodeEnv === 'test') {
-    try {
-      // Try to load from mocks directory
-      const mockSupabase = require('../tests/mocks/supabase');
-      if (mockSupabase && typeof mockSupabase.createMockClient === 'function') {
-        logger.debug('Using mock Supabase admin from tests/mocks');
-        return mockSupabase.createMockClient();
+  const shouldUseMock = process.env.USE_MOCK_SUPABASE === 'true';
+
+  // console.log(`[SupabaseConfig] getSupabaseAdmin called. Env: ${effectiveNodeEnv}, Mock: ${shouldUseMock}`); // Debug log
+
+  if (effectiveNodeEnv === 'test' && shouldUseMock) {
+    logger.debug('Attempting to use MOCK Supabase admin client (USE_MOCK_SUPABASE=true)');
+     try {
+      const mockSupabase = require('../../tests/mocks/supabase');
+      if (mockSupabase && typeof mockSupabase.createMockAdminClient === 'function') { // Expecting a specific admin mock
+        logger.debug('Using mock Supabase admin client from tests/mocks/supabase.js');
+        return mockSupabase.createMockAdminClient();
+      } else if (mockSupabase && typeof mockSupabase.createMockClient === 'function') {
+        logger.debug('Using general mock Supabase client as admin from tests/mocks/supabase.js');
+        return mockSupabase.createMockClient(); // Fallback to general mock if admin specific isn't there
       }
     } catch (err) {
-      // Ignore error, try next option
-      logger.debug('Failed to load mock Supabase admin from tests/mocks');
+      logger.debug('Failed to load admin mock from tests/mocks/supabase.js, trying __mocks__', err.message);
     }
 
     try {
-      // Try to load from __mocks__ directory (Jest automatic mocking)
-      const mockSupabase = require('../tests/__mocks__/supabase');
-      if (mockSupabase && typeof mockSupabase.getSupabaseAdmin === 'function') {
-         logger.debug('Using mock Supabase admin from __mocks__');
+      const mockSupabase = require('../../tests/__mocks__/supabase');
+      if (mockSupabase && typeof mockSupabase.getSupabaseAdmin === 'function') { // Original check
+         logger.debug('Using mock Supabase admin from tests/__mocks__/supabase.js via getSupabaseAdmin');
         return mockSupabase.getSupabaseAdmin();
+      } else if (mockSupabase && typeof mockSupabase.createSupabaseClient === 'function') {
+         logger.debug('Using general mock Supabase client as admin from tests/__mocks__/supabase.js');
+        return mockSupabase.createSupabaseClient();
       }
     } catch (err) {
-      // Ignore error, use fallback below
-      logger.debug('Failed to load mock Supabase admin from __mocks__');
+      logger.debug('Failed to load admin mock from tests/__mocks__/supabase.js, using fallback mock', err.message);
     }
-
-    // Fallback to a minimal mock
-    logger.debug('Creating minimal fallback mock Supabase admin for test');
-    const adminFallbackClient = minimalFallbackMock; // Use the exported definition
-    logger.debug('Admin fallback client definition:', adminFallbackClient);
-    logger.debug('Is adminFallbackClient.from a function?', typeof adminFallbackClient.from === 'function');
-    return adminFallbackClient;
+    logger.debug('Creating minimal fallback mock Supabase admin client for unit test (USE_MOCK_SUPABASE=true)');
+    return minimalFallbackMock;
   }
 
+  // For non-mocked tests or dev/prod
   try {
-    // Create client with service role for admin operations
-    // Pass injected dependencies to createSupabaseClient
+    // Call the main createSupabaseClient function with useServiceRole = true
+    // It now contains the logic to correctly use process.env for integration tests or env for others.
+    logger.info(`[SupabaseConfig] Creating REAL Supabase admin client. Environment: ${effectiveNodeEnv}, Mocked: ${shouldUseMock}`);
     return createSupabaseClient(env, logger, effectiveNodeEnv, true);
   } catch (error) {
-    logger.error('Failed to create Supabase admin client:', error);
-    logger.debug(`Caught error in getSupabaseAdmin. effectiveNodeEnv: ${effectiveNodeEnv}`);
+    logger.error(`[SupabaseConfig] Failed to create Supabase admin client: ${error.message}`, { stack: error.stack });
     if (effectiveNodeEnv === 'test') {
-       logger.debug('Returning minimal fallback mock due to error during admin client creation in test');
-       const adminErrorFallbackClient = minimalFallbackMock; // Use the exported definition
-      logger.debug('Admin error fallback client definition:', adminErrorFallbackClient);
-      logger.debug('Is adminErrorFallbackClient.from a function?', typeof adminErrorFallbackClient.from === 'function');
-      return adminErrorFallbackClient;
+       logger.warn('[SupabaseConfig] Real Supabase admin client creation failed in test environment, falling back to minimal mock.');
+       return minimalFallbackMock;
     }
-    throw error; // Rethrow for non-test environments
+    throw error; 
   }
 }
 

@@ -5,7 +5,6 @@ const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'JWT_SECRET',
   'OPENAI_API_KEY',
   'PERPLEXITY_API_KEY'
 ];
@@ -31,10 +30,6 @@ const config = {
     url: process.env.SUPABASE_URL,
     anonKey: process.env.SUPABASE_ANON_KEY,
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY
-  },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: '1d'
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY

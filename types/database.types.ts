@@ -157,7 +157,7 @@ export type Database = {
           gender: string | null
           height: number | null
           id: string
-          medical_conditions: string | null
+          medical_conditions: Json | null
           name: string | null
           unit_preference: string | null
           updated_at: string | null
@@ -173,7 +173,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id?: string
-          medical_conditions?: string | null
+          medical_conditions?: Json | null
           name?: string | null
           unit_preference?: string | null
           updated_at?: string | null
@@ -189,7 +189,7 @@ export type Database = {
           gender?: string | null
           height?: number | null
           id?: string
-          medical_conditions?: string | null
+          medical_conditions?: Json | null
           name?: string | null
           unit_preference?: string | null
           updated_at?: string | null

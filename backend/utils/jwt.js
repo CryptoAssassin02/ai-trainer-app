@@ -22,6 +22,7 @@ const { NotFoundError } = require('./errors');
  * @param {Object} options - Additional JWT options
  * @returns {string} JWT token
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const generateToken = (userId, role, options = {}) => {
   try {
     // Generate a unique JWT ID (jti) for token tracking
@@ -52,6 +53,7 @@ const generateToken = (userId, role, options = {}) => {
     throw new ApplicationError('Failed to generate authentication token', { originalError: error.message }, false);
   }
 };
+*/
 
 /**
  * Store a refresh token in the database
@@ -62,6 +64,7 @@ const generateToken = (userId, role, options = {}) => {
  * @param {string} testJti - Optional test JTI for deterministic results
  * @returns {Promise<boolean>} Whether the token was stored successfully
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const storeRefreshToken = async (userId, token, expiresAt, testJti) => {
   try {
     let jti;
@@ -133,6 +136,7 @@ const storeRefreshToken = async (userId, token, expiresAt, testJti) => {
     });
   }
 };
+*/
 
 /**
  * Revoke a refresh token
@@ -140,6 +144,7 @@ const storeRefreshToken = async (userId, token, expiresAt, testJti) => {
  * @param {string} token - Token to revoke
  * @returns {Promise<void>}
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const revokeRefreshToken = async (token) => {
   if (!token) {
     throw new AuthenticationError('No refresh token provided for revocation.');
@@ -187,6 +192,7 @@ const revokeRefreshToken = async (token) => {
 
   logger.info(`Successfully revoked refresh token with JTI: ${decoded.jti}`);
 };
+*/
 
 /**
  * Add a token to the blacklist
@@ -197,6 +203,7 @@ const revokeRefreshToken = async (token) => {
  * @param {string} reason - Reason for blacklisting (e.g., 'logout', 'token_refresh')
  * @returns {Promise<void>}
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const blacklistToken = async (jti, expiresAt, userId, reason = 'logout') => {
   try {
     const supabase = getSupabaseAdmin();
@@ -234,6 +241,7 @@ const blacklistToken = async (jti, expiresAt, userId, reason = 'logout') => {
     throw new DatabaseError('Failed to blacklist token', { code: 'BLACKLIST_FAILED', details: error.message });
   }
 };
+*/
 
 /**
  * Check if a token is in the blacklist
@@ -241,6 +249,7 @@ const blacklistToken = async (jti, expiresAt, userId, reason = 'logout') => {
  * @returns {Promise<boolean>} - True if token is blacklisted, false otherwise
  * @throws {DatabaseError} - If checking blacklist fails
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const isTokenBlacklisted = async (jti) => {
   try {
     // Use Supabase Admin for potentially sensitive blacklist checks
@@ -274,6 +283,7 @@ const isTokenBlacklisted = async (jti) => {
     return false; 
   }
 };
+*/
 
 /**
  * Clean up expired blacklisted tokens
@@ -281,6 +291,7 @@ const isTokenBlacklisted = async (jti) => {
  * 
  * @returns {Promise<number>} Number of removed tokens
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const cleanupExpiredBlacklistedTokens = async () => {
   try {
     // For tests, call the expected mock functions first
@@ -324,12 +335,14 @@ const cleanupExpiredBlacklistedTokens = async () => {
     throw new DatabaseError('Failed to clean up expired tokens', { code: 'BLACKLIST_CLEANUP_UNEXPECTED_ERROR', details: error.message });
   }
 };
+*/
 
 /**
  * Checks if a refresh token is valid in the database
  * @param {string} token - The refresh token to check
  * @returns {Promise<boolean>} - True if the token is valid, false otherwise
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const isRefreshTokenValid = async (token) => {
   // Initialize jti outside of try/catch for access in catch block
   let jti = 'unknown';
@@ -405,6 +418,7 @@ const isRefreshTokenValid = async (token) => {
     return false; // Treat unexpected errors as invalid
   }
 };
+*/
 
 /**
  * Generate a refresh token and store it in the database
@@ -417,6 +431,7 @@ const isRefreshTokenValid = async (token) => {
  * @param {Function} _storeRefreshToken - Optional function to store the token (for testing)
  * @returns {string} The refresh token
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const generateRefreshToken = async (
   userId, 
   role = 'user', 
@@ -470,6 +485,7 @@ const generateRefreshToken = async (
     throw new DatabaseError('Failed to store refresh token', { originalError: error.message }, false);
   }
 };
+*/
 
 /**
  * Extract JWT token payload without verification
@@ -494,6 +510,7 @@ const decodeToken = (token) => {
  * @param {boolean} checkAccessType - Whether to check if token type is 'access'
  * @returns {Object} Decoded token payload
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const verifyToken = (token) => {
   try {
     // Force the test secret in the test environment to ensure consistency
@@ -539,6 +556,7 @@ const verifyToken = (token) => {
     }
   }
 };
+*/
 
 /**
  * Verify a refresh token's signature, expiration, and blacklist status.
@@ -549,6 +567,7 @@ const verifyToken = (token) => {
  * @throws {AuthenticationError} If token is invalid (expired, bad signature, blacklisted, wrong type)
  * @throws {DatabaseError} If blacklist check fails
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const verifyRefreshToken = async (token) => {
   let decoded;
   // console.log('[DEBUG] verifyRefreshToken called with token:', token?.substring(0, 10) + '...'); // DEBUG
@@ -650,6 +669,7 @@ const verifyRefreshToken = async (token) => {
     throw new ApplicationError('Unexpected error during refresh token verification', { originalError: error.message }, false);
   }
 };
+*/
 
 /**
  * Validate a refresh token (verify + check DB validity). Prefer verifyRefreshToken for most uses.
@@ -660,6 +680,7 @@ const verifyRefreshToken = async (token) => {
  * @throws {AuthenticationError} If token is invalid
  * @throws {DatabaseError} If database check fails
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const validateRefreshToken = async (
   token, 
   _verifyRefreshToken = verifyRefreshToken,
@@ -685,6 +706,7 @@ const validateRefreshToken = async (
     throw error;
   }
 };
+*/
 
 /**
  * Validate an access token (verify signature, expiration, type, blacklist)
@@ -693,6 +715,7 @@ const validateRefreshToken = async (
  * @throws {AuthenticationError} If token is invalid (expired, bad signature, blacklisted, wrong type)
  * @throws {DatabaseError} If blacklist check fails
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const validateAccessToken = async (token) => {
   let decoded;
   try { // Wrap the entire logic in try/catch for ApplicationError
@@ -756,6 +779,7 @@ const validateAccessToken = async (token) => {
     throw new ApplicationError('An unexpected error occurred during token validation', { originalError: error.message }, false);
   }
 };
+*/
 
 /**
  * Generate both access and refresh tokens for a user
@@ -767,6 +791,7 @@ const validateAccessToken = async (token) => {
  * @param {Function} generateRefreshTokenMock - Optional function for refresh token generation (for testing)
  * @returns {Object} Object containing both tokens
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const generateTokens = async (
   userId, 
   role = 'user', 
@@ -808,6 +833,7 @@ const generateTokens = async (
     throw new DatabaseError('Failed to generate tokens', { originalError: error.message }, false);
   }
 };
+*/
 
 /**
  * Rotates a refresh token by invalidating the old one and generating a new one
@@ -818,6 +844,7 @@ const generateTokens = async (
  * @returns {Promise<string>} New refresh token
  * @throws {DatabaseError} If rotation fails
  */
+/* Marked for removal - Phase 2 Auth Refactor
 const rotateRefreshToken = async (
   decodedOldToken, 
   options = {}, 
@@ -863,6 +890,7 @@ const rotateRefreshToken = async (
     throw error;
   }
 };
+*/
 
 /**
  * Extracts a token from an Authorization header.
@@ -905,20 +933,20 @@ function parseExpiry(expiryString) {
 }
 
 module.exports = {
-  generateToken,
-  generateRefreshToken,
-  verifyToken,
-  verifyRefreshToken,
-  validateRefreshToken,
-  revokeRefreshToken,
-  isRefreshTokenValid,
-  extractTokenFromHeader,
-  blacklistToken,
-  isTokenBlacklisted,
-  cleanupExpiredBlacklistedTokens,
-  decodeToken,
-  validateAccessToken,
-  generateTokens,
-  rotateRefreshToken,
-  parseExpiry, // Export the helper if needed elsewhere, or keep private
+  // generateToken, // Commented out
+  // generateRefreshToken, // Commented out
+  // verifyToken, // Commented out
+  // verifyRefreshToken, // Commented out
+  // validateRefreshToken, // Commented out
+  // revokeRefreshToken, // Commented out
+  // isRefreshTokenValid, // Commented out
+  extractTokenFromHeader, // Retained
+  // blacklistToken, // Commented out
+  // isTokenBlacklisted, // Commented out
+  // cleanupExpiredBlacklistedTokens, // Commented out
+  decodeToken, // Retained
+  // validateAccessToken, // Commented out
+  // generateTokens, // Commented out
+  // rotateRefreshToken, // Commented out
+  parseExpiry, // Retained
 }; 

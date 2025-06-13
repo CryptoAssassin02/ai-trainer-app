@@ -130,7 +130,15 @@ class BaseAgent {
     }
 
     try {
-      const agentType = this.name.replace('Agent', '').toLowerCase();
+      // Use this.agentType if defined, otherwise compute from class name
+      const agentType = this.agentType || this.name.replace('Agent', '').toLowerCase();
+      
+      // Extract userId from metadata (required by AgentMemorySystem)
+      const userId = metadata.userId || metadata.user_id;
+      if (!userId) {
+        this.log('warn', 'No userId provided in metadata, cannot store memory');
+        return null;
+      }
       
       // Standardize tags if provided as string
       const tags = metadata.tags 
@@ -141,12 +149,10 @@ class BaseAgent {
       const workoutPlanId = metadata.workoutPlanId || metadata.planId || null;
       const workoutLogId = metadata.workoutLogId || metadata.logId || null;
       
-      // Create standardized metadata structure
+      // Create standardized metadata structure for AgentMemorySystem
       const standardizedMetadata = {
-        agent_type: agentType,
-        userId: metadata.userId || null,
-        user_id: metadata.userId || null,
-        memory_type: metadata.memoryType || 'agent_output',
+        type: metadata.memoryType || metadata.type || 'agent_output',
+        memory_type: metadata.memoryType || metadata.type || 'agent_output', // Ensure both formats
         content_type: metadata.contentType || (typeof content === 'object' ? 'json' : 'text'),
         plan_id: metadata.planId || null,
         tags: tags,
@@ -164,13 +170,14 @@ class BaseAgent {
         agent_type: agentType,
         memory_type: standardizedMetadata.memory_type,
         content_type: standardizedMetadata.content_type,
-        user_id: standardizedMetadata.user_id ? `${standardizedMetadata.user_id.substring(0, 8)}...` : null,
+        user_id: userId ? `${userId.substring(0, 8)}...` : null,
         content_size: typeof content === 'string' ? content.length : JSON.stringify(content).length,
         workout_plan_id: workoutPlanId ? `${workoutPlanId.substring(0, 8)}...` : null,
         workout_log_id: workoutLogId ? `${workoutLogId.substring(0, 8)}...` : null
       });
       
-      return await this.memorySystem.storeMemory(content, standardizedMetadata);
+      // Call AgentMemorySystem with correct parameter order: (userId, agentType, content, metadata)
+      return await this.memorySystem.storeMemory(userId, agentType, content, standardizedMetadata);
     } catch (error) {
       this.log('warn', `Failed to store memory: ${error.message}`, { error });
       return null;
@@ -265,10 +272,10 @@ class BaseAgent {
     }
 
     try {
-      const agentType = this.name.replace('Agent', '').toLowerCase();
+      const currentAgentType = this.agentType || this.name.replace('Agent', '').toLowerCase();
       const {
         userId,
-        agentTypes = [agentType],
+        agentTypes = [currentAgentType],
         query = null,
         limit = 5,
         threshold = 0.7,
@@ -279,9 +286,12 @@ class BaseAgent {
         logId = null
       } = options;
       
+      // Normalize agentTypes to array
+      const normalizedAgentTypes = Array.isArray(agentTypes) ? agentTypes : [agentTypes];
+      
       this.log('info', `Retrieving memories`, { 
         userId: userId ? `${userId.substring(0, 8)}...` : null,
-        agentTypes: Array.isArray(agentTypes) ? agentTypes : [agentTypes],
+        agentTypes: normalizedAgentTypes,
         limit,
         hasQuery: !!query,
         sortBy,
@@ -289,58 +299,94 @@ class BaseAgent {
         hasLogFilter: !!logId
       });
       
-      let memories = [];
+      let allMemories = [];
       
       // If we have a plan ID and no specific query, use direct plan retrieval
       if (planId && !query) {
-        memories = await this.memorySystem.getMemoriesByWorkoutPlan(userId, planId, {
-          limit,
-          agentType: Array.isArray(agentTypes) && agentTypes.length === 1 ? agentTypes[0] : null,
-          sortBy: sortBy === 'recency' ? 'created_at' : (sortBy === 'version' ? 'version' : 'importance'),
-          sortDirection: 'desc'
-        });
+        // Query each agent type separately for plan-based retrieval
+        for (const agentType of normalizedAgentTypes) {
+          const memories = await this.memorySystem.getMemoriesByWorkoutPlan(userId, planId, {
+            limit: Math.ceil(limit / normalizedAgentTypes.length), // Distribute limit across agent types
+            agentType: agentType,
+            sortBy: sortBy === 'recency' ? 'created_at' : (sortBy === 'version' ? 'version' : 'importance'),
+            sortDirection: 'desc'
+          });
+          allMemories.push(...memories);
+        }
       }
       // If query is provided, perform semantic search
       else if (query) {
-        const searchOptions = {
-          filter: {
-            agent_type: Array.isArray(agentTypes) ? agentTypes : [agentTypes],
-            ...metadata
-          },
-          limit,
-          threshold
-        };
-        
-        memories = await this.memorySystem.searchSimilarMemories(userId, query, searchOptions);
+        // For semantic search, query each agent type separately
+        for (const agentType of normalizedAgentTypes) {
+          const searchOptions = {
+            agentType: agentType, // Single agent type for semantic search
+            threshold,
+            limit: Math.ceil(limit / normalizedAgentTypes.length), // Distribute limit
+            metadataFilter: metadata,
+            planId: planId,
+            logId: logId
+          };
+          
+          const memories = await this.memorySystem.searchSimilarMemories(userId, query, searchOptions);
+          allMemories.push(...memories);
+        }
       } 
       // Otherwise, retrieve by agent type and metadata
       else {
         const queryOptions = { 
-          limit,
+          limit: Math.ceil(limit / normalizedAgentTypes.length), // Distribute limit across agent types
           sortBy: sortBy === 'recency' ? 'created_at' : (sortBy === 'version' ? 'version' : 'importance'),
           sortDirection: 'desc'
         };
         
-        memories = await this.memorySystem.getMemoriesByMetadata(userId, {
-          agent_type: Array.isArray(agentTypes) ? agentTypes : [agentTypes],
-          ...metadata
-        }, queryOptions);
+        // Query each agent type separately
+        for (const agentType of normalizedAgentTypes) {
+          const memories = await this.memorySystem.getMemoriesByMetadata(userId, metadata, {
+            ...queryOptions,
+            agentType: agentType, // Pass agent type as separate parameter
+            planId: planId,
+            logId: logId
+          });
+          allMemories.push(...memories);
+        }
       }
       
+      // Remove duplicates and sort by the requested criteria
+      const uniqueMemories = allMemories.filter((memory, index, self) => 
+        index === self.findIndex(m => m.id === memory.id)
+      );
+      
+      // Sort combined results
+      let sortedMemories = uniqueMemories;
+      if (sortBy === 'recency') {
+        sortedMemories = uniqueMemories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      } else if (sortBy === 'importance') {
+        sortedMemories = uniqueMemories.sort((a, b) => (b.importance || 1) - (a.importance || 1));
+      } else if (sortBy === 'relevance' && query) {
+        // For relevance, trust the order from semantic search
+        sortedMemories = uniqueMemories;
+      }
+      
+      // Apply final limit to combined results
+      const finalMemories = sortedMemories.slice(0, limit);
+      
       // Include feedback if requested
-      if (includeFeedback && memories.length > 0) {
-        const memoryIds = memories.map(m => m.id);
+      if (includeFeedback && finalMemories.length > 0) {
+        const memoryIds = finalMemories.map(m => m.id);
         const feedback = await this._retrieveFeedbackForMemories(userId, memoryIds);
         
         // Attach feedback to memories
-        memories = memories.map(memory => ({
+        const memoriesWithFeedback = finalMemories.map(memory => ({
           ...memory,
           feedback: feedback.filter(f => f.metadata?.relatedMemoryId === memory.id)
         }));
+        
+        this.log('info', `Retrieved ${memoriesWithFeedback.length} memories with feedback`);
+        return memoriesWithFeedback;
       }
       
-      this.log('info', `Retrieved ${memories.length} memories`);
-      return memories;
+      this.log('info', `Retrieved ${finalMemories.length} memories`);
+      return finalMemories;
     } catch (error) {
       this.log('warn', `Failed to retrieve memories: ${error.message}`, { error });
       return [];

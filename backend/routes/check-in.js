@@ -9,17 +9,19 @@ const { validateCheckIn, validateMetricsCalculation } = require('../middleware/v
 const checkInController = require('../controllers/check-in');
 const rateLimit = require('express-rate-limit');
 
-// Rate limit for check-in creation (5 per hour)
-const checkInLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 5, // 5 requests per window
-  message: {
-    status: 'error',
-    message: 'Too many check-ins created. Please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
+// Rate limit for check-in creation (5 per hour) - disabled for tests
+const checkInLimiter = process.env.NODE_ENV === 'test' ? 
+  (req, res, next) => next() : // Skip rate limiting for tests
+  rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour window
+    max: 5, // 5 requests per window
+    message: {
+      status: 'error',
+      message: 'Too many check-ins created. Please try again later.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+  });
 
 /**
  * @route POST /v1/progress/check-in

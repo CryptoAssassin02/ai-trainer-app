@@ -10,6 +10,7 @@ const isIntegrationTest = process.env.RUN_INTEGRATION_TESTS === 'true';
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
+  globalSetup: isIntegrationTest ? '<rootDir>/backend/tests/integration/jest-global-setup.js' : undefined,
   // Use different setup files based on whether we're running integration tests
   setupFilesAfterEnv: isIntegrationTest 
     ? ['<rootDir>/jest.integration.setup.js'] 

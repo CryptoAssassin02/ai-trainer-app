@@ -3,33 +3,13 @@ const { Pool } = require('pg');
 const { DatabaseError, NotFoundError, ConflictError } = require('../utils/errors');
 const logger = require('../config/logger');
 const { createConnectionString } = require('../config/supabase');
+const { getSupabaseClientWithToken } = require('./supabase'); // Import centralized helper
 
 // Error code for version conflict
 const VERSION_CONFLICT_ERROR = 'P2034';
 
 // Maximum retry attempts for version conflicts
 const MAX_RETRY_ATTEMPTS = 3;
-
-// Helper function to create Supabase client with JWT
-const getSupabaseClientWithJWT = (jwtToken) => {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY; // Use the service role key or anon key as appropriate for your RLS setup
-
-  if (!supabaseUrl || !supabaseKey) {
-    logger.error('Supabase URL or Key is missing in environment variables.');
-    throw new Error('Supabase configuration is missing.');
-  }
-
-  // Ensure the Authorization header is correctly formatted
-  if (!jwtToken) {
-      logger.error('JWT token is missing for Supabase client initialization.');
-      throw new Error('Authentication token is required.');
-  }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
-};
 
 /**
  * Executes a series of database operations within a transaction.
@@ -78,22 +58,41 @@ async function executeTransaction(callback) {
 /**
  * Stores a new workout plan in the database.
  * @param {string} userId - The ID of the user creating the plan.
- * @param {object} planData - The workout plan data (likely JSONB).
+ * @param {object} planData - The workout plan data with planName, exercises, researchInsights, reasoning.
  * @param {string} jwtToken - The user's JWT for RLS.
  * @returns {Promise<object>} The newly created workout plan record.
  * @throws {DatabaseError} If the database operation fails.
  */
 async function storeWorkoutPlan(userId, planData, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
   logger.debug(`Attempting to store workout plan for user: ${userId}`);
   try {
+    // Map the planData structure to the database schema
+    const insertData = {
+      user_id: userId,
+      name: planData.planName || 'Generated Workout Plan', // Required field
+      description: `AI-generated workout plan for user`,
+      plan_data: {
+        exercises: planData.exercises || [],
+        weeklySchedule: planData.weeklySchedule || {}, // Include weeklySchedule that test expects
+        formattedPlan: planData.formattedPlan || '',
+        explanations: planData.explanations || '',
+        researchInsights: planData.researchInsights || [],
+        reasoning: planData.reasoning || '',
+        warnings: planData.warnings || [],
+        errors: planData.errors || []
+      },
+      ai_generated: true,
+      status: 'active',
+      ai_reasoning: {
+        reasoning: planData.reasoning || '',
+        researchInsights: planData.researchInsights || []
+      }
+    };
+
     const { data, error } = await supabase
-      .from('workout_plans') // Ensure 'workout_plans' table exists
-      .insert({
-        user_id: userId,
-        plan: planData, // Assuming plan data is stored in a 'plan' JSONB column
-        // Add other fields like plan_name if needed based on your schema
-      })
+      .from('workout_plans')
+      .insert(insertData)
       .select() // Return the inserted record
       .single();
 
@@ -128,7 +127,7 @@ async function storeWorkoutPlan(userId, planData, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function retrieveWorkoutPlans(userId, filters = {}, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
   const { limit = 10, offset = 0, searchTerm } = filters;
   logger.debug(`Retrieving workout plans for user: ${userId} with filters: ${JSON.stringify(filters)}`);
 
@@ -178,7 +177,7 @@ async function retrieveWorkoutPlans(userId, filters = {}, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function retrieveWorkoutPlan(planId, userId, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
   logger.debug(`Retrieving workout plan ID: ${planId} for user: ${userId}`);
 
   try {
@@ -369,7 +368,7 @@ async function updateWorkoutPlan(planId, updates, userId, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function removeWorkoutPlan(planId, userId, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
   logger.debug(`Attempting to remove workout plan ID: ${planId} for user: ${userId}`);
 
   try {

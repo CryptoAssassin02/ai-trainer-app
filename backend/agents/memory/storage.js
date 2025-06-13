@@ -31,10 +31,14 @@ async function storeMemory(supabase, openai, config, logger, validators, userId,
     const workoutPlanId = metadata.planId || metadata.workout_plan_id || metadata.workoutPlanId || null;
     const workoutLogId = metadata.logId || metadata.workout_log_id || metadata.workoutLogId || null;
     
+    // Extract type from metadata for database column (required field)
+    const memoryType = metadata.type || 'memory'; // Default to 'memory' if not specified
+    
     // Prepare record for insertion
     const memoryRecord = {
       user_id: userId,
       agent_type: agentType.toLowerCase(),
+      type: memoryType, // Set the required type field
       content: contentString,
       embedding,
       metadata: metadata || {},
@@ -136,6 +140,7 @@ async function storeUserFeedback(supabase, config, logger, validators, userId, m
     const feedbackRecord = {
       user_id: userId,
       agent_type: 'system', // Feedback is system-related
+      type: 'user_feedback', // Set the required type field
       content: feedbackContent,
       metadata: {
         type: 'user_feedback',
@@ -201,6 +206,7 @@ async function storeSystemEvent(supabase, config, logger, validators, userId, ev
     const eventRecord = {
       user_id: userId,
       agent_type: 'system', // System events
+      type: 'system_event', // Set the required type field
       content: eventContent,
       metadata: {
         type: 'system_event',

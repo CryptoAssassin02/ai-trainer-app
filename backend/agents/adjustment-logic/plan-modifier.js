@@ -43,22 +43,38 @@ class PlanModifier {
         const safety = considerations.find(c => c.safeRequests !== undefined && c.unsafeRequests !== undefined) || { safeRequests: [], unsafeRequests: [], warnings: [] };
         // const coherence = considerations.find(c => c.coherent !== undefined && c.incoherent !== undefined) || { coherent: [], incoherent: [] };
 
+        // DEBUG: Log consideration arrays to understand what's happening
+        this.logger.info(`[PlanModifier] DEBUG - Feasibility: ${feasibility.feasible.length} feasible, ${feasibility.infeasible.length} infeasible`);
+        this.logger.info(`[PlanModifier] DEBUG - Safety: ${safety.safeRequests.length} safe, ${safety.unsafeRequests.length} unsafe`);
+        this.logger.info(`[PlanModifier] DEBUG - Parsed feedback keys: ${Object.keys(parsedFeedback).join(', ')}`);
+        this.logger.info(`[PlanModifier] DEBUG - Substitutions count: ${(parsedFeedback.substitutions || []).length}`);
+        this.logger.info(`[PlanModifier] DEBUG - Volume adjustments count: ${(parsedFeedback.volumeAdjustments || []).length}`);
+        this.logger.info(`[PlanModifier] DEBUG - Intensity adjustments count: ${(parsedFeedback.intensityAdjustments || []).length}`);
+
         const isFeasible = (type, item) => !feasibility.infeasible.some(inf => inf.type === type && JSON.stringify(inf.item) === JSON.stringify(item));
         const isSafe = (type, item) => !safety.unsafeRequests.some(uns => uns.type === type && JSON.stringify(uns.item) === JSON.stringify(item));
         // const isCoherent = (type, item) => !coherence.incoherent.some(inc => inc.type === type && JSON.stringify(inc.item) === JSON.stringify(item));
 
         // --- Process Adjustments by Type (Directly from parsedFeedback) ---
-        const processAdjustment = (adjType, item) => {
+        const processAdjustment = async (adjType, item) => {
             const adj = { type: adjType, data: item }; // Create consistent structure
+            
+            // DEBUG: Log each adjustment being processed
+            this.logger.info(`[PlanModifier] DEBUG - Processing adjustment: ${adjType}`, item);
+            
             if (!isFeasible(adj.type, adj.data)) {
+                this.logger.info(`[PlanModifier] DEBUG - Skipping ${adjType} - not feasible`);
                 skippedChanges.push({ ...adj, reason: `Infeasible: ${feasibility.infeasible.find(inf => inf.type === adj.type && JSON.stringify(inf.item) === JSON.stringify(adj.data))?.reason || 'Details unavailable'}` });
                 return;
             }
             if (!isSafe(adj.type, adj.data)) {
+                this.logger.info(`[PlanModifier] DEBUG - Skipping ${adjType} - not safe`);
                  skippedChanges.push({ ...adj, reason: `Unsafe: ${safety.unsafeRequests.find(uns => uns.type === adj.type && JSON.stringify(uns.item) === JSON.stringify(adj.data))?.reason || 'Safety concern'}` });
                 return;
             }
             // Coherence checks are more advisory, don't block application by default, but could add logic here.
+            
+            this.logger.info(`[PlanModifier] DEBUG - ${adjType} passed feasibility and safety checks, proceeding with application`);
 
             let changeResult = { changed: false }; // Default result
             try {
@@ -68,7 +84,7 @@ class PlanModifier {
                          changeResult = this._handlePainConcern(plan, adj.data);
                         break;
                     case 'equipmentLimitation':
-                         changeResult = this._handleEquipmentLimitation(plan, adj.data);
+                         changeResult = await this._handleEquipmentLimitation(plan, adj.data);
                         break;
                     case 'substitution':
                          changeResult = this._modifyExercises(plan, adj.data);
@@ -97,6 +113,12 @@ class PlanModifier {
                     default:
                         this.logger.warn(`[PlanModifier] Unknown adjustment type: ${adj.type}`);
                 }
+                
+                // DEBUG: Log the change result
+                this.logger.info(`[PlanModifier] DEBUG - ${adjType} changeResult:`, { 
+                    changed: changeResult.changed, 
+                    outcome: changeResult.outcome 
+                });
 
                 if (changeResult.changed) {
                     appliedChanges.push({ 
@@ -118,23 +140,40 @@ class PlanModifier {
 
         // Apply in priority order directly using fields from parsedFeedback
         this.logger.info('[PlanModifier] Processing high priority adjustments...');
-        (parsedFeedback.painConcerns || []).forEach(item => processAdjustment('painConcern', item));
-        (parsedFeedback.equipmentLimitations || []).forEach(item => processAdjustment('equipmentLimitation', item));
-        // TODO: Add filter for high-priority substitutions if needed
-        // (parsedFeedback.substitutions || []).filter(isHighPrioritySub).forEach(item => processAdjustment('substitution', item));
+        for (const item of (parsedFeedback.painConcerns || [])) {
+            await processAdjustment('painConcern', item);
+        }
+        for (const item of (parsedFeedback.equipmentLimitations || [])) {
+            await processAdjustment('equipmentLimitation', item);
+        }
 
         this.logger.info('[PlanModifier] Processing medium priority adjustments...');
-        (parsedFeedback.substitutions || []).forEach(item => processAdjustment('substitution', item)); // Process all substitutions here for now
-        (parsedFeedback.volumeAdjustments || []).forEach(item => processAdjustment('volumeAdjustment', item));
-        (parsedFeedback.intensityAdjustments || []).forEach(item => processAdjustment('intensityAdjustment', item));
+        for (const item of (parsedFeedback.substitutions || [])) {
+            await processAdjustment('substitution', item);
+        }
+        for (const item of (parsedFeedback.volumeAdjustments || [])) {
+            await processAdjustment('volumeAdjustment', item);
+        }
+        for (const item of (parsedFeedback.intensityAdjustments || [])) {
+            await processAdjustment('intensityAdjustment', item);
+        }
 
         this.logger.info('[PlanModifier] Processing low priority adjustments...');
-        (parsedFeedback.scheduleChanges || []).forEach(item => processAdjustment('scheduleChange', item));
-        // Ensure correct type string is passed
-        (parsedFeedback.restPeriodAdjustments || []).forEach(item => processAdjustment('restPeriodChange', item)); 
-        (parsedFeedback.advancedTechniques || []).forEach(item => processAdjustment('advancedTechnique', item)); 
-        (parsedFeedback.timeConstraints || []).forEach(item => processAdjustment('timeConstraint', item)); 
-        (parsedFeedback.otherRequests || []).forEach(item => processAdjustment('otherRequest', item)); 
+        for (const item of (parsedFeedback.scheduleChanges || [])) {
+            await processAdjustment('scheduleChange', item);
+        }
+        for (const item of (parsedFeedback.restPeriodChanges || [])) {
+            await processAdjustment('restPeriodChange', item);
+        }
+        for (const item of (parsedFeedback.advancedTechniques || [])) {
+            await processAdjustment('advancedTechnique', item);
+        }
+        for (const item of (parsedFeedback.timeConstraints || [])) {
+            await processAdjustment('timeConstraint', item);
+        }
+        for (const item of (parsedFeedback.otherRequests || [])) {
+            await processAdjustment('otherRequest', item);
+        }
 
         // Add metadata to the adjusted plan
         plan.lastAdjusted = new Date().toISOString();
@@ -193,10 +232,10 @@ class PlanModifier {
      * Handles equipment limitations, usually by substituting exercises.
      * @param {Object} plan - The workout plan (mutable).
      * @param {Object} limitation - Equipment limitation details.
-     * @returns {{changed: boolean, outcome: string, changes: Array}}
+     * @returns {Promise<{changed: boolean, outcome: string, changes: Array}>}
      * @private
      */
-     _handleEquipmentLimitation(plan, limitation) {
+     async _handleEquipmentLimitation(plan, limitation) {
           this.logger.debug(`Handling equipment limitation: ${limitation.equipment}`);
           let overallChanged = false;
           let outcomes = [];
@@ -204,8 +243,7 @@ class PlanModifier {
           
           const unavailableEquipment = limitation.equipment.toLowerCase();
           const suggestedAlternative = limitation.alternative?.toLowerCase();
-          // Keep track of the original exercise name for the outcome message
-          let originalExerciseName = null; 
+          const availableEquipment = suggestedAlternative || 'dumbbells'; // Default fallback
           
           if (!plan.weeklySchedule) return { changed: false, outcome: "Plan schedule missing" };
 
@@ -214,50 +252,56 @@ class PlanModifier {
                if (typeof session === 'object' && session?.exercises) {
                     // Use a copy of the array to avoid issues with modifying while iterating
                     const originalExercises = [...session.exercises]; 
-                    let exercisesModified = false; // Flag if this session's exercises were changed
+                    let exercisesModified = false;
 
                     for (let i = 0; i < originalExercises.length; i++) {
                          const exercise = originalExercises[i];
-                         // Check if current exercise requires the limited equipment
-                         if (this._exerciseRequiresEquipment(exercise.exercise, unavailableEquipment)) {
-                              originalExerciseName = exercise.exercise; // Capture name before modification
-                              this.logger.info(`[PlanModifier] Found exercise '${originalExerciseName}' potentially requiring unavailable equipment '${unavailableEquipment}'. Attempting substitution.`);
+                         
+                         // Use the new async database-powered equipment check
+                         const requiresUnavailableEquipment = await this._exerciseRequiresEquipment(
+                             exercise.exercise, 
+                             unavailableEquipment
+                         );
+                         
+                         if (requiresUnavailableEquipment) {
+                              const originalExerciseName = exercise.exercise;
+                              this.logger.info(`[PlanModifier] Found exercise '${originalExerciseName}' requiring unavailable equipment '${unavailableEquipment}'. Attempting database substitution.`);
                               
-                              let substitutionResult = { changed: false };
-                              if (suggestedAlternative) {
-                                   // Modify the actual plan object here, not the copy
-                                   substitutionResult = this._modifyExercises(plan, { from: originalExerciseName, to: suggestedAlternative, reason: `Equipment limitation (${unavailableEquipment})` }, day, i);
+                              // Use the new async database-powered substitution generation
+                              const substitutionExercise = await this._generateSubstitutionForEquipment(
+                                  originalExerciseName, 
+                                  unavailableEquipment, 
+                                  availableEquipment
+                              );
+                              
+                              if (substitutionExercise) {
+                                   // Perform the substitution using existing _modifyExercises method
+                                   const substitutionResult = this._modifyExercises(plan, { 
+                                       from: originalExerciseName, 
+                                       to: substitutionExercise, 
+                                       reason: `Equipment limitation (${unavailableEquipment} unavailable)` 
+                                   }, day, i);
+                                   
                                    if(substitutionResult.changed) {
-                                        outcomes.push(`Substituted '${originalExerciseName}' with suggested '${suggestedAlternative}'.`);
+                                        outcomes.push(`Substituted '${originalExerciseName}' with '${substitutionExercise}' (database match).`);
                                         detailedChanges.push(substitutionResult.changeData);
                                         exercisesModified = true;
                                    }
-                              }
-                              
-                              if (!substitutionResult.changed) {
-                                    const genericSub = this._generateSubstitutionForEquipment(originalExerciseName, unavailableEquipment);
-                                    if (genericSub) {
-                                         substitutionResult = this._modifyExercises(plan, { from: originalExerciseName, to: genericSub, reason: `Equipment limitation (${unavailableEquipment}) - Generic sub` }, day, i);
-                                          if(substitutionResult.changed) {
-                                            outcomes.push(`Substituted '${originalExerciseName}' with generic alternative '${genericSub}'.`);
-                                             detailedChanges.push(substitutionResult.changeData);
-                                             exercisesModified = true;
-                                         }
-                                    } else {
-                                         const warningOutcome = `Could not find suitable substitution for '${originalExerciseName}' due to lack of ${unavailableEquipment}. Exercise remains.`;
-                                         outcomes.push(warningOutcome);
-                                         this.logger.warn(`[PlanModifier] ${warningOutcome}`);
-                                         // Add note to the exercise in the actual plan
-                                         if (plan.weeklySchedule[day]?.exercises[i]) {
-                                            plan.weeklySchedule[day].exercises[i].notes = (plan.weeklySchedule[day].exercises[i].notes ? plan.weeklySchedule[day].exercises[i].notes + "; " : "") + `Warning: Requires ${unavailableEquipment}, which user reported as unavailable.`;
-                                            exercisesModified = true; // Note added is a change
-                                         } else {
-                                            this.logger.error(`[PlanModifier] Error adding warning note: Exercise at index ${i} on ${day} not found in plan object.`);
-                                         }
-                                    }
+                              } else {
+                                   // Add warning note if no substitution found
+                                   const warningOutcome = `Could not find suitable substitution for '${originalExerciseName}' due to lack of ${unavailableEquipment}. Exercise remains with warning.`;
+                                   outcomes.push(warningOutcome);
+                                   this.logger.warn(`[PlanModifier] ${warningOutcome}`);
+                                   
+                                   // Add note to the exercise in the actual plan
+                                   if (plan.weeklySchedule[day]?.exercises[i]) {
+                                      plan.weeklySchedule[day].exercises[i].notes = (plan.weeklySchedule[day].exercises[i].notes ? plan.weeklySchedule[day].exercises[i].notes + "; " : "") + `Warning: Requires ${unavailableEquipment}, which user reported as unavailable.`;
+                                      exercisesModified = true;
+                                   }
                               }
                          }
                     }
+                    
                     // Update overall changed flag if modifications occurred in this session
                     if (exercisesModified) {
                         overallChanged = true;
@@ -265,30 +309,294 @@ class PlanModifier {
                }
           }
           
-          return { changed: overallChanged, outcome: outcomes.join(' ') || "No exercises found requiring the limited equipment.", changes: detailedChanges };
+          const finalOutcome = outcomes.length > 0 ? outcomes.join(' ') : "No exercises found requiring the limited equipment.";
+          this.logger.info(`[PlanModifier] Equipment limitation processing complete: ${finalOutcome}`);
+          
+          return { changed: overallChanged, outcome: finalOutcome, changes: detailedChanges };
      }
      
      /**
-      * Helper to check if an exercise requires specific equipment.
-      * Placeholder - needs better implementation (DB lookup, rules).
+      * Helper to check if an exercise requires specific equipment by querying the database.
+      * @param {string} exerciseName - The exercise name to check.
+      * @param {string} equipmentName - The equipment to check for.
+      * @returns {Promise<boolean>} Whether the exercise requires this equipment.
+      * @private
       */
-     _exerciseRequiresEquipment(exerciseName, equipmentName) {
-         return exerciseName?.toLowerCase().includes(equipmentName.toLowerCase());
+     async _exerciseRequiresEquipment(exerciseName, equipmentName) {
+         try {
+             // Extract key words from exercise name for better matching
+             const exerciseKeywords = this._extractExerciseKeywords(exerciseName);
+             const equipmentLower = equipmentName.toLowerCase();
+             
+             this.logger.debug(`[PlanModifier] Checking equipment requirement for "${exerciseName}" (keywords: ${exerciseKeywords.join(', ')}) against "${equipmentName}"`);
+             
+             // Build flexible query using multiple ILIKE patterns
+             let query = this.supabaseClient
+                 .from('exercises')
+                 .select('exercise_name, equipment');
+             
+             // Add OR conditions for each keyword
+             if (exerciseKeywords.length > 0) {
+                 const orConditions = exerciseKeywords.map(keyword => 
+                     `exercise_name.ilike.%${keyword}%`
+                 ).join(',');
+                 query = query.or(orConditions);
+             } else {
+                 // Fallback to original name if no keywords extracted
+                 query = query.ilike('exercise_name', `%${exerciseName}%`);
+             }
+             
+             const { data: exercises, error } = await query.limit(10);
+                 
+             if (error) {
+                 this.logger.warn(`[PlanModifier] Database query error for exercise ${exerciseName}: ${error.message}`);
+                 return this._fallbackEquipmentCheck(exerciseName, equipmentName);
+             }
+             
+             if (!exercises || exercises.length === 0) {
+                 this.logger.debug(`[PlanModifier] No database matches for exercise: ${exerciseName} (keywords: ${exerciseKeywords.join(', ')})`);
+                 return this._fallbackEquipmentCheck(exerciseName, equipmentName);
+             }
+             
+             this.logger.debug(`[PlanModifier] Found ${exercises.length} potential matches:`, exercises.map(ex => ex.exercise_name));
+             
+             // Check if any matching exercise uses the specified equipment
+             const requiresEquipment = exercises.some(ex => 
+                 ex.equipment && ex.equipment.toLowerCase().includes(equipmentLower)
+             );
+             
+             this.logger.debug(`[PlanModifier] Exercise ${exerciseName} requires ${equipmentName}: ${requiresEquipment}`);
+             return requiresEquipment;
+             
+         } catch (dbError) {
+             this.logger.error(`[PlanModifier] Database error checking equipment for ${exerciseName}: ${dbError.message}`);
+             return this._fallbackEquipmentCheck(exerciseName, equipmentName);
+         }
+     }
+     
+     /**
+      * Extracts key words from exercise name for better database matching.
+      * @param {string} exerciseName - The exercise name to process.
+      * @returns {string[]} Array of key words for matching.
+      * @private
+      */
+     _extractExerciseKeywords(exerciseName) {
+         if (!exerciseName || typeof exerciseName !== 'string') return [];
+         
+         const name = exerciseName.toLowerCase().trim();
+         
+         // Common exercise keyword mapping
+         const keywordMap = {
+             'bench press': ['bench', 'press'],
+             'bench': ['bench'],
+             'press': ['press'],
+             'overhead press': ['overhead', 'press'],
+             'rows': ['row'],
+             'row': ['row'],
+             'squats': ['squat'],
+             'squat': ['squat'],
+             'deadlifts': ['deadlift'],
+             'deadlift': ['deadlift'],
+             'romanian deadlifts': ['romanian', 'deadlift'],
+             'pull-ups': ['pull', 'up'],
+             'pullups': ['pull', 'up'],
+             'pull ups': ['pull', 'up'],
+             'chin-ups': ['chin', 'up'],
+             'chinups': ['chin', 'up'],
+             'chin ups': ['chin', 'up'],
+             'lateral raises': ['lateral', 'raise'],
+             'dumbbell': ['dumbbell'],
+             'barbell': ['barbell'],
+             'cable': ['cable'],
+             'machine': ['machine'],
+         };
+         
+         // Check for exact matches first
+         if (keywordMap[name]) {
+             return keywordMap[name];
+         }
+         
+         // Extract meaningful words (filter out common words)
+         const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'with', 'to', 'from', 'of', 'in', 'on', 'at'];
+         const words = name.split(/\s+/)
+             .filter(word => word.length > 2 && !stopWords.includes(word))
+             .filter(word => /^[a-z]+$/.test(word)); // Only alphabetic words
+         
+         return words.length > 0 ? words : [name]; // Return original if no meaningful words
      }
 
     /**
-     * Generates a generic substitution for an exercise due to equipment limits.
-     * Placeholder - could use LLM or rule-based logic.
-     * @param {string} originalExercise - The exercise to replace.
-     * @param {string} unavailableEquipment - The missing equipment.
-     * @returns {string | null} Suggested substitution name or null.
+     * Fallback equipment check using pattern matching.
+     * @param {string} exerciseName - The exercise name.
+     * @param {string} equipmentName - The equipment name.
+     * @returns {boolean} Whether the exercise likely requires this equipment.
      * @private
      */
-     _generateSubstitutionForEquipment(originalExercise, unavailableEquipment) {
-          // Simple rule-based example:
-          if (originalExercise.toLowerCase().includes('barbell')) return originalExercise.replace(/barbell/i, 'Dumbbell');
-          if (originalExercise.toLowerCase().includes('machine')) return originalExercise.replace(/machine/i, 'Dumbbell'); 
-          // TODO: Add more rules or LLM call for better suggestions
+    _fallbackEquipmentCheck(exerciseName, equipmentName) {
+        const exerciseLower = exerciseName?.toLowerCase() || '';
+        const equipmentLower = equipmentName.toLowerCase();
+        
+        // Enhanced equipment detection patterns as fallback
+        const equipmentPatterns = {
+            'barbell': ['bench press', 'squat', 'deadlift', 'barbell', 'press', 'row'],
+            'machine': ['machine', 'cable', 'lat pulldown', 'leg press'],
+            'dumbbells': ['dumbbell'],
+            'kettlebell': ['kettlebell', 'kb'],
+            'pullup bar': ['pull up', 'pullup', 'chin up', 'chinup'],
+            'cables': ['cable', 'lat pulldown', 'cable row']
+        };
+        
+        const patterns = equipmentPatterns[equipmentLower] || [equipmentLower];
+        return patterns.some(pattern => exerciseLower.includes(pattern));
+    }
+
+    /**
+     * Generates a substitution for an exercise using database lookup for intelligent matching.
+     * @param {string} originalExercise - The exercise to replace.
+     * @param {string} unavailableEquipment - The missing equipment.
+     * @param {string} availableEquipment - The available equipment (from alternative field).
+     * @returns {Promise<string | null>} Suggested substitution name or null.
+     * @private
+     */
+     async _generateSubstitutionForEquipment(originalExercise, unavailableEquipment, availableEquipment = 'dumbbells') {
+          try {
+              // Use improved keyword extraction for better matching
+              const exerciseKeywords = this._extractExerciseKeywords(originalExercise);
+              
+              this.logger.debug(`[PlanModifier] Looking for substitution for "${originalExercise}" (keywords: ${exerciseKeywords.join(', ')})`);
+              
+              // Build flexible query for finding original exercise
+              let originalQuery = this.supabaseClient
+                  .from('exercises')
+                  .select('primary_muscles, secondary_muscles, category, force_type');
+              
+              if (exerciseKeywords.length > 0) {
+                  const orConditions = exerciseKeywords.map(keyword => 
+                      `exercise_name.ilike.%${keyword}%`
+                  ).join(',');
+                  originalQuery = originalQuery.or(orConditions);
+              } else {
+                  originalQuery = originalQuery.ilike('exercise_name', `%${originalExercise}%`);
+              }
+              
+              const { data: originalExercises, error: originalError } = await originalQuery.limit(3);
+                  
+              if (originalError || !originalExercises || originalExercises.length === 0) {
+                  this.logger.warn(`[PlanModifier] Could not find original exercise ${originalExercise} in database using keywords: ${exerciseKeywords.join(', ')}, using fallback`);
+                  return this._fallbackSubstitution(originalExercise, unavailableEquipment);
+              }
+              
+              // Use the best match (first result) for muscle group targeting
+              const originalEx = originalExercises[0];
+              this.logger.debug(`[PlanModifier] Found original exercise match with muscles: ${originalEx.primary_muscles}, category: ${originalEx.category}`);
+              
+              // Parse available equipment - handle "dumbbells and resistance bands"
+              const availableEquipmentArray = availableEquipment
+                  .toLowerCase()
+                  .split(/\s+and\s+|\s*,\s*|\s+\+\s+/)
+                  .map(eq => eq.trim());
+              
+              this.logger.debug(`[PlanModifier] Looking for substitution targeting muscles: ${originalEx.primary_muscles}, available equipment: ${availableEquipmentArray}`);
+              
+              // Find exercises that:
+              // 1. Target the same primary muscles
+              // 2. Use available equipment 
+              // 3. Don't use the unavailable equipment
+              let substitutionQuery = this.supabaseClient
+                  .from('exercises')
+                  .select('exercise_name, equipment, primary_muscles, secondary_muscles');
+              
+              // Target same muscle groups if available
+              if (originalEx.primary_muscles && originalEx.primary_muscles.length > 0) {
+                  substitutionQuery = substitutionQuery.overlaps('primary_muscles', originalEx.primary_muscles);
+              }
+              
+              // Add equipment filters for each available equipment type
+              const equipmentConditions = availableEquipmentArray.map(equipment => 
+                  `equipment.ilike.%${equipment}%`
+              );
+              if (equipmentConditions.length > 0) {
+                  substitutionQuery = substitutionQuery.or(equipmentConditions.join(','));
+              }
+              
+              const { data: alternatives, error: altError } = await substitutionQuery
+                  .not('equipment', 'ilike', `%${unavailableEquipment}%`)
+                  .limit(15);
+              
+              if (altError || !alternatives || alternatives.length === 0) {
+                  this.logger.warn(`[PlanModifier] No database alternatives found for muscle groups: ${originalEx.primary_muscles}, using fallback substitution`);
+                  return this._fallbackSubstitution(originalExercise, unavailableEquipment);
+              }
+              
+              this.logger.debug(`[PlanModifier] Found ${alternatives.length} potential substitutions:`, alternatives.map(alt => alt.exercise_name));
+              
+              // Score alternatives by muscle overlap and exercise name similarity
+              const scored = alternatives.map(alt => {
+                  const primaryOverlap = (originalEx.primary_muscles || [])
+                      .filter(muscle => (alt.primary_muscles || []).includes(muscle)).length;
+                  const secondaryOverlap = (originalEx.secondary_muscles || [])
+                      .filter(muscle => (alt.secondary_muscles || []).includes(muscle)).length;
+                  
+                  // Bonus for name similarity (e.g., "bench" exercises for "bench press")
+                  const nameSimilarity = exerciseKeywords.some(keyword => 
+                      alt.exercise_name.toLowerCase().includes(keyword)
+                  ) ? 1 : 0;
+                      
+                  return {
+                      exercise: alt.exercise_name,
+                      score: primaryOverlap * 3 + secondaryOverlap + nameSimilarity, // Weight primary muscles most heavily
+                      primaryOverlap,
+                      nameSimilarity
+                  };
+              });
+              
+              // Sort by score and pick the best match
+              scored.sort((a, b) => b.score - a.score);
+              const bestMatch = scored[0];
+              
+              if (bestMatch && bestMatch.score > 0) {
+                  this.logger.info(`[PlanModifier] Found database substitution: ${originalExercise} -> ${bestMatch.exercise} (score: ${bestMatch.score}, muscle overlap: ${bestMatch.primaryOverlap}, name similarity: ${bestMatch.nameSimilarity})`);
+                  return bestMatch.exercise;
+              }
+              
+              this.logger.warn(`[PlanModifier] No good muscle-matched alternatives found, using fallback`);
+              return this._fallbackSubstitution(originalExercise, unavailableEquipment);
+              
+          } catch (dbError) {
+              this.logger.error(`[PlanModifier] Database error finding substitution for ${originalExercise}: ${dbError.message}`);
+              return this._fallbackSubstitution(originalExercise, unavailableEquipment);
+          }
+     }
+     
+     /**
+      * Fallback substitution using hardcoded rules.
+      * @param {string} originalExercise - The exercise to replace.
+      * @param {string} unavailableEquipment - The missing equipment.
+      * @returns {string | null} Suggested substitution name or null.
+      * @private
+      */
+     _fallbackSubstitution(originalExercise, unavailableEquipment) {
+          const exerciseLower = originalExercise.toLowerCase();
+          
+          // Enhanced substitution rules as fallback
+          if (unavailableEquipment.toLowerCase() === 'barbell') {
+              if (exerciseLower.includes('bench press')) return 'Dumbbell Bench Press';
+              if (exerciseLower.includes('squat')) return 'Dumbbell Goblet Squats';
+              if (exerciseLower.includes('deadlift')) return 'Dumbbell Romanian Deadlifts';
+              if (exerciseLower.includes('row')) return 'Dumbbell Rows';
+              if (exerciseLower.includes('press')) return 'Dumbbell Press';
+          }
+          
+          if (unavailableEquipment.toLowerCase() === 'machine') {
+              if (exerciseLower.includes('leg press')) return 'Dumbbell Squats';
+              if (exerciseLower.includes('lat pulldown')) return 'Resistance Band Lat Pulldowns';
+              if (exerciseLower.includes('machine')) return originalExercise.replace(/machine/i, 'Resistance Band');
+          }
+          
+          // Generic fallback
+          if (exerciseLower.includes('barbell')) return originalExercise.replace(/barbell/i, 'Dumbbell');
+          if (exerciseLower.includes('machine')) return originalExercise.replace(/machine/i, 'Resistance Band'); 
+          
           return null;
      }
 

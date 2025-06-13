@@ -5,7 +5,7 @@
 
 const { logger } = require('../config');
 const profileService = require('../services/profile-service');
-const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
+const { ValidationError, NotFoundError, ConflictError, AuthenticationError } = require('../utils/errors');
 
 /**
  * Get user profile
@@ -19,6 +19,7 @@ const getProfile = async (req, res, next) => {
   try {
     // Get user ID from either authenticated user or route params
     const userId = req.params.userId || (req.user && req.user.id);
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
     
     if (!userId) {
       logger.warn('Profile request missing user ID');
@@ -28,8 +29,13 @@ const getProfile = async (req, res, next) => {
       });
     }
     
+    if (!jwtToken && !req.params.userId) { // Token only required if not fetching public profile by param for admin
+      logger.warn('Profile request missing JWT token for authenticated user');
+      return next(new AuthenticationError('Authorization token is missing.'));
+    }
+    
     logger.debug('Getting profile for user', { userId });
-    const profile = await profileService.getProfileByUserId(userId);
+    const profile = await profileService.getProfileByUserId(userId, jwtToken);
     
     return res.status(200).json({
       status: 'success',
@@ -71,6 +77,7 @@ const getProfile = async (req, res, next) => {
 const createOrUpdateProfile = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
     
     if (!userId) {
       logger.warn('Profile update request missing user ID');
@@ -78,6 +85,11 @@ const createOrUpdateProfile = async (req, res, next) => {
         status: 'error',
         message: 'User ID is required'
       });
+    }
+    
+    if (!jwtToken) {
+      logger.warn('Profile update request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     // Add userId to profile data
@@ -88,11 +100,11 @@ const createOrUpdateProfile = async (req, res, next) => {
     
     // Check if profile exists
     try {
-      const existingProfile = await profileService.getProfileByUserId(userId);
+      const existingProfile = await profileService.getProfileByUserId(userId, jwtToken);
       
       // Update existing profile
       logger.debug('Updating existing profile', { userId });
-      const updatedProfile = await profileService.updateProfile(userId, profileData);
+      const updatedProfile = await profileService.updateProfile(userId, profileData, jwtToken);
       
       return res.status(200).json({
         status: 'success',
@@ -103,7 +115,7 @@ const createOrUpdateProfile = async (req, res, next) => {
       // If profile not found, create a new one
       if (error instanceof NotFoundError) {
         logger.debug('Creating new profile', { userId });
-        const newProfile = await profileService.createProfile(profileData);
+        const newProfile = await profileService.createProfile(profileData, jwtToken);
         
         return res.status(200).json({
           status: 'success',
@@ -162,6 +174,7 @@ const createOrUpdateProfile = async (req, res, next) => {
 const getProfilePreferences = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
     
     if (!userId) {
       logger.warn('Profile preferences request missing user ID');
@@ -171,8 +184,13 @@ const getProfilePreferences = async (req, res, next) => {
       });
     }
     
+    if (!jwtToken) {
+      logger.warn('Profile preferences request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
+    }
+    
     logger.debug('Getting profile preferences', { userId });
-    const preferences = await profileService.getProfilePreferences(userId);
+    const preferences = await profileService.getProfilePreferences(userId, jwtToken);
     
     return res.status(200).json({
       status: 'success',
@@ -214,6 +232,7 @@ const getProfilePreferences = async (req, res, next) => {
 const updateProfilePreferences = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
     
     if (!userId) {
       logger.warn('Profile preferences update request missing user ID');
@@ -221,6 +240,11 @@ const updateProfilePreferences = async (req, res, next) => {
         status: 'error',
         message: 'User ID is required'
       });
+    }
+    
+    if (!jwtToken) {
+      logger.warn('Profile preferences update request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     const preferenceData = req.body;
@@ -235,7 +259,7 @@ const updateProfilePreferences = async (req, res, next) => {
     }
     
     logger.debug('Updating profile preferences', { userId });
-    const updatedPreferences = await profileService.updateProfilePreferences(userId, preferenceData);
+    const updatedPreferences = await profileService.updateProfilePreferences(userId, preferenceData, jwtToken);
     
     return res.status(200).json({
       status: 'success',

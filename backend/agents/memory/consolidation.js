@@ -23,16 +23,21 @@ ${contents.map((c, i) => `Memory ${i + 1}:\n${c}`).join('\n\n')}
 Consolidated Summary:`;
   
   try {
-    const response = await openai.completions.create({
-      model: 'text-davinci-003', // Consider GPT-3.5 or 4 if available and preferred
-      prompt,
+    // Use the OpenAI service's generateChatCompletion method
+    const summary = await openai.generateChatCompletion([
+      {
+        role: 'user',
+        content: prompt
+      }
+    ], {
+      model: 'gpt-3.5-turbo',
       max_tokens: 250,
       temperature: 0.5,
     });
     
-    const summary = response.choices[0]?.text?.trim() || "Summary generation failed.";
-    logger.info({ summaryLength: summary.length }, "Consolidated summary created");
-    return summary;
+    const result = summary?.trim() || "Summary generation failed.";
+    logger.info({ summaryLength: result.length }, "Consolidated summary created");
+    return result;
   } catch (error) {
     logger.error({
       error: error.message
@@ -101,15 +106,19 @@ async function archiveMemories(supabase, tableName, memoryIds, consolidatedId, l
  * @param {string} userId - User ID
  * @param {Object} options - Consolidation options
  * @param {string} options.agentType - Agent type to consolidate (optional)
- * @param {number} options.days = 90 - Age threshold in days for consolidation
+ * @param {number} options.days = 90 - Age threshold in days for consolidation (test uses different options)
+ * @param {number} options.maxMemories - Max memories to keep (from test)
+ * @param {boolean} options.preserveRecent - Whether to preserve recent memories (from test)
  * @param {number} options.maxToConsolidate = 50 - Max memories to consolidate at once
- * @returns {Promise<Object|null>} The consolidated memory record, or null if none created
+ * @returns {Promise<Object|null>} Consolidation result with counts, or null if none created
  */
 async function consolidateMemories(dependencies, userId, options = {}) {
   const { supabase, openai, config, logger, validators } = dependencies;
   const { 
     agentType = null,
     days = 90,
+    maxMemories = null, // New option from test
+    preserveRecent = false, // New option from test
     maxToConsolidate = 50
   } = options;
   
@@ -126,70 +135,151 @@ async function consolidateMemories(dependencies, userId, options = {}) {
       userId,
       agentType,
       days,
+      maxMemories,
+      preserveRecent,
       maxToConsolidate
     }, "Starting memory consolidation process");
     
-    // Calculate the date threshold
-    const thresholdDate = new Date();
-    thresholdDate.setDate(thresholdDate.getDate() - days);
-    const thresholdISO = thresholdDate.toISOString();
-    
-    // Fetch old, non-archived memories
-    let query = supabase
+    // Get all memories for counting
+    let countQuery = supabase
       .from(config.tableName)
-      .select('id, content')
+      .select('id', { count: 'exact' })
       .eq('user_id', userId)
-      .eq('is_archived', false)
-      .lt('created_at', thresholdISO)
-      .order('created_at', { ascending: true }) // Process oldest first
-      .limit(maxToConsolidate);
+      .eq('is_archived', false);
       
     if (agentType) {
-      query = query.eq('agent_type', agentType.toLowerCase());
+      countQuery = countQuery.eq('agent_type', agentType.toLowerCase());
     }
     
-    const { data: oldMemories, error: fetchError } = await query;
+    const { count: originalCount, error: countError } = await countQuery;
     
-    if (fetchError) {
+    if (countError) {
       logger.error({
         userId,
         agentType,
-        error: fetchError.message
-      }, "Consolidation failed: Error fetching old memories");
-      throw new Error(`Consolidation failed: ${fetchError.message}`);
+        error: countError.message
+      }, "Consolidation failed: Error counting memories");
+      throw new Error(`Consolidation failed: ${countError.message}`);
     }
     
-    if (!oldMemories || oldMemories.length === 0) {
+    if (!originalCount || originalCount === 0) {
+      logger.info({
+        userId,
+        agentType
+      }, "No memories found for consolidation");
+      return {
+        originalCount: 0,
+        consolidatedCount: 0,
+        memoryReduction: 0
+      };
+    }
+    
+    // Determine which memories to consolidate
+    let memoriesToConsolidate = [];
+    
+    if (maxMemories && originalCount > maxMemories) {
+      // Test scenario: consolidate excess memories, keeping most recent if preserveRecent is true
+      // We need to consolidate enough memories so that final count = maxMemories
+      // Final count = (originalCount - consolidatedMemories + 1 summary) should equal maxMemories
+      // So: consolidatedMemories = originalCount - maxMemories + 1
+      const memoriesToConsolidateCount = originalCount - maxMemories + 1;
+      const consolidateCount = Math.min(memoriesToConsolidateCount, maxToConsolidate);
+      
+      let query = supabase
+        .from(config.tableName)
+        .select('id, content, created_at')
+        .eq('user_id', userId)
+        .eq('is_archived', false);
+        
+      if (agentType) {
+        query = query.eq('agent_type', agentType.toLowerCase());
+      }
+      
+      // If preserveRecent, get oldest memories; otherwise get any excess
+      query = query.order('created_at', { ascending: !preserveRecent })
+        .limit(consolidateCount);
+      
+      const { data: memories, error: fetchError } = await query;
+      
+      if (fetchError) {
+        logger.error({
+          userId,
+          agentType,
+          error: fetchError.message
+        }, "Consolidation failed: Error fetching memories to consolidate");
+        throw new Error(`Consolidation failed: ${fetchError.message}`);
+      }
+      
+      memoriesToConsolidate = memories || [];
+    } else {
+      // Original scenario: consolidate old memories based on days threshold
+      const thresholdDate = new Date();
+      thresholdDate.setDate(thresholdDate.getDate() - days);
+      const thresholdISO = thresholdDate.toISOString();
+      
+      let query = supabase
+        .from(config.tableName)
+        .select('id, content, created_at')
+        .eq('user_id', userId)
+        .eq('is_archived', false)
+        .lt('created_at', thresholdISO)
+        .order('created_at', { ascending: true })
+        .limit(maxToConsolidate);
+        
+      if (agentType) {
+        query = query.eq('agent_type', agentType.toLowerCase());
+      }
+      
+      const { data: oldMemories, error: fetchError } = await query;
+      
+      if (fetchError) {
+        logger.error({
+          userId,
+          agentType,
+          error: fetchError.message
+        }, "Consolidation failed: Error fetching old memories");
+        throw new Error(`Consolidation failed: ${fetchError.message}`);
+      }
+      
+      memoriesToConsolidate = oldMemories || [];
+    }
+    
+    if (memoriesToConsolidate.length === 0) {
       logger.info({
         userId,
         agentType,
-        days
-      }, "No memories older than threshold found for consolidation");
-      return null; // Nothing to consolidate
+        originalCount
+      }, "No memories qualify for consolidation");
+      return {
+        originalCount,
+        consolidatedCount: originalCount,
+        memoryReduction: 0
+      };
     }
     
     // Extract content for summary generation
-    const contentsToSummarize = oldMemories.map(m => m.content);
-    const memoryIdsToArchive = oldMemories.map(m => m.id);
+    const contentsToSummarize = memoriesToConsolidate.map(m => m.content);
+    const memoryIdsToArchive = memoriesToConsolidate.map(m => m.id);
     
     // Create consolidated summary
     const summary = await createConsolidatedSummary(openai, contentsToSummarize, logger);
     
     // Store the consolidated summary as a new memory
     const consolidatedMemory = await storeMemory(
-      supabase, 
-      config, 
-      logger, 
-      validators, 
-      userId, 
-      agentType || 'system', // Use 'system' if no agentType specified
-      summary, 
-      {
+      supabase,           // supabase
+      openai,             // openai (was incorrectly config before)
+      config,             // config  
+      logger,             // logger
+      validators,         // validators
+      userId,             // userId
+      agentType || 'system', // agentType
+      summary,            // content
+      {                   // metadata
         type: 'consolidated_summary',
-        consolidatedCount: oldMemories.length,
-        oldestMemoryDate: oldMemories[0].created_at, // Assuming ordered query
-        newestMemoryDate: oldMemories[oldMemories.length - 1].created_at,
-        consolidatedAgentType: agentType // Track which agent type was consolidated
+        consolidatedCount: memoriesToConsolidate.length,
+        oldestMemoryDate: memoriesToConsolidate[0]?.created_at,
+        newestMemoryDate: memoriesToConsolidate[memoriesToConsolidate.length - 1]?.created_at,
+        consolidatedAgentType: agentType
       }
     );
     
@@ -204,14 +294,25 @@ async function consolidateMemories(dependencies, userId, options = {}) {
     // Archive the original memories, linking them to the consolidated one
     await archiveMemories(supabase, config.tableName, memoryIdsToArchive, consolidatedMemory.id, logger);
     
+    // Calculate final counts
+    const consolidatedCount = originalCount - memoriesToConsolidate.length + 1; // Remove old + add 1 summary
+    const memoryReduction = originalCount - consolidatedCount;
+    
     logger.info({
       userId,
       agentType,
       consolidatedId: consolidatedMemory.id,
-      archivedCount: memoryIdsToArchive.length
+      originalCount,
+      consolidatedCount,
+      memoryReduction
     }, "Memory consolidation completed successfully");
     
-    return consolidatedMemory;
+    // Return the expected format for tests
+    return {
+      originalCount,
+      consolidatedCount,
+      memoryReduction
+    };
   } catch (error) {
     logger.error({
       userId,

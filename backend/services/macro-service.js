@@ -9,29 +9,48 @@ const { createClient } = require('@supabase/supabase-js');
 const { supabaseUrl, supabaseKey } = require('../config/supabase');
 const { BadRequestError, DatabaseError, NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
-const { getNutritionAgent } = require('../agents');
+const { NutritionAgent } = require('../agents');
 const retryOperation = require('../utils/retry-utils');
+const { getSupabaseClientWithToken } = require('./supabase');
+const OpenAIService = require('./openai-service');
+
+// Instantiate OpenAI service (if it's a singleton or needs to be passed)
+const openaiService = new OpenAIService();
 
 /**
  * Calculates macronutrient targets based on user information
  * 
  * @param {Object} userInfo User's demographic and goal information
  * @param {Boolean} useExternalApi Whether to use the Nutrition Agent API
+ * @param {string} jwtToken User's JWT token for RLS
  * @returns {Object} Calculated macro targets
  */
-async function calculateMacros(userInfo, useExternalApi = true) {
+async function calculateMacros(userInfo, useExternalApi = true, jwtToken) {
   logger.info('Calculating macros', { ...userInfo, userId: userInfo.userId });
   
   try {
     // If external API is enabled and available, use Nutrition Agent
     if (useExternalApi) {
       try {
-        const nutritionAgent = getNutritionAgent();
+        // Ensure getNutritionAgent can use jwtToken to create/configure an RLS-scoped agent
+        // This might mean getNutritionAgent needs to accept jwtToken or an RLS-scoped client
+        // const nutritionAgent = getNutritionAgent({ jwtToken }); // Hypothetical: pass jwtToken
+        
+        // Alternatively, if NutritionAgent is instantiated directly here:
+        const supabaseRLSClient = getSupabaseClientWithToken(jwtToken); // Use centralized helper
+        
+        const nutritionAgent = new NutritionAgent({ 
+          openai: openaiService, // Ensure openaiService is available
+          supabase: supabaseRLSClient, 
+          logger 
+        });
+
         return await retryOperation(
           async () => {
-            const result = await nutritionAgent.calculateMacroTargets(userInfo);
+            // The agent's process method might also need userId if not part of userInfo
+            const result = await nutritionAgent.process({ userId: userInfo.userId, goals: userInfo.goals, activityLevel: userInfo.activityLevel });
             logger.info('Macros calculated via Nutrition Agent', { userId: userInfo.userId });
-            return result;
+            return result.plan; // Assuming agent result has plan data here
           },
           { maxAttempts: 3, backoff: 'exponential' }
         );

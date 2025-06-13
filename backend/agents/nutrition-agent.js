@@ -16,7 +16,8 @@ class NutritionAgent extends BaseAgent {
      * Initializes the NutritionAgent with necessary dependencies.
      * @param {Object} config - Configuration object
      * @param {Object} config.openai - OpenAI client instance
-     * @param {Object} config.supabase - Supabase client instance
+     * @param {Object} config.supabase - Supabase client instance. 
+     *                                   Expected to be RLS-scoped if handling user-specific data.
      * @param {Object} [config.memorySystem=null] - Memory system for storing agent memories
      * @param {Object} [config.logger=null] - Logger instance
      * @param {Object} [config.config={}] - Agent-specific configuration

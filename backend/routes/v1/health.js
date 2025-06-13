@@ -38,16 +38,20 @@ router.get('/', (req, res) => {
  */
 router.get('/supabase', async (req, res) => {
   try {
+    // Primary check: Use the standard Supabase client (anon key by default)
+    // This tests general API connectivity and if the anon role can perform a basic query.
     const supabase = getSupabaseClient();
     const startTime = Date.now();
     
-    // Simple query to test the connection
+    // Simple query to test the connection to a potentially non-existent or RLS-protected table for anon.
     const { data, error } = await supabase.from('_health_check').select('*').limit(1).maybeSingle();
     
     if (error) {
       // If the _health_check table doesn't exist, try a different approach
       if (error.code === 'PGRST116') {
-        // Connect directly to the database using pg
+        // Fallback: If the above query fails (e.g., table doesn't exist or RLS blocks anon),
+        // attempt a direct connection to the database using pg Pool.
+        // This tests raw database connectivity, often with service_role or a direct DB user.
         const { Pool } = require('pg');
         const { createConnectionString, getPoolConfig } = require('../../utils/supabase');
         

@@ -44,6 +44,11 @@ class OpenAIService {
       // Get API key from environment or configuration
       this.#apiKey = envConfig.externalServices.openai.apiKey;
 
+      // DEBUG: Log API key status
+      logger.info(`[OpenAIService] DEBUG - API key status: ${this.#apiKey ? 'Present' : 'Missing'}`);
+      logger.info(`[OpenAIService] DEBUG - API key length: ${this.#apiKey ? this.#apiKey.length : 0}`);
+      logger.info(`[OpenAIService] DEBUG - API key starts with: ${this.#apiKey ? this.#apiKey.substring(0, 7) + '...' : 'N/A'}`);
+
       if (!this.#apiKey) {
         throw new Error('OpenAI API key not found');
       }
@@ -116,6 +121,19 @@ class OpenAIService {
 
     logger.info(`Generating OpenAI chat completion with model: ${requestPayload.model}`);
     logger.debug('Chat completion request payload:', requestPayload);
+    
+    // DEBUG: Log the exact messages being sent
+    console.log('[OpenAIService] DEBUG - Request payload model:', requestPayload.model);
+    console.log('[OpenAIService] DEBUG - Request payload messages length:', requestPayload.messages?.length || 0);
+    if (requestPayload.messages && requestPayload.messages.length > 0) {
+      requestPayload.messages.forEach((msg, index) => {
+        console.log(`[OpenAIService] DEBUG - Message ${index}:`, {
+          role: msg.role,
+          contentLength: msg.content?.length || 0,
+          contentPreview: msg.content?.substring(0, 200) + '...'
+        });
+      });
+    }
 
     const retryableStatusCodes = this.#config.retry.retryableStatusCodes;
     const maxRetries = this.#config.retry.maxRetries;
@@ -128,6 +146,17 @@ class OpenAIService {
         logger.debug(`Executing OpenAI Chat Completion (Attempt ${retries + 1})`);
         
         const response = await this.#client.chat.completions.create(requestPayload);
+
+        // DEBUG: Log response structure
+        logger.info(`[OpenAIService] DEBUG - Response received, type: ${typeof response}`);
+        logger.info(`[OpenAIService] DEBUG - Response has choices: ${response?.choices ? 'Yes' : 'No'}`);
+        logger.info(`[OpenAIService] DEBUG - Choices length: ${response?.choices?.length || 0}`);
+        if (response?.choices?.[0]) {
+          logger.info(`[OpenAIService] DEBUG - First choice message type: ${typeof response.choices[0].message}`);
+          logger.info(`[OpenAIService] DEBUG - First choice content type: ${typeof response.choices[0].message?.content}`);
+          logger.info(`[OpenAIService] DEBUG - First choice content length: ${response.choices[0].message?.content?.length || 0}`);
+          logger.info(`[OpenAIService] DEBUG - First choice content preview: ${response.choices[0].message?.content?.substring(0, 100) || 'Empty'}`);
+        }
 
         // Validate response
         if (!response || !response.choices || response.choices.length === 0) {
@@ -184,6 +213,37 @@ class OpenAIService {
 
     // This line should be unreachable
     throw new Error('OpenAI Chat Completion failed unexpectedly after retries.');
+  }
+
+  /**
+   * Alias for generateChatCompletion for backward compatibility.
+   * @param {Object} options - Request options including messages
+   * @returns {Promise<Object>} The full OpenAI response object
+   */
+  async createChatCompletion(options) {
+    // Extract messages from options and pass the rest as options
+    const { messages, ...otherOptions } = options;
+    
+    // Call generateChatCompletion but return the full response structure expected by helper modules
+    const result = await this.generateChatCompletion(messages, otherOptions);
+    
+    // If result is a string (normal case), wrap it in the expected response structure
+    if (typeof result === 'string') {
+      return {
+        choices: [{
+          message: {
+            content: result
+          }
+        }]
+      };
+    }
+    
+    // If result is an object (tool calls case), wrap it in the expected structure
+    return {
+      choices: [{
+        message: result
+      }]
+    };
   }
 
   /**

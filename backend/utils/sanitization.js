@@ -353,6 +353,32 @@ const validateProps = (input, allowedProps, strict = false) => {
   return sanitized;
 };
 
+/**
+ * Sanitize user input data (typically req.body)
+ * This is a general-purpose function for sanitizing user input objects
+ * 
+ * @param {Object|Array|string} input - User input to sanitize
+ * @returns {Object|Array|string} Sanitized input
+ */
+const sanitizeUserInput = (input) => {
+  if (!input) {
+    return input;
+  }
+  
+  // If it's a string, sanitize as text
+  if (typeof input === 'string') {
+    return sanitizeText(input);
+  }
+  
+  // If it's an object or array, use sanitizeObject
+  if (typeof input === 'object') {
+    return sanitizeObject(input, sanitizeText);
+  }
+  
+  // For other types (numbers, booleans, etc.), return as-is
+  return input;
+};
+
 module.exports = {
   sanitizeUserHtml,
   sanitizeText,
@@ -360,6 +386,7 @@ module.exports = {
   sanitizeObject,
   sanitizeProfileData,
   sanitizeWorkoutPlan,
+  sanitizeUserInput,
   isValidEmail,
   isValidUrl,
   validateProps

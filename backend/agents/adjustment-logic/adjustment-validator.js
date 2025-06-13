@@ -168,15 +168,15 @@ class AdjustmentValidator {
         const fitnessLevel = userProfile.fitnessLevel || 'beginner';
 
         // Example: Check if substituting an isolation exercise for a compound lift aligns with strength goals
-        (parsedFeedback.substitutions || []).forEach(sub => {
-            const isFromCompound = this._isCompound(sub.from); // Requires helper
-            const isToIsolation = this._isIsolation(sub.to); // Requires helper
+        for (const sub of (parsedFeedback.substitutions || [])) {
+            const isFromCompound = await this._isCompound(sub.from); // Now async
+            const isToIsolation = await this._isIsolation(sub.to); // Now async
             if (userGoals.includes('strength') && isFromCompound && isToIsolation) {
                 results.incoherent.push({ type: 'substitution', item: sub, reason: `Replacing compound lift '${sub.from}' with isolation exercise '${sub.to}' might not optimally align with strength goals.` });
             } else {
                 results.coherent.push({ type: 'substitution', item: sub });
             }
-        });
+        }
 
         // Example: Check if significant volume decrease aligns with muscle gain goals
         (parsedFeedback.volumeAdjustments || []).forEach(adj => {
@@ -413,13 +413,102 @@ class AdjustmentValidator {
     }
     
     // --- Coherence Helper Examples (require more robust implementation or DB lookup) ---
-    _isCompound(exerciseName) {
+    /**
+     * Checks if an exercise is compound by querying the database.
+     * @param {string} exerciseName - The exercise name to check.
+     * @returns {Promise<boolean>} Whether the exercise is compound.
+     * @private
+     */
+    async _isCompound(exerciseName) {
+        try {
+            const { data: exercises, error } = await this.supabaseClient
+                .from('exercises')
+                .select('category, force_type, movement_type')
+                .ilike('exercise_name', `%${exerciseName}%`)
+                .limit(1);
+                
+            if (error || !exercises || exercises.length === 0) {
+                this.logger.debug(`[AdjustmentValidator] No database match for exercise: ${exerciseName}, using fallback`);
+                return this._fallbackIsCompound(exerciseName);
+            }
+            
+            const exercise = exercises[0];
+            
+            // Compound exercises typically:
+            // 1. Have category = 'compound' OR
+            // 2. Target multiple muscle groups (multi-joint movements) OR  
+            // 3. Are known compound movements by force_type
+            const isCompound = exercise.category?.toLowerCase().includes('compound') ||
+                               exercise.force_type?.toLowerCase().includes('compound') ||
+                               exercise.movement_type?.toLowerCase().includes('compound');
+                               
+            this.logger.debug(`[AdjustmentValidator] Database classification for ${exerciseName}: compound = ${isCompound}`);
+            return isCompound;
+            
+        } catch (dbError) {
+            this.logger.error(`[AdjustmentValidator] Database error checking compound status for ${exerciseName}: ${dbError.message}`);
+            return this._fallbackIsCompound(exerciseName);
+        }
+    }
+
+    /**
+     * Checks if an exercise is isolation by querying the database.
+     * @param {string} exerciseName - The exercise name to check.
+     * @returns {Promise<boolean>} Whether the exercise is isolation.
+     * @private
+     */
+    async _isIsolation(exerciseName) {
+        try {
+            const { data: exercises, error } = await this.supabaseClient
+                .from('exercises')
+                .select('category, force_type, movement_type, primary_muscles')
+                .ilike('exercise_name', `%${exerciseName}%`)
+                .limit(1);
+                
+            if (error || !exercises || exercises.length === 0) {
+                this.logger.debug(`[AdjustmentValidator] No database match for exercise: ${exerciseName}, using fallback`);
+                return this._fallbackIsIsolation(exerciseName);
+            }
+            
+            const exercise = exercises[0];
+            
+            // Isolation exercises typically:
+            // 1. Have category = 'isolation' OR
+            // 2. Target single muscle group (single-joint movements) OR
+            // 3. Are known isolation movements by force_type
+            const isIsolation = exercise.category?.toLowerCase().includes('isolation') ||
+                                exercise.force_type?.toLowerCase().includes('isolation') ||
+                                exercise.movement_type?.toLowerCase().includes('isolation') ||
+                                (exercise.primary_muscles && exercise.primary_muscles.length === 1);
+                                
+            this.logger.debug(`[AdjustmentValidator] Database classification for ${exerciseName}: isolation = ${isIsolation}`);
+            return isIsolation;
+            
+        } catch (dbError) {
+            this.logger.error(`[AdjustmentValidator] Database error checking isolation status for ${exerciseName}: ${dbError.message}`);
+            return this._fallbackIsIsolation(exerciseName);
+        }
+    }
+    
+    /**
+     * Fallback compound detection using hardcoded keywords.
+     * @param {string} exerciseName - The exercise name.
+     * @returns {boolean} Whether the exercise is likely compound.
+     * @private
+     */
+    _fallbackIsCompound(exerciseName) {
         const compoundKeywords = ['squat', 'deadlift', 'bench press', 'overhead press', 'row', 'pull-up', 'chin-up', 'lunge'];
         const nameLower = exerciseName?.toLowerCase() || '';
         return compoundKeywords.some(keyword => nameLower.includes(keyword));
     }
 
-    _isIsolation(exerciseName) {
+    /**
+     * Fallback isolation detection using hardcoded keywords.  
+     * @param {string} exerciseName - The exercise name.
+     * @returns {boolean} Whether the exercise is likely isolation.
+     * @private
+     */
+    _fallbackIsIsolation(exerciseName) {
         const isolationKeywords = ['curl', 'extension', 'fly', 'raise', 'kickback', 'triceps pushdown'];
         const nameLower = exerciseName?.toLowerCase() || '';
         return isolationKeywords.some(keyword => nameLower.includes(keyword));

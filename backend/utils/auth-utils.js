@@ -5,13 +5,7 @@
 const jwt = require('jsonwebtoken');
 const { env, logger } = require('../config');
 
-/**
- * Verify a JWT token
- * 
- * @param {string} token - JWT token to verify
- * @returns {Object} Decoded token payload
- * @throws {Error} If token is invalid or expired
- */
+/* Marked for removal - Phase 2 Auth Refactor
 const verifyToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET || 'default-secret-for-tests');
@@ -24,13 +18,9 @@ const verifyToken = (token) => {
     throw new Error('Invalid token');
   }
 };
+*/
 
-/**
- * Extract JWT token from Authorization header
- * 
- * @param {string} authHeader - Authorization header value
- * @returns {string} Extracted token
- */
+/* Marked for removal - Phase 2 Auth Refactor - Duplicate
 const extractTokenFromHeader = (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Error('Invalid Authorization header');
@@ -41,8 +31,9 @@ const extractTokenFromHeader = (authHeader) => {
   }
   return token;
 };
+*/
 
 module.exports = {
-  verifyToken,
-  extractTokenFromHeader
+  // verifyToken, // Commented out
+  // extractTokenFromHeader // Commented out
 }; 

@@ -243,17 +243,18 @@ const setupSecurityMiddleware = (app) => {
   // Configure CORS with environment-aware settings
   app.use(configureCors());
   
-  // Apply CSRF protection if configured
-  const csrf = csrfProtection();
-  if (env.security && env.security.csrfProtection) {
-    // Generate CSRF token for all routes
-    logger.debug('[TEST_DEBUG] Applying csrf.generateToken middleware');
-    app.use(csrf.generateToken);
-    
-    // Verify CSRF token for state-changing routes (POST, PUT, DELETE, PATCH)
-    logger.debug('[TEST_DEBUG] Applying csrf.verifyToken middleware');
-    app.use(csrf.verifyToken);
-  }
+  // CSRF protection is generally not needed for stateless APIs authenticated with Bearer tokens.
+  // If cookie-based sessions were used for any part of the app, this might be relevant there.
+  // const csrf = csrfProtection();
+  // if (env.security && env.security.csrfProtection) {
+  //   // Generate CSRF token for all routes
+  //   logger.debug('[TEST_DEBUG] Applying csrf.generateToken middleware');
+  //   app.use(csrf.generateToken);
+  //   
+  //   // Verify CSRF token for state-changing routes (POST, PUT, DELETE, PATCH)
+  //   logger.debug('[TEST_DEBUG] Applying csrf.verifyToken middleware');
+  //   app.use(csrf.verifyToken);
+  // }
   
   // Apply SQL injection protection as an additional defense layer
   app.use(sqlInjectionProtection());
@@ -271,7 +272,8 @@ const setupSecurityMiddleware = (app) => {
   // Log security middleware setup
   logger.info('Security middleware configured', { 
     environment: env.env,
-    csrfEnabled: !!(env.security && env.security.csrfProtection)
+    // csrfEnabled: !!(env.security && env.security.csrfProtection) // CSRF is no longer applied by default here
+    csrfProtectionStatus: (env.security && env.security.csrfProtection) ? 'Configured but not applied to API routes' : 'Not configured'
   });
 };
 

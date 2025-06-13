@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 const { DatabaseError, NotFoundError, ValidationError } = require('../utils/errors');
 const logger = require('../config/logger');
-const { getSupabaseClientWithJWT } = require('./supabase');
+const { getSupabaseClientWithToken } = require('./supabase');
 
 /**
  * Stores a new workout log in the database.
@@ -18,7 +18,7 @@ async function storeWorkoutLog(userId, logData, jwtToken) {
     throw new ValidationError('Invalid workout log data: date and loggedExercises are required.');
   }
   
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken);
   logger.debug(`Attempting to store workout log for user: ${userId}`);
   try {
     const { data, error } = await supabase
@@ -61,7 +61,7 @@ async function storeWorkoutLog(userId, logData, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function retrieveWorkoutLogs(userId, filters = {}, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken);
   const { limit = 10, offset = 0, startDate, endDate, planId } = filters;
   logger.debug(`Retrieving workout logs for user: ${userId} with filters: ${JSON.stringify(filters)}`);
 
@@ -114,7 +114,7 @@ async function retrieveWorkoutLogs(userId, filters = {}, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function retrieveWorkoutLog(logId, userId, jwtToken) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken);
   logger.debug(`Retrieving workout log ID: ${logId} for user: ${userId}`);
 
   try {
@@ -162,7 +162,7 @@ async function retrieveWorkoutLog(logId, userId, jwtToken) {
  * @throws {DatabaseError} If the database operation fails.
  */
 async function updateWorkoutLog(logId, updates, userId, jwtToken, retrieveFn = retrieveWorkoutLog) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken);
   logger.debug(`Updating workout log ID: ${logId} for user: ${userId}`);
 
   try {
@@ -216,7 +216,7 @@ async function updateWorkoutLog(logId, updates, userId, jwtToken, retrieveFn = r
  * @throws {DatabaseError} If the database operation fails.
  */
 async function deleteWorkoutLog(logId, userId, jwtToken, retrieveFn = retrieveWorkoutLog) {
-  const supabase = getSupabaseClientWithJWT(jwtToken);
+  const supabase = getSupabaseClientWithToken(jwtToken);
   logger.debug(`Attempting to delete workout log ID: ${logId} for user: ${userId}`);
 
   try {

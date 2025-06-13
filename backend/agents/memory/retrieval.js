@@ -1,6 +1,35 @@
 const { createEmbedding } = require('./embedding');
 const { searchVectorsByEmbedding } = require('./utils'); // Assuming searchVectors is a utility
 
+/**
+ * Helper function to parse content from JSON string to object if needed
+ */
+function parseMemoryContent(memory) {
+  if (!memory) return memory;
+  
+  // Create a copy to avoid mutating the original
+  const parsedMemory = { ...memory };
+  
+  // Try to parse content if it's a JSON string
+  if (typeof parsedMemory.content === 'string') {
+    try {
+      parsedMemory.content = JSON.parse(parsedMemory.content);
+    } catch (error) {
+      // If parsing fails, keep as string (might be plain text)
+      // This is not an error, some content might legitimately be plain text
+    }
+  }
+  
+  return parsedMemory;
+}
+
+/**
+ * Helper function to parse content for an array of memories
+ */
+function parseMemoriesContent(memories) {
+  return memories.map(parseMemoryContent);
+}
+
 async function retrieveMemory(supabase, config, logger, validators, memoryId, userId) {
   // Validate inputs
   if (!validators.isValidUUID(memoryId)) {
@@ -41,7 +70,7 @@ async function retrieveMemory(supabase, config, logger, validators, memoryId, us
     }
     
     logger.info({ memoryId, userId }, "Memory retrieved successfully");
-    return data;
+    return parseMemoryContent(data);
   } catch (error) {
     logger.error({
       memoryId,
@@ -89,7 +118,7 @@ async function getLatestMemory(supabase, config, logger, validators, userId, age
       found: !!data 
     }, "Latest memory retrieval completed");
     
-    return data || null;
+    return data ? parseMemoryContent(data) : null;
   } catch (error) {
     logger.error({
       userId,
@@ -180,7 +209,7 @@ async function searchSimilarMemories(supabase, openai, config, logger, validator
       count: filteredData.length 
     }, "Similar memories search completed");
     
-    return filteredData;
+    return parseMemoriesContent(filteredData);
   } catch (error) {
     logger.error({
       userId,
@@ -274,7 +303,7 @@ async function getMemoriesByAgentType(supabase, config, logger, validators, user
       count: data?.length || 0 
     }, "Retrieval by agent type completed");
     
-    return data || [];
+    return parseMemoriesContent(data || []);
   } catch (error) {
     logger.error({
       userId,
@@ -349,7 +378,7 @@ async function getMemoriesByMetadata(supabase, config, logger, validators, userI
       count: data?.length || 0 
     }, "Retrieval by metadata completed");
     
-    return data || [];
+    return parseMemoriesContent(data || []);
   } catch (error) {
     logger.error({
       userId,
@@ -430,7 +459,7 @@ async function getMemoriesByWorkoutPlan(supabase, config, logger, validators, us
       count: data?.length || 0 
     }, "Retrieval by workout plan completed");
     
-    return data || [];
+    return parseMemoriesContent(data || []);
   } catch (error) {
     logger.error({
       userId,

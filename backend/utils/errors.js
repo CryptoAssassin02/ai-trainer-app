@@ -124,6 +124,7 @@ class BadRequestError extends ApiError {
 class AuthenticationError extends ApiError {
   constructor(message = 'Authentication required', details = null) {
     super(message, 401, details);
+    this.code = 'AUTHENTICATION_ERROR';
   }
 }
 
@@ -133,6 +134,7 @@ class AuthenticationError extends ApiError {
 class AuthorizationError extends ApiError {
   constructor(message = 'Insufficient permissions', details = null) {
     super(message, 403, details);
+    this.code = 'AUTHORIZATION_ERROR';
   }
 }
 
@@ -142,6 +144,7 @@ class AuthorizationError extends ApiError {
 class NotFoundError extends ApiError {
   constructor(message = 'Resource not found', details = null) {
     super(message, 404, details);
+    this.code = 'NOT_FOUND_ERROR';
   }
 }
 
@@ -151,6 +154,7 @@ class NotFoundError extends ApiError {
 class ConflictError extends ApiError {
   constructor(message = 'Resource conflict', details = null) {
     super(message, 409, details);
+    this.code = 'CONFLICT_ERROR';
   }
 }
 

@@ -77,12 +77,15 @@ class PlanAdjustmentAgent extends BaseAgent {
         this.openaiService = openaiService;
         this.supabaseClient = supabaseClient;
 
+        // Set the correct agent type for memory system (overrides automatic detection)
+        this.agentType = 'adjustment'; // Use valid agent type from validators
+
         // 2. Initialize Helper Modules
         try {
-            this.feedbackParser = new FeedbackParser(this.openaiService, this.config, this);
+            this.feedbackParser = new FeedbackParser(this.openaiService, this.supabaseClient, this.config, this.logger);
             this.planModifier = new PlanModifier(this.supabaseClient, this.config, this.logger);
-            this.adjustmentValidator = new AdjustmentValidator(this.supabaseClient, this.config, this);
-            this.explanationGenerator = new ExplanationGenerator(this.openaiService, this.config, this);
+            this.adjustmentValidator = new AdjustmentValidator(this.supabaseClient, this.config, this.logger);
+            this.explanationGenerator = new ExplanationGenerator(this.openaiService, this.config, this.logger);
         } catch (error) {
             throw new AgentError(
                 `Failed to initialize adjustment modules: ${error.message}`,
@@ -160,7 +163,7 @@ class PlanAdjustmentAgent extends BaseAgent {
                     // Use standardized BaseAgent retrieveMemories method to get past adjustments
                     const previousAdjustments = await this.retrieveMemories({
                         userId: userProfile.user_id,
-                        agentTypes: ['plan_adjustment'], 
+                        agentTypes: ['adjustment'], 
                         metadata: {
                             memory_type: 'agent_output',
                             original_plan_id: plan.planId // To find adjustments for this specific plan
@@ -389,7 +392,11 @@ class PlanAdjustmentAgent extends BaseAgent {
             const result = await this.planModifier.apply(
                 state.originalPlan,
                 state.initialUnderstanding.parsedFeedback,
-                state.consideration // Pass full consideration results
+                [
+                    state.consideration.feasibilityResults,
+                    state.consideration.safetyResults,
+                    state.consideration.coherenceResults
+                ] // Pass as array of results that PlanModifier can search through
             );
             this.log('info', `_adjustment: Received result from apply: ${JSON.stringify(result)}`); // Log result after call
             

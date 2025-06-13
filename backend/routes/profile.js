@@ -6,9 +6,23 @@
 const express = require('express');
 const router = express.Router();
 const profileController = require('../controllers/profile');
-const { validate, validateProfile, validatePartialProfile, validateProfilePreferences } = require('../middleware/validation');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { validate, validateProfileCreation, validateProfileUpdate, validateProfilePreferences } = require('../middleware/validation');
+const { authenticate } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/error-handlers');
+
+// Content-type validation middleware for JSON-only endpoints
+const requireJsonContentType = (req, res, next) => {
+  if (req.method === 'PUT' || req.method === 'POST') {
+    const contentType = req.get('Content-Type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Content-Type must be application/json'
+      });
+    }
+  }
+  next();
+};
 
 // All profile routes require authentication
 router.use(authenticate);
@@ -32,27 +46,20 @@ router.get('/preferences', asyncHandler(profileController.getProfilePreferences)
  * @desc    Update user profile preferences
  * @access  Private
  */
-router.put('/preferences', validate(validateProfilePreferences), asyncHandler(profileController.updateProfilePreferences));
-
-/**
- * @route   GET /api/profile/:userId
- * @desc    Get user profile by userId (admin only)
- * @access  Private/Admin
- */
-router.get('/:userId', requireAdmin, asyncHandler(profileController.getProfile));
+router.put('/preferences', requireJsonContentType, validateProfilePreferences, asyncHandler(profileController.updateProfilePreferences));
 
 /**
  * @route   POST /api/profile
  * @desc    Create or update profile
  * @access  Private
  */
-router.post('/', validate(validateProfile), asyncHandler(profileController.createOrUpdateProfile));
+router.post('/', validateProfileCreation, asyncHandler(profileController.createOrUpdateProfile));
 
 /**
  * @route   PUT /api/profile
  * @desc    Update profile (partial update allowed)
  * @access  Private
  */
-router.put('/', validate(validatePartialProfile), asyncHandler(profileController.createOrUpdateProfile));
+router.put('/', validateProfileUpdate, asyncHandler(profileController.createOrUpdateProfile));
 
 module.exports = router; 

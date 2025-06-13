@@ -3,22 +3,20 @@
  * Handles HTTP requests related to nutrition plans and meal tracking
  */
 
-const { logger } = require('../config');
+const { logger, env /* Import env for supabase URL/Key */ } = require('../config'); // Added env
 const nutritionService = require('../services/nutrition-service');
 const NutritionAgent = require('../agents/nutrition-agent');
 const OpenAIService = require('../services/openai-service');
-const { getSupabaseClient } = require('../services/supabase');
-const { ValidationError, NotFoundError } = require('../utils/errors');
+// Import getSupabaseClientWithToken and createClient from @supabase/supabase-js
+const { getSupabaseClientWithToken } = require('../services/supabase'); 
+const { createClient } = require('@supabase/supabase-js');
+const { ValidationError, NotFoundError, AuthenticationError /* Added AuthenticationError */ } = require('../utils/errors');
 
 // Initialize OpenAI service
 const openaiService = new OpenAIService();
 
-// Initialize the NutritionAgent
-const nutritionAgent = new NutritionAgent({
-  openai: openaiService,
-  supabase: getSupabaseClient(),
-  logger: logger
-});
+// NutritionAgent is now initialized per-request within calculateMacros
+// const nutritionAgent = new NutritionAgent(...); // Removed module-level instantiation
 
 /**
  * Calculate macros and generate a nutrition plan
@@ -31,13 +29,19 @@ const nutritionAgent = new NutritionAgent({
 const calculateMacros = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Macro calculation request missing user ID');
       return res.status(400).json({
         status: 'error',
         message: 'User ID is required'
       });
+    }
+
+    if (!jwtToken) {
+      logger.warn('Macro calculation request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     // Extract required fields from request body
@@ -63,11 +67,21 @@ const calculateMacros = async (req, res, next) => {
       activityLevel
     });
     
+    // Initialize NutritionAgent with RLS-scoped client for this request
+    const agentScopedSupabase = createClient(env.supabase.url, env.supabase.anonKey, {
+      global: { headers: { Authorization: `Bearer ${jwtToken}` } },
+    });
+    const nutritionAgent = new NutritionAgent({
+      openai: openaiService,
+      supabase: agentScopedSupabase, // Pass RLS-scoped client
+      logger: logger
+    });
+
     // Process the request using the NutritionAgent
-    const result = await nutritionAgent.process(userId, goals, activityLevel);
+    const agentResult = await nutritionAgent.process({ userId, goals, activityLevel }); // Pass context object
     
-    // Save the nutrition plan to the database
-    const savedPlan = await nutritionService.createOrUpdateNutritionPlan(result);
+    // Save the nutrition plan to the database, passing jwtToken
+    const savedPlan = await nutritionService.createOrUpdateNutritionPlan(agentResult, jwtToken);
     
     return res.status(200).json({
       status: 'success',
@@ -111,7 +125,8 @@ const calculateMacros = async (req, res, next) => {
 const getNutritionPlan = async (req, res, next) => {
   try {
     const userId = req.params.userId || (req.user && req.user.id);
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Nutrition plan request missing user ID');
       return res.status(400).json({
@@ -119,9 +134,14 @@ const getNutritionPlan = async (req, res, next) => {
         message: 'User ID is required'
       });
     }
+
+    if (!jwtToken) {
+      logger.warn('Nutrition plan request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
+    }
     
     logger.debug('Getting nutrition plan', { userId });
-    const plan = await nutritionService.getNutritionPlanByUserId(userId);
+    const plan = await nutritionService.getNutritionPlanByUserId(userId, jwtToken); // Pass jwtToken
     
     return res.status(200).json({
       status: 'success',
@@ -155,7 +175,8 @@ const getNutritionPlan = async (req, res, next) => {
 const getDietaryPreferences = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Dietary preferences request missing user ID');
       return res.status(400).json({
@@ -163,9 +184,14 @@ const getDietaryPreferences = async (req, res, next) => {
         message: 'User ID is required'
       });
     }
+
+    if (!jwtToken) {
+      logger.warn('Dietary preferences request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
+    }
     
     logger.debug('Getting dietary preferences', { userId });
-    const preferences = await nutritionService.getDietaryPreferences(userId);
+    const preferences = await nutritionService.getDietaryPreferences(userId, jwtToken); // Pass jwtToken
     
     return res.status(200).json({
       status: 'success',
@@ -199,13 +225,19 @@ const getDietaryPreferences = async (req, res, next) => {
 const updateDietaryPreferences = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Dietary preferences update request missing user ID');
       return res.status(400).json({
         status: 'error',
         message: 'User ID is required'
       });
+    }
+
+    if (!jwtToken) {
+      logger.warn('Dietary preferences update request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     // Add userId to preference data
@@ -215,7 +247,7 @@ const updateDietaryPreferences = async (req, res, next) => {
     };
     
     logger.debug('Updating dietary preferences', { userId });
-    const updatedPreferences = await nutritionService.createOrUpdateDietaryPreferences(preferenceData);
+    const updatedPreferences = await nutritionService.createOrUpdateDietaryPreferences(preferenceData, jwtToken); // Pass jwtToken
     
     return res.status(200).json({
       status: 'success',
@@ -251,13 +283,19 @@ const updateDietaryPreferences = async (req, res, next) => {
 const logMeal = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Meal log request missing user ID');
       return res.status(400).json({
         status: 'error',
         message: 'User ID is required'
       });
+    }
+
+    if (!jwtToken) {
+      logger.warn('Meal log request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     // Add userId to meal log data
@@ -271,7 +309,7 @@ const logMeal = async (req, res, next) => {
       mealName: mealLogData.mealName
     });
     
-    const mealLog = await nutritionService.logMeal(mealLogData);
+    const mealLog = await nutritionService.logMeal(mealLogData, jwtToken); // Pass jwtToken
     
     return res.status(201).json({
       status: 'success',
@@ -307,13 +345,19 @@ const logMeal = async (req, res, next) => {
 const getMealLogs = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    
+    const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
+
     if (!userId) {
       logger.warn('Meal logs request missing user ID');
       return res.status(400).json({
         status: 'error',
         message: 'User ID is required'
       });
+    }
+
+    if (!jwtToken) {
+      logger.warn('Meal logs request missing JWT token');
+      return next(new AuthenticationError('Authorization token is missing.'));
     }
     
     // Extract query parameters for date filtering
@@ -325,7 +369,7 @@ const getMealLogs = async (req, res, next) => {
       endDate
     });
     
-    const mealLogs = await nutritionService.getMealLogs(userId, startDate, endDate);
+    const mealLogs = await nutritionService.getMealLogs(userId, startDate, endDate, jwtToken); // Pass jwtToken
     
     return res.status(200).json({
       status: 'success',

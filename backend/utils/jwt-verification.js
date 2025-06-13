@@ -8,13 +8,7 @@ const jwt = require('./jwt');
 const { AuthenticationError, ApplicationError } = require('./errors');
 const logger = require('../config/logger');
 
-/**
- * Verify a JWT token
- * @param {string} token - The JWT token to verify
- * @returns {object} - The decoded token payload
- * @throws {AuthenticationError} - If the token is invalid, expired, etc.
- * @throws {ApplicationError} - If an unexpected error occurs
- */
+/* Marked for removal - Phase 2 Auth Refactor
 function verifyToken(token) {
   try {
     return jwt.verifyToken(token);
@@ -32,7 +26,8 @@ function verifyToken(token) {
     throw new ApplicationError('An unexpected error occurred during token verification');
   }
 }
+*/
 
 module.exports = {
-  verifyToken
+  // verifyToken // Commented out
 }; 

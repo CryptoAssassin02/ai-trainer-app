@@ -2,10 +2,9 @@
  * Service for managing user check-in data
  * Handles database operations for check-in records including creation, retrieval, and metrics calculation
  */
-const { createClient } = require('@supabase/supabase-js');
-const { supabaseUrl, supabaseKey } = require('../config/supabase');
 const { BadRequestError, DatabaseError, NotFoundError } = require('../utils/errors');
 const logger = require('../config/logger');
+const { getSupabaseClientWithToken } = require('./supabase'); // Use centralized helper
 
 /**
  * Creates a new check-in record for a user
@@ -26,9 +25,7 @@ async function storeCheckIn(userId, data, jwtToken) {
     throw new BadRequestError('Check-in data with date is required');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
 
   try {
     // Prepare the check-in data
@@ -36,7 +33,7 @@ async function storeCheckIn(userId, data, jwtToken) {
       user_id: userId,
       date: data.date,
       weight: data.weight || null,
-      body_fat_perc: data.body_fat_percentage || null,
+      body_fat_percentage: data.body_fat_percentage || null,
       measurements: data.measurements || null,
       mood: data.mood || null,
       sleep_quality: data.sleep_quality || null,
@@ -82,9 +79,7 @@ async function retrieveCheckIns(userId, filters = {}, jwtToken) {
     throw new BadRequestError('User ID is required');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
 
   try {
     // Start with a base query
@@ -155,9 +150,7 @@ async function retrieveCheckIn(checkInId, userId, jwtToken) {
     throw new BadRequestError('User ID is required');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
 
   try {
     const { data, error } = await supabase
@@ -204,9 +197,7 @@ async function computeMetrics(userId, dateRange, jwtToken) {
     throw new BadRequestError('Start and end dates are required for metrics calculation');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
+  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
 
   try {
     // Get check-ins within the date range
@@ -245,7 +236,7 @@ async function computeMetrics(userId, dateRange, jwtToken) {
         totalDays: Math.floor((new Date(dateRange.endDate) - new Date(dateRange.startDate)) / (1000 * 60 * 60 * 24))
       },
       weightChange: calculateChange(firstCheckIn.weight, lastCheckIn.weight),
-      bodyFatChange: calculateChange(firstCheckIn.body_fat_perc, lastCheckIn.body_fat_perc),
+      bodyFatChange: calculateChange(firstCheckIn.body_fat_percentage, lastCheckIn.body_fat_percentage),
       measurementChanges: calculateMeasurementChanges(firstCheckIn.measurements, lastCheckIn.measurements),
       checkInCount: checkIns.length,
       averages: calculateAverages(checkIns)
@@ -327,8 +318,8 @@ function calculateAverages(checkIns) {
       weightCount++;
     }
     
-    if (checkIn.body_fat_perc !== null) {
-      bodyFatSum += checkIn.body_fat_perc;
+    if (checkIn.body_fat_percentage !== null) {
+      bodyFatSum += checkIn.body_fat_percentage;
       bodyFatCount++;
     }
     

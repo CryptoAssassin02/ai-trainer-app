@@ -25,7 +25,7 @@ const createRateLimiter = (options = {}) => {
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     keyGenerator: (req) => {
       // Default key generator uses IP and user ID if available for more precise limiting
-      const userId = req.user?.id || req.user?.sub || 'anonymous';
+      const userId = req.user?.id || 'anonymous';
       return `${req.ip}_${userId}`;
     }
   };
@@ -41,7 +41,7 @@ const createRateLimiter = (options = {}) => {
       const path = req.originalUrl || req.url;
       const ip = req.ip || req.headers['x-forwarded-for'];
       const userAgent = req.headers['user-agent'] || 'unknown';
-      const userId = req.user?.id || req.user?.sub || 'anonymous';
+      const userId = req.user?.id || 'anonymous';
       
       logger.warn('Rate limit exceeded', {
         ip,

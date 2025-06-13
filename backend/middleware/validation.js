@@ -21,9 +21,12 @@ const formatValidationError = (error) => {
     type: detail.type
   }));
   
+  // Use the first error message as the main message for better UX
+  const primaryMessage = details.length > 0 ? details[0].message : 'Validation failed';
+  
   return {
     status: 'error',
-    message: 'Validation failed',
+    message: primaryMessage,
     errors: details
   };
 };
@@ -39,15 +42,21 @@ const validate = (schema, source = 'body') => {
   return (req, res, next) => {
     const data = req[source];
     
+    // For profile routes, remove userId from body since controller will override it
+    if (source === 'body' && req.originalUrl.includes('/profile') && data && 'userId' in data) {
+      const { userId, ...dataWithoutUserId } = data;
+      req[source] = dataWithoutUserId;
+    }
+    
     // // DEBUG: Log incoming data for the specific route
     // if (req.originalUrl === '/workouts/log' && req.method === 'POST') {
     //   console.log(`[Validation Middleware DEBUG] Validating ${source} for ${req.method} ${req.originalUrl}:`, JSON.stringify(data, null, 2));
     // }
     
     // Validate data against schema
-    const { error, value } = schema.validate(data, {
+    const { error, value } = schema.validate(req[source], {
       abortEarly: false,
-      stripUnknown: true
+      convert: false
     });
     
     // // DEBUG: Log validation result
@@ -98,6 +107,7 @@ const userSchemas = {
     name: Joi.string()
       .min(2)
       .max(100)
+      .allow(null, '')
       .optional()
       .messages({
         'string.min': 'Name must be at least 2 characters long',
@@ -138,6 +148,7 @@ const userSchemas = {
     name: Joi.string()
       .min(2)
       .max(100)
+      .allow(null, '')
       .messages({
         'string.min': 'Name must be at least 2 characters long',
         'string.max': 'Name cannot exceed 100 characters'
@@ -195,7 +206,8 @@ const workoutSchemas = {
       }),
     workoutFrequency: Joi.string() // Changed to string to match API spec examples like '3x per week'
       // .valid('daily', '1x_week', '2x_week', '3x_week', '4x_week', '5x_week', '6x_week') // Example valid values
-      .required()
+      .allow(null)
+      .optional()
       .messages({
         // 'any.only': 'Invalid workout frequency format',
         'any.required': 'Workout frequency is required'
@@ -503,112 +515,17 @@ const workoutSchemas = {
 const profileSchemas = {
   // Create profile schema - with detailed validation for all required fields
   create: Joi.object({
+    userId: Joi.string()
+      .uuid()
+      .optional() // Optional because it's always overridden by controller from JWT
+      .messages({
+        'string.guid': 'User ID must be a valid UUID'
+      }),
     name: Joi.string()
       .min(2)
       .max(100)
-      .required()
-      .messages({
-        'string.min': 'Name must be at least 2 characters long',
-        'string.max': 'Name cannot exceed 100 characters',
-        'any.required': 'Name is required'
-      }),
-    age: Joi.number()
-      .integer()
-      .min(13)
-      .max(120)
-      .required()
-      .messages({
-        'number.base': 'Age must be a number',
-        'number.integer': 'Age must be a whole number',
-        'number.min': 'Age must be at least 13 years',
-        'number.max': 'Age cannot exceed 120 years',
-        'any.required': 'Age is required'
-      }),
-    gender: Joi.string()
-      .valid('male', 'female', 'other', 'prefer_not_to_say')
-      .required()
-      .messages({
-        'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say',
-        'any.required': 'Gender is required'
-      }),
-    height: Joi.alternatives()
-      .try(
-        // Metric (single number in cm)
-        Joi.number().positive(),
-        // Imperial (feet and inches)
-        Joi.object({
-          feet: Joi.number().integer().min(0).required().messages({
-            'number.base': 'Feet must be a number',
-            'number.integer': 'Feet must be a whole number',
-            'number.min': 'Feet cannot be negative',
-            'any.required': 'Feet is required for imperial height'
-          }),
-          inches: Joi.number().min(0).max(11.99).required().messages({
-            'number.base': 'Inches must be a number',
-            'number.min': 'Inches cannot be negative',
-            'number.max': 'Inches must be less than 12',
-            'any.required': 'Inches is required for imperial height'
-          })
-        })
-      )
-      .required()
-      .messages({
-        'alternatives.types': 'Height must be a positive number for metric units, or an object with feet and inches for imperial units',
-        'any.required': 'Height is required'
-      }),
-    weight: Joi.number()
-      .positive()
-      .required()
-      .messages({
-        'number.base': 'Weight must be a number',
-        'number.positive': 'Weight must be positive',
-        'any.required': 'Weight is required'
-      }),
-    unitPreference: Joi.string()
-      .valid('metric', 'imperial')
-      .required()
-      .messages({
-        'any.only': 'Unit preference must be either metric or imperial',
-        'any.required': 'Unit preference is required'
-      }),
-    activityLevel: Joi.string()
-      .valid('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active')
-      .required()
-      .messages({
-        'any.only': 'Activity level must be one of: sedentary, lightly_active, moderately_active, very_active, extremely_active',
-        'any.required': 'Activity level is required'
-      }),
-    fitnessGoals: Joi.array()
-      .items(Joi.string())
-      .default([])
-      .messages({
-        'array.base': 'Fitness goals must be an array'
-      }),
-    healthConditions: Joi.array()
-      .items(Joi.string())
-      .default([])
-      .messages({
-        'array.base': 'Health conditions must be an array'
-      }),
-    equipment: Joi.array()
-      .items(Joi.string())
-      .default([])
-      .messages({
-        'array.base': 'Equipment must be an array'
-      }),
-    experienceLevel: Joi.string()
-      .valid('beginner', 'intermediate', 'advanced')
-      .default('beginner')
-      .messages({
-        'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
-      })
-  }),
-  
-  // Update profile schema - allows partial updates with the same validation rules
-  update: Joi.object({
-    name: Joi.string()
-      .min(2)
-      .max(100)
+      .allow(null, '')
+      .optional()
       .messages({
         'string.min': 'Name must be at least 2 characters long',
         'string.max': 'Name cannot exceed 100 characters'
@@ -617,6 +534,8 @@ const profileSchemas = {
       .integer()
       .min(13)
       .max(120)
+      .allow(null)
+      .optional()
       .messages({
         'number.base': 'Age must be a number',
         'number.integer': 'Age must be a whole number',
@@ -624,9 +543,11 @@ const profileSchemas = {
         'number.max': 'Age cannot exceed 120 years'
       }),
     gender: Joi.string()
-      .valid('male', 'female', 'other', 'prefer_not_to_say')
+      .valid('male', 'female', 'other', 'prefer_not_to_say', 'non-binary', '')
+      .allow(null)
+      .optional()
       .messages({
-        'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say'
+        'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say, non-binary, or empty string'
       }),
     height: Joi.alternatives()
       .try(
@@ -640,85 +561,331 @@ const profileSchemas = {
             'number.min': 'Feet cannot be negative',
             'any.required': 'Feet is required for imperial height'
           }),
-          inches: Joi.number().min(0).max(11.99).required().messages({
+          inches: Joi.number().integer().min(0).max(11).required().messages({
             'number.base': 'Inches must be a number',
+            'number.integer': 'Inches must be a whole number',
             'number.min': 'Inches cannot be negative',
             'number.max': 'Inches must be less than 12',
             'any.required': 'Inches is required for imperial height'
           })
-        })
+        }).strict()
       )
+      .allow(null)
+      .optional()
       .messages({
-        'alternatives.types': 'Height must be a positive number for metric units, or an object with feet and inches for imperial units'
+        'alternatives.types': '"height" does not match any of the allowed types'
       }),
     weight: Joi.number()
       .positive()
+      .allow(null)
+      .optional()
       .messages({
         'number.base': 'Weight must be a number',
         'number.positive': 'Weight must be positive'
       }),
     unitPreference: Joi.string()
       .valid('metric', 'imperial')
+      .optional()
       .messages({
         'any.only': 'Unit preference must be either metric or imperial'
       }),
-    activityLevel: Joi.string()
-      .valid('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extremely_active')
+    experienceLevel: Joi.string()
+      .valid('beginner', 'intermediate', 'advanced')
+      .allow(null)
+      .optional()
       .messages({
-        'any.only': 'Activity level must be one of: sedentary, lightly_active, moderately_active, very_active, extremely_active'
+        'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
       }),
-    fitnessGoals: Joi.array()
+    goals: Joi.array()
       .items(Joi.string())
+      .allow(null)
+      .optional()
       .messages({
-        'array.base': 'Fitness goals must be an array'
-      }),
-    healthConditions: Joi.array()
-      .items(Joi.string())
-      .messages({
-        'array.base': 'Health conditions must be an array'
+        'array.base': 'Goals must be an array'
       }),
     equipment: Joi.array()
       .items(Joi.string())
+      .allow(null)
+      .optional()
       .messages({
         'array.base': 'Equipment must be an array'
       }),
+    exercisePreferences: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Exercise preferences must be an array'
+      }),
+    equipmentPreferences: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Equipment preferences must be an array'
+      }),
+    medicalConditions: Joi.array()
+      .items(
+        Joi.string()
+          .trim()
+          .min(1)
+          .max(200)
+          .pattern(/^[a-zA-Z0-9\s\-.,()_]+$/)
+          .custom((value, helpers) => {
+            // Healthcare data sanitization patterns
+            const sanitized = value.trim();
+            
+            // Prevent XSS and script injection
+            if (/<[^>]*>/g.test(sanitized) || /javascript:/i.test(sanitized)) {
+              return helpers.error('medicalConditions.xss');
+            }
+            
+            // Prevent SQL injection patterns
+            if (/['";]|--|\*|DROP\s+TABLE|INSERT\s+INTO|DELETE\s+FROM/i.test(sanitized)) {
+              return helpers.error('medicalConditions.sqlInjection');
+            }
+            
+            // Prevent NoSQL injection patterns
+            if (/\$[\w\.]+|\\u0000/g.test(sanitized)) {
+              return helpers.error('medicalConditions.nosqlInjection');
+            }
+            
+            // Validate medical terminology format (basic pattern)
+            if (!/^[A-Za-z0-9\s\-.,()_]+$/.test(sanitized)) {
+              return helpers.error('medicalConditions.invalidFormat');
+            }
+            
+            return sanitized;
+          })
+          .messages({
+            'string.base': 'Each medical condition must be a string',
+            'string.empty': 'Medical condition cannot be empty',
+            'string.min': 'Medical condition must be at least 1 character',
+            'string.max': 'Medical condition cannot exceed 200 characters',
+            'string.pattern.base': 'Medical condition contains invalid characters',
+            'medicalConditions.xss': 'Medical condition contains potentially harmful content',
+            'medicalConditions.sqlInjection': 'Medical condition contains invalid characters',
+            'medicalConditions.nosqlInjection': 'Medical condition contains invalid encoding',
+            'medicalConditions.invalidFormat': 'Medical condition format is invalid'
+          })
+      )
+      .max(10)
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Medical conditions must be an array',
+        'array.max': 'Cannot have more than 10 medical conditions'
+      }),
+    workoutFrequency: Joi.string()
+      .allow(null)
+      .optional()
+      .messages({
+        'string.base': 'Workout frequency must be a string'
+      })
+  }).options({ allowUnknown: false }), // Reject unknown fields
+  
+  // Update profile schema - allows partial updates with the same validation rules
+  update: Joi.object({
+    userId: Joi.string()
+      .uuid()
+      .optional() // Optional because it's always overridden by controller from JWT
+      .messages({
+        'string.guid': 'User ID must be a valid UUID'
+      }),
+    name: Joi.string()
+      .min(2)
+      .max(100)
+      .allow(null, '')
+      .messages({
+        'string.min': 'Name must be at least 2 characters long',
+        'string.max': 'Name cannot exceed 100 characters'
+      }),
+    age: Joi.number()
+      .integer()
+      .min(13)
+      .max(120)
+      .allow(null)
+      .optional()
+      .messages({
+        'number.base': 'Age must be a number',
+        'number.integer': 'Age must be a whole number',
+        'number.min': 'Age must be at least 13 years',
+        'number.max': 'Age cannot exceed 120 years'
+      }),
+    gender: Joi.string()
+      .valid('male', 'female', 'other', 'prefer_not_to_say', 'non-binary', '')
+      .allow(null)
+      .optional()
+      .messages({
+        'any.only': 'Gender must be one of: male, female, other, prefer_not_to_say, non-binary, or empty string'
+      }),
+    height: Joi.alternatives()
+      .try(
+        // Metric (single number in cm)
+        Joi.number().positive(),
+        // Imperial (feet and inches)
+        Joi.object({
+          feet: Joi.number().integer().min(0).required().messages({
+            'number.base': 'Feet must be a number',
+            'number.integer': 'Feet must be a whole number',
+            'number.min': 'Feet cannot be negative',
+            'any.required': 'Feet is required for imperial height'
+          }),
+          inches: Joi.number().integer().min(0).max(11).required().messages({
+            'number.base': 'Inches must be a number',
+            'number.integer': 'Inches must be a whole number',
+            'number.min': 'Inches cannot be negative',
+            'number.max': 'Inches must be less than 12',
+            'any.required': 'Inches is required for imperial height'
+          })
+        }).strict()
+      )
+      .allow(null)
+      .optional()
+      .messages({
+        'alternatives.types': '"height" does not match any of the allowed types'
+      }),
+    weight: Joi.number()
+      .positive()
+      .allow(null)
+      .optional()
+      .messages({
+        'number.base': 'Weight must be a number',
+        'number.positive': 'Weight must be positive'
+      }),
+    unitPreference: Joi.string()
+      .valid('metric', 'imperial')
+      .optional()
+      .messages({
+        'any.only': 'Unit preference must be either metric or imperial'
+      }),
     experienceLevel: Joi.string()
       .valid('beginner', 'intermediate', 'advanced')
+      .allow(null)
+      .optional()
       .messages({
         'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
+      }),
+    goals: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Goals must be an array'
+      }),
+    equipment: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Equipment must be an array'
+      }),
+    exercisePreferences: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Exercise preferences must be an array'
+      }),
+    equipmentPreferences: Joi.array()
+      .items(Joi.string())
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Equipment preferences must be an array'
+      }),
+    medicalConditions: Joi.array()
+      .items(
+        Joi.string()
+          .trim()
+          .min(1)
+          .max(200)
+          .pattern(/^[a-zA-Z0-9\s\-.,()_]+$/)
+          .custom((value, helpers) => {
+            // Healthcare data sanitization patterns
+            const sanitized = value.trim();
+            
+            // Prevent XSS and script injection
+            if (/<[^>]*>/g.test(sanitized) || /javascript:/i.test(sanitized)) {
+              return helpers.error('medicalConditions.xss');
+            }
+            
+            // Prevent SQL injection patterns
+            if (/['";]|--|\*|DROP\s+TABLE|INSERT\s+INTO|DELETE\s+FROM/i.test(sanitized)) {
+              return helpers.error('medicalConditions.sqlInjection');
+            }
+            
+            // Prevent NoSQL injection patterns
+            if (/\$[\w\.]+|\\u0000/g.test(sanitized)) {
+              return helpers.error('medicalConditions.nosqlInjection');
+            }
+            
+            // Validate medical terminology format (basic pattern)
+            if (!/^[A-Za-z0-9\s\-.,()_]+$/.test(sanitized)) {
+              return helpers.error('medicalConditions.invalidFormat');
+            }
+            
+            return sanitized;
+          })
+          .messages({
+            'string.base': 'Each medical condition must be a string',
+            'string.empty': 'Medical condition cannot be empty',
+            'string.min': 'Medical condition must be at least 1 character',
+            'string.max': 'Medical condition cannot exceed 200 characters',
+            'string.pattern.base': 'Medical condition contains invalid characters',
+            'medicalConditions.xss': 'Medical condition contains potentially harmful content',
+            'medicalConditions.sqlInjection': 'Medical condition contains invalid characters',
+            'medicalConditions.nosqlInjection': 'Medical condition contains invalid encoding',
+            'medicalConditions.invalidFormat': 'Medical condition format is invalid'
+          })
+      )
+      .max(10)
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Medical conditions must be an array',
+        'array.max': 'Cannot have more than 10 medical conditions'
+      }),
+    workoutFrequency: Joi.string()
+      .allow(null)
+      .optional()
+      .messages({
+        'string.base': 'Workout frequency must be a string'
       })
-  }).min(1).messages({
-    'object.min': 'At least one field is required for profile update'
-  }),
+  }).options({ allowUnknown: false }), // Reject unknown fields
   
   // Profile preferences schema - for updating only preference-related fields
   preferences: Joi.object({
     unitPreference: Joi.string()
       .valid('metric', 'imperial')
+      .optional()
       .messages({
         'any.only': 'Unit preference must be either metric or imperial'
       }),
-    fitnessGoals: Joi.array()
+    goals: Joi.array()
       .items(Joi.string())
+      .optional()
       .messages({
-        'array.base': 'Fitness goals must be an array'
+        'array.base': 'Goals must be an array'
       }),
     equipment: Joi.array()
       .items(Joi.string())
+      .optional()
       .messages({
         'array.base': 'Equipment must be an array'
       }),
     experienceLevel: Joi.string()
       .valid('beginner', 'intermediate', 'advanced')
+      .allow(null)
+      .optional()
       .messages({
         'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
       }),
-    notificationPreferences: Joi.object({
-      email: Joi.boolean().default(true),
-      push: Joi.boolean().default(true),
-      frequency: Joi.string().valid('daily', 'weekly', 'monthly', 'none').default('weekly')
-    }).messages({
-      'object.base': 'Notification preferences must be an object'
+    workoutFrequency: Joi.string()
+      .allow(null)
+      .optional()
+      .messages({
+        'string.base': 'Workout frequency must be a string'
     })
   }).min(1).messages({
     'object.min': 'At least one preference field is required'
@@ -945,36 +1112,47 @@ function validateNotificationPreferences(req, res, next) {
 module.exports = {
   validate,
   formatValidationError,
-  userSchemas,
-  workoutSchemas: {
-    ...workoutSchemas,
-    workoutLogSchema: workoutSchemas.workoutLogSchema,
-    workoutLogUpdateSchema: workoutSchemas.workoutLogUpdateSchema,
-    workoutLogQuerySchema: workoutSchemas.workoutLogQuerySchema
-  },
-  profileSchemas,
-  schemas: {
-    user: userSchemas,
-    workout: workoutSchemas,
-    profile: profileSchemas
-  },
-  // Expose individual profile schemas for direct import
-  validateProfile: profileSchemas.create,
-  validatePartialProfile: profileSchemas.update,
-  validateProfilePreferences: profileSchemas.preferences,
 
-  // Expose standalone schemas
-  measurementsSchema, 
+  // Schemas (useful if needed elsewhere, but not for direct route middleware)
+  userSchemas,
+  workoutSchemas, // This will export the object containing workoutGenerationSchema etc.
+  profileSchemas,
+  measurementsSchema,
   checkInSchema,
   metricCalculationSchema,
   macroCalculationSchema,
   notificationPreferencesSchema,
 
-  // Workout Log Validation Middleware Exports
+  schemas: { // Nested schemas for organization if preferred
+    user: userSchemas,
+    workout: workoutSchemas,
+    profile: profileSchemas
+  },
+
+  // User Validation Middleware
+  validateRegistration: validate(userSchemas.register, 'body'),
+  validateLogin: validate(userSchemas.login, 'body'),
+  validateRefreshToken: validate(userSchemas.refresh, 'body'),
+  // TODO: Add validateProfileUpdate: validate(userSchemas.updateProfile, 'body'), // if updateProfile schema is in userSchemas
+
+  // Profile Validation Middleware
+  // Assuming profileSchemas like profileSchemas.create, profileSchemas.update exist:
+  validateProfileCreation: validate(profileSchemas.create, 'body'),
+  validateProfileUpdate: validate(profileSchemas.update, 'body'),
+  validateProfilePreferences: validate(profileSchemas.preferences, 'body'),
+
+  // Workout Validation Middleware
+  validateWorkoutGeneration: validate(workoutSchemas.workoutGenerationSchema, 'body'),
+  validateWorkoutReGeneration: validate(workoutSchemas.workoutReGenerationSchema, 'body'), // If you have this schema
+  validateWorkoutAdjustment: validate(workoutSchemas.workoutAdjustmentSchema, 'body'),
+  validateWorkoutQuery: validate(workoutSchemas.workoutQuerySchema, 'query'),
+
+  // Workout Log Validation Middleware
   validateWorkoutLog: validate(workoutSchemas.workoutLogSchema, 'body'),
   validateWorkoutLogUpdate: validate(workoutSchemas.workoutLogUpdateSchema, 'body'),
   validateWorkoutLogQuery: validate(workoutSchemas.workoutLogQuerySchema, 'query'),
 
+  // Other specific validation functions (ensure these are actual middleware (req,res,next) functions)
   validateCheckIn,
   validateMetricsCalculation,
   validateMacroCalculation,

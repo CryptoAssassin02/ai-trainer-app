@@ -111,6 +111,56 @@ const config = {
     }
   },
 
+  test: {
+    api: {
+      timeout: 10000, // Standard timeout for testing
+    },
+    retry: {
+      maxRetries: 1, // Fewer retries during testing
+    },
+    rateLimit: {
+      enabled: false, // Usually disable rate limiting for automated tests
+    },
+    logging: {
+      level: 'warn', // Reduce noise during tests, log warnings/errors
+    },
+    // Indicate that mock responses should be used in the test environment
+    mock: {
+      enabled: true, // Enable mocking for tests
+      mockResponse: { // Specific mock response for tests
+          choices: [{ message: { content: JSON.stringify([
+            { 
+              name: "Push-ups", 
+              description: "Basic bodyweight exercise for chest and arms",
+              difficulty: "beginner",
+              equipment: ["bodyweight"],
+              muscleGroups: ["chest", "triceps", "shoulders"],
+              tags: ["compound", "bodyweight"],
+              citations: ["https://example.com/pushups"]
+            },
+            { 
+              name: "Squats", 
+              description: "Lower body exercise targeting quads and glutes",
+              difficulty: "beginner", 
+              equipment: ["bodyweight"],
+              muscleGroups: ["quadriceps", "glutes"],
+              tags: ["compound", "bodyweight"],
+              citations: ["https://example.com/squats"]
+            },
+            { 
+              name: "Plank", 
+              description: "Core strengthening exercise",
+              difficulty: "beginner",
+              equipment: ["bodyweight"], 
+              muscleGroups: ["core"],
+              tags: ["isometric", "bodyweight"],
+              citations: ["https://example.com/plank"]
+            }
+          ]) } }]
+      }
+    }
+  },
+
   production: {
     api: {
       timeout: 15000, // Shorter timeout in production: 15 seconds (was 5s, increased for potentially longer queries)
