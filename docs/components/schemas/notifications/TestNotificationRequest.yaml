@@ -1,0 +1,11 @@
+description: >
+  Defines the request body for sending a test notification to a specific channel.
+type: object
+required:
+  - channel
+properties:
+  channel:
+    type: string
+    enum: [email, sms, push, in_app]
+    description: The notification channel to send the test notification to.
+    example: email 

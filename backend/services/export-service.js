@@ -5,38 +5,13 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const fastCsv = require('fast-csv');
-const { Readable } = require('stream');
+const { Readable, PassThrough } = require('stream');
 const logger = require('../config/logger');
 const { DatabaseError, NotFoundError } = require('../utils/errors');
-// Import config to get URL/Key
-const { supabaseUrl, supabaseKey } = require('../config/supabase');
+// Use the proper service pattern like other successful services
+const { getSupabaseClientWithToken } = require('./supabase');
 // Require ExcelJS at the top level
 const ExcelJS = require('exceljs');
-
-/**
- * Initialize Supabase client with JWT for RLS
- * @param {string} jwtToken - User JWT token
- * @returns {Object} Supabase client
- */
-function getSupabaseClient(jwtToken) {
-  // Use imported config values
-  // const supabaseUrl = process.env.SUPABASE_URL;
-  // const supabaseKey = process.env.SUPABASE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    logger.error('Supabase configuration is missing.');
-    throw new Error('Supabase configuration is missing.');
-  }
-
-  if (!jwtToken) {
-    logger.error('JWT token is missing for Supabase client initialization.');
-    throw new Error('Authentication token is required.');
-  }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${jwtToken}` } }
-  });
-}
 
 /**
  * Fetch user data based on dataTypes
@@ -55,13 +30,12 @@ async function fetchUserData(userId, dataTypes, supabase) {
       switch (type) {
         case 'profiles':
           const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
+            .from('user_profiles')
             .select('*')
-            .eq('id', userId)
-            .single();
+            .eq('user_id', userId);
             
           if (profileError) throw new DatabaseError(`Error fetching profile data: ${profileError.message}`);
-          result.profiles = profileData ? [profileData] : [];
+          result.profiles = profileData || [];
           break;
           
         case 'workouts':
@@ -129,9 +103,12 @@ function processObjectForExport(obj) {
     if (value === null || value === undefined) {
       result[key] = null;
     } else if (typeof value === 'object') {
-      if (key === 'plan' || key === 'exercises' || key === 'preferences' || key === 'goals') {
-        // Store these fields as stringified JSON
+      if (key === 'plan_data' || key === 'tags' || key === 'goals' || key === 'equipment_required' || key === 'ai_reasoning' || key === 'fitness_goals' || key === 'equipment') {
+        // Store these fields as stringified JSON (except medical_conditions which stays as JSONB array)
         result[key] = JSON.stringify(value);
+      } else if (key === 'medical_conditions') {
+        // Keep medical_conditions as array for JSONB compatibility
+        result[key] = value;
       } else {
         result[key] = processObjectForExport(value);
       }
@@ -139,6 +116,7 @@ function processObjectForExport(obj) {
       result[key] = value;
     }
   }
+  
   return result;
 }
 
@@ -152,8 +130,14 @@ function processObjectForExport(obj) {
  */
 async function exportJSON(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
   logger.info(`Generating JSON export for user: ${userId}, data types: ${dataTypes.join(', ')}`);
-  // Initialize client first, as fetchFn needs it
-  const supabase = getSupabaseClient(jwtToken); 
+  
+  if (!jwtToken) {
+    logger.error('JWT token is missing for export operation.');
+    throw new Error('Authentication token is required.');
+  }
+  
+  // Use the proper service pattern for getting Supabase client
+  const supabase = getSupabaseClientWithToken(jwtToken);
   
   try {
     // Use the injected fetch function
@@ -179,7 +163,13 @@ async function exportJSON(userId, dataTypes, jwtToken, fetchFn = fetchUserData) 
  */
 async function exportCSV(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
   logger.info(`Generating CSV export for user: ${userId}, data types: ${dataTypes.join(', ')}`);
-  const supabase = getSupabaseClient(jwtToken);
+  
+  if (!jwtToken) {
+    logger.error('JWT token is missing for CSV export operation.');
+    throw new Error('Authentication token is required.');
+  }
+  
+  const supabase = getSupabaseClientWithToken(jwtToken);
   
   // Wrap stream processing in a promise to handle async errors
   return new Promise(async (resolve, reject) => {
@@ -189,8 +179,7 @@ async function exportCSV(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
         const dataStream = new Readable({ objectMode: true });
         dataStream._read = () => {}; 
         const csvStream = fastCsv.format({ headers: true });
-        const passThroughStream = new Readable({ objectMode: true });
-        passThroughStream._read = () => {};
+        const passThroughStream = new PassThrough();
 
         // Handle errors on the streams
         let streamError = null;
@@ -221,11 +210,16 @@ async function exportCSV(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
         let rowsAdded = 0;
         for (const type of dataTypes) {
           if (!userData[type] || userData[type].length === 0) continue;
-          if (rowsAdded > 0) { dataStream.push({}); }
-          dataStream.push({ 'Section': type.toUpperCase() });
+          
+          // Process each data item and add to stream
           userData[type].forEach(row => {
             const flatRow = processObjectForExport(row);
-            Object.keys(flatRow).forEach(key => { flatRow[key] = sanitizeForCsv(flatRow[key]); });
+            // Add data type as a column for identification
+            flatRow.data_type = type;
+            // Sanitize all values for CSV
+            Object.keys(flatRow).forEach(key => { 
+              flatRow[key] = sanitizeForCsv(flatRow[key]); 
+            });
             dataStream.push(flatRow);
             rowsAdded++;
           });
@@ -261,7 +255,13 @@ async function exportCSV(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
  */
 async function exportXLSX(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
   logger.info(`Generating XLSX export for user: ${userId}, data types: ${dataTypes.join(', ')}`);
-  const supabase = getSupabaseClient(jwtToken);
+  
+  if (!jwtToken) {
+    logger.error('JWT token is missing for XLSX export operation.');
+    throw new Error('Authentication token is required.');
+  }
+  
+  const supabase = getSupabaseClientWithToken(jwtToken);
   
   try {
     // Use the injected fetch function
@@ -309,15 +309,14 @@ async function exportXLSX(userId, dataTypes, jwtToken, fetchFn = fetchUserData) 
       worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
     }
     
-    // Create a stream to write the workbook
-    const stream = new Readable();
-    stream._read = () => {};
+    // Create a PassThrough stream (both readable and writable)
+    const stream = new PassThrough();
     
     // Write workbook to stream
     workbook.xlsx.write(stream)
       .then(() => {
         logger.info('XLSX export generated successfully');
-        stream.push(null); // End the stream
+        stream.end(); // Properly end the stream
       })
       .catch(error => {
         logger.error(`Error writing XLSX to stream: ${error.message}`, { error });
@@ -343,7 +342,13 @@ async function exportPDF(userId, dataTypes, jwtToken, fetchFn = fetchUserData) {
   // Require PDFDocument inside the function
   const PDFDocument = require('pdfkit');
   logger.info(`Generating PDF export for user: ${userId}, data types: ${dataTypes.join(', ')}`);
-  const supabase = getSupabaseClient(jwtToken);
+  
+  if (!jwtToken) {
+    logger.error('JWT token is missing for PDF export operation.');
+    throw new Error('Authentication token is required.');
+  }
+  
+  const supabase = getSupabaseClientWithToken(jwtToken);
   
   try {
     // Use the injected fetch function

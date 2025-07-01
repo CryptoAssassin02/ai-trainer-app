@@ -1,0 +1,106 @@
+type: object
+description: Response containing analytics overview data with comprehensive fitness metrics
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    $ref: './AnalyticsOverview.yaml'
+  metadata:
+    type: object
+    description: Response metadata including data quality and timing information
+    required:
+      - timestamp
+      - dataQuality
+      - lastUpdated
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      dataQuality:
+        type: object
+        description: Data quality assessment metrics
+        required:
+          - score
+          - completeness
+          - reliability
+        properties:
+          score:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall data quality score (0-1)
+            example: 0.85
+          completeness:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Data completeness percentage (0-1)
+            example: 0.92
+          reliability:
+            type: string
+            enum: [high, medium, low]
+            description: Data reliability assessment
+            example: high
+          issues:
+            type: array
+            description: List of data quality issues if any
+            items:
+              type: string
+            example: ["Missing body fat data for 2 days"]
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Timestamp when analytics data was last refreshed
+        example: "2024-01-15T09:00:00Z"
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 145.7
+examples:
+  - status: success
+    data:
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      timeframe: "30 days"
+      hasData: true
+      overview:
+        workouts:
+          completed: 24
+          totalExercises: 144
+          avgDifficulty: 7.2
+          avgSatisfaction: 8.1
+          consistency: 0.85
+        physical:
+          currentWeight: 75.2
+          weightChange: -2.3
+          currentBodyFat: 18.5
+          bodyFatChange: -1.2
+        wellness:
+          overallScore: 8.2
+          mood: 7.8
+          sleep: 8.0
+          energy: 7.9
+          stress: 6.5
+        adherence:
+          workout: 0.85
+          nutrition: 0.78
+          overall: 0.82
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      dataQuality:
+        score: 0.85
+        completeness: 0.92
+        reliability: high
+      lastUpdated: "2024-01-15T09:00:00Z"
+      processingTime: 145.7 

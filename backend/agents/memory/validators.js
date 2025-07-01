@@ -7,7 +7,7 @@ function isValidUUID(id) {
 function isValidAgentType(type) {
   if (typeof type !== 'string') return false;
   const validTypes = [
-    'nutrition', 'workout', 'research', 'adjustment', 'system'
+    'nutrition', 'workout', 'research', 'adjustment', 'system', 'analytics'
   ];
   return validTypes.includes(type.toLowerCase().trim());
 }

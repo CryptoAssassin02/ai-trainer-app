@@ -1,0 +1,102 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Get analytics for custom date range
+  description: |
+    Retrieve analytics data for a custom date range with flexible filtering and grouping options.
+    
+    **Custom Date Range Features:**
+    - Specify exact start and end dates
+    - Flexible grouping by day, week, or month
+    - Multi-metric analysis within custom periods
+    - Comparison with previous periods
+    - Holiday and event impact analysis
+    
+    **Use Cases:**
+    - Analyze specific training phases or diet periods
+    - Compare different time periods
+    - Track progress during specific life events
+    - Generate custom reports for defined periods
+  operationId: getAnalyticsByDateRange
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: startDate
+      in: query
+      required: true
+      description: Start date for analytics range (YYYY-MM-DD)
+      schema:
+        type: string
+        format: date
+        example: "2024-01-01"
+    
+    - name: endDate
+      in: query
+      required: true
+      description: End date for analytics range (YYYY-MM-DD)
+      schema:
+        type: string
+        format: date
+        example: "2024-03-31"
+    
+    - name: groupBy
+      in: query
+      description: Group data by time period
+      schema:
+        type: string
+        enum: [day, week, month]
+        default: "week"
+        example: "week"
+    
+    - name: metrics
+      in: query
+      description: Specific metrics to include (comma-separated)
+      schema:
+        type: string
+        example: "weight,workouts,wellness,adherence,strength"
+    
+    - name: includeComparison
+      in: query
+      description: Include comparison with previous equivalent period
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: aggregationType
+      in: query
+      description: Type of data aggregation to apply
+      schema:
+        type: string
+        enum: [average, sum, max, min, latest]
+        default: "average"
+        example: "average"
+    
+    - name: includeEvents
+      in: query
+      description: Include life events and their impact on metrics
+      schema:
+        type: boolean
+        default: false
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/AnalyticsByDateRangeRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '422':
+      $ref: '../../components/responses/analytics/AnalyticsInvalidDateRange.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

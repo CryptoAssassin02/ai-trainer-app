@@ -1,0 +1,32 @@
+type: object
+required: [status, message, errors]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Primary error message
+  errors:
+    type: array
+    items:
+      type: object
+      required: [field, message, type]
+      properties:
+        field:
+          type: string
+          description: Field name that caused the error
+        message:
+          type: string
+          description: Specific field error message
+        type:
+          type: string
+          description: Type of validation error
+example:
+  status: error
+  message: Please provide a valid email address
+  errors:
+    - field: email
+      message: Please provide a valid email address
+      type: string.email 

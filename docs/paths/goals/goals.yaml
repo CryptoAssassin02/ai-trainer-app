@@ -1,0 +1,237 @@
+get:
+  tags:
+    - Goal Management
+  summary: Get user's goals with optional filtering and sorting
+  description: |
+    Retrieve a list of user's fitness goals with flexible filtering, sorting, and pagination options.
+    
+    **Filtering Options:**
+    - Goal status (active, completed, paused, cancelled)
+    - Goal type (weight loss, muscle gain, strength, endurance, body composition)
+    - Timeframe (1 month, 3 months, 6 months, 1 year)
+    - Progress status (on track, behind, ahead)
+    - Priority level (high, medium, low)
+    
+    **Sorting & Organization:**
+    - Sort by creation date, target date, progress percentage, priority
+    - Group by status, type, or timeframe
+    - Ascending or descending order
+    - Smart prioritization based on urgency and progress
+    
+    **Response Enhancement:**
+    - Progress calculations and trajectory analysis
+    - Milestone status and achievement tracking
+    - Goal conflict detection and recommendations
+    - Integration with analytics and check-in data
+  operationId: getUserGoals
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: status
+      in: query
+      description: Filter goals by status
+      schema:
+        type: string
+        enum: [active, completed, paused, cancelled, all]
+        default: "active"
+        example: "active"
+    
+    - name: type
+      in: query
+      description: Filter goals by type
+      schema:
+        type: string
+        enum: [weight_loss, muscle_gain, strength, endurance, body_composition, all]
+        example: "weight_loss"
+    
+    - name: timeframe
+      in: query
+      description: Filter goals by timeframe
+      schema:
+        type: string
+        enum: [1month, 3months, 6months, 1year, all]
+        example: "6months"
+    
+    - name: priority
+      in: query
+      description: Filter goals by priority level
+      schema:
+        type: string
+        enum: [high, medium, low, all]
+        example: "high"
+    
+    - name: progressStatus
+      in: query
+      description: Filter goals by progress status
+      schema:
+        type: string
+        enum: [on_track, behind, ahead, all]
+        example: "on_track"
+    
+    - name: sortBy
+      in: query
+      description: Field to sort results by
+      schema:
+        type: string
+        enum: [created_at, target_date, progress_percentage, priority, type]
+        default: "created_at"
+        example: "priority"
+    
+    - name: sortOrder
+      in: query
+      description: Sort order direction
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: "desc"
+        example: "desc"
+    
+    - name: includeProgress
+      in: query
+      description: Include detailed progress calculations
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeMilestones
+      in: query
+      description: Include milestone tracking data
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: includeAnalytics
+      in: query
+      description: Include analytics and insights
+      schema:
+        type: boolean
+        default: false
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/goals/GoalsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+    
+    '429':
+      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml'
+
+post:
+  tags:
+    - Goal Management
+  summary: Create a new fitness goal with baseline metrics
+  description: |
+    Create a comprehensive fitness goal with target metrics, timeframe, and baseline data for progress tracking.
+    
+    **Goal Types Supported:**
+    - Weight Loss: Target weight with timeline and milestones
+    - Muscle Gain: Target muscle mass or strength metrics
+    - Strength: Specific exercise performance targets
+    - Endurance: Cardiovascular and stamina goals
+    - Body Composition: Body fat percentage and measurements
+    
+    **Features:**
+    - Automatic baseline establishment from recent check-ins
+    - Smart milestone generation based on goal type and timeframe
+    - Goal conflict detection and resolution suggestions
+    - Progress tracking integration with analytics
+    - AI-powered achievability assessment
+    
+    **Validation:**
+    - Realistic target validation based on user history
+    - Timeline feasibility assessment
+    - Goal overlap and conflict detection
+    - Resource requirement analysis
+  operationId: createGoal
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    description: Goal definition with target metrics and timeframe
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/goals/GoalDefinitionRequest.yaml'
+        examples:
+          weight_loss_goal:
+            summary: Weight loss goal
+            description: 6-month weight loss goal with specific target
+            value:
+              type: "weight_loss"
+              target:
+                value: 75
+                unit: "kg"
+                description: "Target weight for summer fitness"
+              timeframe: "6months"
+              description: "Lose 10kg by summer through consistent training and nutrition"
+              priority: "high"
+              baseline:
+                current_weight: 85
+                current_body_fat: 22.5
+                starting_measurements:
+                  waist: 90
+                  chest: 100
+          
+          strength_goal:
+            summary: Strength training goal
+            description: 3-month strength improvement goal
+            value:
+              type: "strength"
+              target:
+                value: 100
+                unit: "kg"
+                description: "Bench press 1RM target"
+              timeframe: "3months"
+              description: "Increase bench press from 80kg to 100kg"
+              priority: "medium"
+              baseline:
+                current_1rm: 80
+                current_volume: 70
+                training_frequency: 3
+          
+          body_composition_goal:
+            summary: Body composition goal
+            description: 1-year body recomposition goal
+            value:
+              type: "body_composition"
+              target:
+                value: 15
+                unit: "percent"
+                description: "Target body fat percentage"
+              timeframe: "1year"
+              description: "Achieve lean physique through muscle gain and fat loss"
+              priority: "high"
+              baseline:
+                current_body_fat: 20.5
+                current_muscle_mass: 65
+                current_weight: 80
+  responses:
+    '201':
+      $ref: '../../components/responses/goals/GoalCreated.yaml'
+    
+    '400':
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+    
+    '409':
+      $ref: '../../components/responses/goals/GoalConflictDetected.yaml'
+    
+    '422':
+      $ref: '../../components/responses/goals/GoalDataConflict.yaml'
+    
+    '429':
+      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml' 

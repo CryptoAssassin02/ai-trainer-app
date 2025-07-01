@@ -1,0 +1,48 @@
+type: object
+description: Statistics and details about a data import operation
+required:
+  - total
+  - successful
+  - failed
+  - errors
+properties:
+  total:
+    type: integer
+    minimum: 0
+    description: Total number of records processed
+    example: 25
+  successful:
+    type: integer
+    minimum: 0
+    description: Number of records successfully imported
+    example: 22
+  failed:
+    type: integer
+    minimum: 0
+    description: Number of records that failed validation or import
+    example: 3
+  errors:
+    type: array
+    items:
+      type: string
+    maxItems: 10
+    description: Array of error messages (limited to first 10 errors)
+    example: ["Validation error for profiles: Age must be between 13 and 120", "Invalid date format in workout_logs"]
+examples:
+  noErrors:
+    summary: Perfect import with no errors
+    value:
+      total: 50
+      successful: 50
+      failed: 0
+      errors: []
+  withErrors:
+    summary: Import with some validation failures
+    value:
+      total: 100
+      successful: 95
+      failed: 5
+      errors:
+        - "Validation error for profiles: Invalid email format"
+        - "Error processing workouts row: Missing required field 'name'"
+        - "Database error for workout_logs: Foreign key constraint violation" 

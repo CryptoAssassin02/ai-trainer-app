@@ -1,0 +1,184 @@
+get:
+  tags:
+    - Mobile Analytics
+  summary: Get mobile-optimized peer comparison analytics with privacy controls
+  description: |
+    Retrieve peer comparison analytics optimized for mobile display with comprehensive privacy controls and social features.
+    
+    **Peer Comparison Features:**
+    - Anonymous peer group comparisons
+    - Performance benchmarking with similar users
+    - Achievement leaderboards and rankings
+    - Motivational social insights and encouragement
+    - Privacy-first data aggregation and presentation
+    
+    **Mobile Social Optimization:**
+    - Touch-friendly social interaction data
+    - Compressed comparison metrics for mobile display
+    - Network-efficient social data delivery
+    - Offline-capable peer comparison caching
+    - Battery-conscious social feature processing
+    
+    **Privacy & Security:**
+    - Complete user anonymization in comparisons
+    - Granular privacy control respect
+    - Opt-out capabilities for all social features
+    - Secure aggregation without personal data exposure
+    - GDPR and privacy regulation compliance
+    
+    **Comparison Metrics:**
+    - Workout consistency and frequency comparisons
+    - Strength progression benchmarking
+    - Overall fitness journey progress
+    - Achievement milestone comparisons
+    - Goal achievement rate benchmarking
+    
+    **Motivational Features:**
+    - Encouraging peer insights and trends
+    - Achievement celebration opportunities
+    - Goal-setting inspiration from peer success
+    - Community challenge participation
+    - Progress motivation through social context
+  operationId: getMobilePeerComparison
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: comparisonType
+      in: query
+      description: Type of peer comparison to retrieve
+      schema:
+        type: string
+        enum: [workout_consistency, strength_gains, overall_fitness, goal_achievement, wellness_trends]
+        default: "overall_fitness"
+        example: "workout_consistency"
+    
+    - name: timeRange
+      in: query
+      description: Time range for comparison data
+      schema:
+        type: string
+        enum: [week, month, 3months, 6months]
+        default: "month"
+        example: "3months"
+    
+    - name: peerGroupType
+      in: query
+      description: Peer group selection criteria
+      schema:
+        type: string
+        enum: [similar_goals, similar_level, age_group, experience_level, all_users]
+        default: "similar_level"
+        example: "similar_goals"
+    
+    - name: privacyLevel
+      in: query
+      description: Privacy level for comparison data
+      schema:
+        type: string
+        enum: [anonymous_only, aggregated, minimal_sharing, full_comparison]
+        default: "anonymous_only"
+        example: "anonymous_only"
+    
+    - name: includeRankings
+      in: query
+      description: Include ranking and leaderboard data
+      schema:
+        type: boolean
+        default: true
+        example: false
+    
+    - name: includeBenchmarks
+      in: query
+      description: Include performance benchmarks
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeMotivation
+      in: query
+      description: Include motivational insights and encouragement
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: displayMode
+      in: query
+      description: Mobile display mode optimization
+      schema:
+        type: string
+        enum: [compact, standard, detailed, social_feed]
+        default: "standard"
+        example: "compact"
+    
+    - name: maxPeers
+      in: query
+      description: Maximum number of peer comparisons to include
+      schema:
+        type: integer
+        minimum: 5
+        maximum: 50
+        default: 20
+        example: 10
+    
+    - name: connectionType
+      in: query
+      description: Client connection type for optimization
+      schema:
+        type: string
+        enum: [2G, 3G, 4G, 5G, WiFi, unknown]
+        default: "unknown"
+        example: "4G"
+    
+    - name: compressionLevel
+      in: query
+      description: Data compression level preference
+      schema:
+        type: string
+        enum: [low, medium, high, adaptive]
+        default: "adaptive"
+        example: "high"
+    
+    - name: socialOptOut
+      in: query
+      description: Opt out of all social comparison features
+      schema:
+        type: boolean
+        default: false
+        example: false
+    
+    - name: anonymizeAll
+      in: query
+      description: Force complete anonymization of all data
+      schema:
+        type: boolean
+        default: true
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/mobile/MobilePeerComparisonRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+    
+    '403':
+      $ref: '../../components/responses/mobile/MobilePeerComparisonAccessDenied.yaml'
+    
+    '404':
+      $ref: '../../components/responses/mobile/MobilePeerDataNotFound.yaml'
+    
+    '413':
+      $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
+    
+    '429':
+      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+    
+    '503':
+      $ref: '../../components/responses/mobile/MobileSocialServiceUnavailable.yaml' 

@@ -1,0 +1,80 @@
+description: Progress operation rate limit exceeded
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  Retry-After:
+    description: Number of seconds to wait before making another request
+    schema:
+      type: integer
+      example: 3600
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/progress/ProgressRateLimitError.yaml'
+    examples:
+      check_in_rate_limit:
+        summary: Check-in creation rate limit exceeded
+        value:
+          status: error
+          message: "Progress operation rate limit exceeded"
+          details: "Check-in creation limit of 5 per hour has been exceeded"
+          errorCode: "PROGRESS_RATE_LIMIT_EXCEEDED"
+          rateLimit:
+            operation: "check-in-creation"
+            limit: 5
+            window: "1 hour"
+            remaining: 0
+            resetTime: "2024-01-15T20:00:00Z"
+            retryAfter: 3600
+          timestamp: "2024-01-15T19:30:00Z"
+          requestId: "req_progress_001"
+          suggestions:
+            - "Wait until the rate limit resets"
+            - "Update existing check-ins instead of creating new ones"
+            - "Consider daily check-ins instead of multiple per day"
+      metrics_calculation_limit:
+        summary: Metrics calculation rate limit exceeded
+        value:
+          status: error
+          message: "Progress operation rate limit exceeded"
+          details: "Metrics calculation limit of 10 per hour has been exceeded"
+          errorCode: "PROGRESS_RATE_LIMIT_EXCEEDED"
+          rateLimit:
+            operation: "metrics-calculation"
+            limit: 10
+            window: "1 hour"
+            remaining: 0
+            resetTime: "2024-01-15T20:15:00Z"
+            retryAfter: 2700
+          timestamp: "2024-01-15T19:45:00Z"
+          requestId: "req_progress_002"
+          suggestions:
+            - "Use cached metrics from previous calculations"
+            - "Wait for the rate limit to reset"
+            - "Consider using broader date ranges for fewer calculations"
+      general_progress_limit:
+        summary: General progress API rate limit exceeded
+        value:
+          status: error
+          message: "Progress operation rate limit exceeded"
+          details: "General progress API limit of 50 requests per 15 minutes has been exceeded"
+          errorCode: "PROGRESS_RATE_LIMIT_EXCEEDED"
+          rateLimit:
+            operation: "progress-api"
+            limit: 50
+            window: "15 minutes"
+            remaining: 0
+            resetTime: "2024-01-15T20:00:00Z"
+            retryAfter: 900
+          timestamp: "2024-01-15T19:45:00Z"
+          requestId: "req_progress_003"
+          suggestions:
+            - "Reduce the frequency of API calls"
+            - "Implement client-side caching"
+            - "Use batch operations where available" 

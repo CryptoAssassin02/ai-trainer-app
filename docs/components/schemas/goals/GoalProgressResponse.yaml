@@ -1,0 +1,331 @@
+type: object
+description: Response containing goal progress analysis with tracking metadata, insights, and recommendations
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    $ref: './GoalProgress.yaml'
+  metadata:
+    type: object
+    description: Response metadata including progress analysis, tracking quality, and insights
+    required:
+      - timestamp
+      - goalId
+      - analysisDepth
+      - dataQuality
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      goalId:
+        type: string
+        format: uuid
+        description: Unique identifier for the associated goal
+        example: "456e7890-f12a-34b5-c678-def012345678"
+      analysisDepth:
+        type: string
+        enum: [basic, standard, comprehensive]
+        description: Depth of progress analysis performed
+        example: comprehensive
+      dataQuality:
+        type: object
+        description: Assessment of data quality used for progress calculation
+        required:
+          - score
+          - completeness
+          - accuracy
+        properties:
+          score:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall data quality score (0-1)
+            example: 0.89
+          completeness:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Data completeness percentage (0-1)
+            example: 0.92
+          accuracy:
+            type: string
+            enum: [very_high, high, medium, low]
+            description: Estimated accuracy of progress measurements
+            example: high
+          dataPoints:
+            type: integer
+            minimum: 0
+            description: Number of data points used in analysis
+            example: 45
+          timeSpan:
+            type: integer
+            description: Time span of data in days
+            example: 28
+          gaps:
+            type: array
+            description: Identified data gaps or inconsistencies
+            items:
+              type: string
+            example: ["Missing data for weekend of Jan 6-7"]
+      progressInsights:
+        type: object
+        description: AI-generated insights about goal progress
+        properties:
+          trend:
+            type: string
+            enum: [accelerating, steady, decelerating, stalled, declining]
+            description: Overall progress trend
+            example: steady
+          trendConfidence:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Confidence in trend analysis (0-1)
+            example: 0.84
+          keyDrivers:
+            type: array
+            description: Key factors driving current progress
+            items:
+              type: string
+            example: ["Consistent workout schedule", "Improved nutrition adherence"]
+          riskFactors:
+            type: array
+            description: Factors that could negatively impact progress
+            items:
+              type: string
+            example: ["Upcoming business travel", "Plateau risk in 2-3 weeks"]
+          opportunities:
+            type: array
+            description: Opportunities to accelerate progress
+            items:
+              type: string
+            example: ["Increase workout intensity", "Add strength training"]
+      recommendations:
+        type: object
+        description: Personalized recommendations based on progress analysis
+        properties:
+          immediate:
+            type: array
+            description: Immediate actions to maintain or improve progress
+            items:
+              type: object
+              required:
+                - action
+                - priority
+                - impact
+              properties:
+                action:
+                  type: string
+                  description: Recommended action
+                  example: "Increase protein intake to 1.2g per kg body weight"
+                priority:
+                  type: string
+                  enum: [low, medium, high, critical]
+                  example: high
+                impact:
+                  type: string
+                  description: Expected impact of the action
+                  example: "Could improve fat loss by 15-20%"
+            example:
+              - action: "Increase protein intake to 1.2g per kg body weight"
+                priority: high
+                impact: "Could improve fat loss by 15-20%"
+          strategic:
+            type: array
+            description: Strategic changes for long-term success
+            items:
+              type: object
+              required:
+                - strategy
+                - timeframe
+                - expectedOutcome
+              properties:
+                strategy:
+                  type: string
+                  description: Strategic recommendation
+                  example: "Implement progressive overload in strength training"
+                timeframe:
+                  type: string
+                  description: Recommended timeframe for implementation
+                  example: "2-3 weeks"
+                expectedOutcome:
+                  type: string
+                  description: Expected outcome of the strategy
+                  example: "Prevent strength plateau and maintain metabolism"
+            example:
+              - strategy: "Implement progressive overload in strength training"
+                timeframe: "2-3 weeks"
+                expectedOutcome: "Prevent strength plateau and maintain metabolism"
+      milestoneAnalysis:
+        type: object
+        description: Analysis of milestone progress and achievement
+        properties:
+          nextMilestone:
+            type: object
+            description: Information about the next upcoming milestone
+            properties:
+              id:
+                type: string
+                example: "milestone_002"
+              title:
+                type: string
+                example: "Halfway point - 5kg"
+              daysRemaining:
+                type: integer
+                description: Days remaining to target date
+                example: 18
+              onTrack:
+                type: boolean
+                description: Whether milestone is on track
+                example: true
+              projectedAchievement:
+                type: string
+                format: date-time
+                description: Projected achievement date
+                example: "2024-02-28T00:00:00Z"
+          recentAchievements:
+            type: array
+            description: Recently completed milestones
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "milestone_001"
+                title:
+                  type: string
+                  example: "First 2.5kg"
+                completedDate:
+                  type: string
+                  format: date-time
+                  example: "2024-01-15T00:00:00Z"
+                daysAheadOrBehind:
+                  type: integer
+                  description: Days ahead (positive) or behind (negative) schedule
+                  example: 2
+            example:
+              - id: "milestone_001"
+                title: "First 2.5kg"
+                completedDate: "2024-01-15T00:00:00Z"
+                daysAheadOrBehind: 2
+      behavioralPatterns:
+        type: object
+        description: Identified behavioral patterns affecting progress
+        properties:
+          strongDays:
+            type: array
+            description: Days of week with strongest performance
+            items:
+              type: string
+              enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+            example: ["monday", "tuesday", "wednesday"]
+          challengingDays:
+            type: array
+            description: Days of week with challenging performance
+            items:
+              type: string
+              enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+            example: ["friday", "saturday"]
+          optimalTimes:
+            type: array
+            description: Times of day with best adherence
+            items:
+              type: string
+            example: ["6:00-8:00 AM", "6:00-7:00 PM"]
+          consistencyScore:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall consistency score (0-1)
+            example: 0.78
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 234.7
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Timestamp when progress data was last updated
+        example: "2024-01-15T09:45:00Z"
+      nextAnalysis:
+        type: string
+        format: date-time
+        description: Recommended date for next progress analysis
+        example: "2024-01-22T10:30:00Z"
+examples:
+  - status: success
+    data:
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      percentage: 0.25
+      onTrack: true
+      velocity: 0.18
+      projectedCompletion: "2024-04-10T00:00:00Z"
+      confidenceScore: 0.82
+      remainingValue: 7.5
+      timeRemaining: 89
+      averageDaily: 0.084
+      streak:
+        current: 14
+        longest: 21
+        type: adherence
+      lastUpdate: "2024-01-15T08:00:00Z"
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      analysisDepth: comprehensive
+      dataQuality:
+        score: 0.89
+        completeness: 0.92
+        accuracy: high
+        dataPoints: 45
+        timeSpan: 28
+        gaps: ["Missing data for weekend of Jan 6-7"]
+      progressInsights:
+        trend: steady
+        trendConfidence: 0.84
+        keyDrivers: ["Consistent workout schedule", "Improved nutrition adherence"]
+        riskFactors: ["Upcoming business travel", "Plateau risk in 2-3 weeks"]
+        opportunities: ["Increase workout intensity", "Add strength training"]
+      recommendations:
+        immediate:
+          - action: "Increase protein intake to 1.2g per kg body weight"
+            priority: high
+            impact: "Could improve fat loss by 15-20%"
+        strategic:
+          - strategy: "Implement progressive overload in strength training"
+            timeframe: "2-3 weeks"
+            expectedOutcome: "Prevent strength plateau and maintain metabolism"
+      milestoneAnalysis:
+        nextMilestone:
+          id: "milestone_002"
+          title: "Halfway point - 5kg"
+          daysRemaining: 18
+          onTrack: true
+          projectedAchievement: "2024-02-28T00:00:00Z"
+        recentAchievements:
+          - id: "milestone_001"
+            title: "First 2.5kg"
+            completedDate: "2024-01-15T00:00:00Z"
+            daysAheadOrBehind: 2
+      behavioralPatterns:
+        strongDays: ["monday", "tuesday", "wednesday"]
+        challengingDays: ["friday", "saturday"]
+        optimalTimes: ["6:00-8:00 AM", "6:00-7:00 PM"]
+        consistencyScore: 0.78
+      processingTime: 234.7
+      lastUpdated: "2024-01-15T09:45:00Z"
+      nextAnalysis: "2024-01-22T10:30:00Z" 

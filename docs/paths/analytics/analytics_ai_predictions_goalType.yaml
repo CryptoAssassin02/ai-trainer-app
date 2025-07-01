@@ -1,0 +1,113 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+    - AI-Powered Analytics
+  summary: Get AI goal achievement predictions
+  description: |
+    Retrieve AI-powered predictions for goal achievement probability, timeline, and success factors for a specific goal type.
+    
+    **Prediction Capabilities:**
+    - Goal achievement probability scoring
+    - Estimated timeline to completion
+    - Success factor identification and weighting
+    - Risk factor and obstacle prediction
+    - Milestone achievement probability
+    
+    **Goal Types Supported:**
+    - weight_loss: Weight reduction goals and timeline predictions
+    - muscle_gain: Muscle building and strength gain predictions  
+    - strength: Strength milestone and PR predictions
+    - endurance: Cardio and endurance goal predictions
+    - body_composition: Body fat and physique transformation predictions
+    
+    **AI Analysis Includes:**
+    - Historical progress pattern analysis
+    - Adherence consistency factor modeling
+    - Goal difficulty assessment relative to current fitness
+    - Personalized timeline and milestone predictions
+  operationId: getGoalPredictions
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: goalType
+      in: path
+      required: true
+      description: Type of goal for prediction analysis
+      schema:
+        type: string
+        enum: [weight_loss, muscle_gain, strength, endurance, body_composition]
+        example: "weight_loss"
+    
+    - name: targetValue
+      in: query
+      description: Target value for the goal (optional for existing goals)
+      schema:
+        type: number
+        example: 75.0
+    
+    - name: targetTimeframe
+      in: query
+      description: Desired timeframe for goal achievement
+      schema:
+        type: string
+        enum: ["1month", "3months", "6months", "1year"]
+        example: "6months"
+    
+    - name: confidenceLevel
+      in: query
+      description: Minimum confidence level for predictions
+      schema:
+        type: number
+        minimum: 0.1
+        maximum: 1.0
+        default: 0.7
+        example: 0.8
+    
+    - name: includeScenarios
+      in: query
+      description: Include best/worst case scenario predictions
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeMilestones
+      in: query
+      description: Include milestone prediction timeline
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: analysisDepth
+      in: query
+      description: Depth of predictive analysis
+      schema:
+        type: string
+        enum: [basic, detailed, comprehensive]
+        default: "detailed"
+        example: "comprehensive"
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/GoalPredictionsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '422':
+      $ref: '../../components/responses/analytics/AnalyticsInvalidGoalType.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml'
+    
+    '502':
+      $ref: '../../components/responses/analytics/AIAnalyticsFailed.yaml' 

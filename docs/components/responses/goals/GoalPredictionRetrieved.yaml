@@ -1,0 +1,149 @@
+description: Goal achievement prediction successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  X-AI-Processing-Time:
+    description: Time spent on AI prediction processing in milliseconds
+    schema:
+      type: integer
+      minimum: 0
+      example: 1250
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/goals/GoalPredictionResponse.yaml'
+    examples:
+      positive_weight_loss_prediction:
+        summary: High confidence weight loss goal prediction
+        value:
+          status: success
+          data:
+            goalId: "550e8400-e29b-41d4-a716-446655440000"
+            prediction:
+              achievable: true
+              confidenceScore: 0.89
+              estimatedTimeToGoal: "4.2 months"
+              currentTrajectory: "ahead_of_schedule"
+              probabilityDistribution:
+                veryLikely: 0.65
+                likely: 0.24
+                possible: 0.08
+                unlikely: 0.03
+              projectedCompletionDate: "2024-05-20"
+              originalTargetDate: "2024-07-15"
+            recommendations:
+              - category: "nutrition"
+                suggestion: "Maintain current caloric deficit of 500 calories daily"
+                impact: "high"
+                confidence: 0.92
+              - category: "exercise"
+                suggestion: "Add 1 additional strength training session per week"
+                impact: "medium"
+                confidence: 0.78
+              - category: "lifestyle"
+                suggestion: "Continue current sleep schedule (7-8 hours nightly)"
+                impact: "medium"
+                confidence: 0.85
+            analysis:
+              keyFactors:
+                - factor: "Consistent workout adherence"
+                  impact: "positive"
+                  weight: 0.35
+                - factor: "Healthy eating patterns"
+                  impact: "positive"
+                  weight: 0.40
+                - factor: "Regular progress tracking"
+                  impact: "positive"
+                  weight: 0.25
+              requiredChanges:
+                - "Maintain current routine consistency"
+                - "Consider slight increase in cardio intensity"
+              potentialChallenges:
+                - challenge: "Weight loss plateau around month 3"
+                  probability: 0.45
+                  mitigation: "Adjust caloric intake and exercise intensity"
+                - challenge: "Holiday season disruptions"
+                  probability: 0.30
+                  mitigation: "Plan ahead for special occasions"
+            historicalComparison:
+              similarGoals: 1247
+              successRate: 0.78
+              averageTimeToCompletion: "5.1 months"
+              userPerformanceVsPeers: "top 25%"
+          metadata:
+            predictionGeneratedAt: "2024-01-20T15:00:00Z"
+            dataPointsAnalyzed: 45
+            modelVersion: "goal-predictor-v2.1"
+            aiProcessingTime: 1250
+      challenging_strength_prediction:
+        summary: Moderate confidence strength goal with challenges
+        value:
+          status: success
+          data:
+            goalId: "660f9511-f3ac-52e5-b827-556766551111"
+            prediction:
+              achievable: true
+              confidenceScore: 0.72
+              estimatedTimeToGoal: "7.5 months"
+              currentTrajectory: "slightly_behind"
+              probabilityDistribution:
+                veryLikely: 0.28
+                likely: 0.44
+                possible: 0.21
+                unlikely: 0.07
+              projectedCompletionDate: "2024-08-30"
+              originalTargetDate: "2024-04-15"
+            recommendations:
+              - category: "training"
+                suggestion: "Implement periodized training with deload weeks"
+                impact: "high"
+                confidence: 0.88
+              - category: "recovery"
+                suggestion: "Increase protein intake to 2.2g per kg body weight"
+                impact: "high"
+                confidence: 0.91
+              - category: "technique"
+                suggestion: "Work with trainer to improve bench press form"
+                impact: "medium"
+                confidence: 0.76
+              - category: "programming"
+                suggestion: "Focus on close-grip bench press and tricep accessories"
+                impact: "medium"
+                confidence: 0.82
+            analysis:
+              keyFactors:
+                - factor: "Current strength level relative to goal"
+                  impact: "challenging"
+                  weight: 0.45
+                - factor: "Training consistency"
+                  impact: "positive"
+                  weight: 0.30
+                - factor: "Previous strength gains rate"
+                  impact: "neutral"
+                  weight: 0.25
+              requiredChanges:
+                - "Increase training frequency from 3 to 4 sessions per week"
+                - "Focus on compound movements and progressive overload"
+                - "Improve recovery protocols"
+              potentialChallenges:
+                - challenge: "Strength plateau around 90kg"
+                  probability: 0.65
+                  mitigation: "Deload and vary rep ranges"
+                - challenge: "Form breakdown at higher weights"
+                  probability: 0.40
+                  mitigation: "Regular form checks and video analysis"
+            safetyConsiderations:
+              - "Always use spotter for heavy attempts"
+              - "Warm up thoroughly before max efforts"
+              - "Monitor for overuse injuries"
+          metadata:
+            predictionGeneratedAt: "2024-01-20T15:05:00Z"
+            dataPointsAnalyzed: 22
+            modelVersion: "strength-predictor-v1.8"
+            aiProcessingTime: 1850 

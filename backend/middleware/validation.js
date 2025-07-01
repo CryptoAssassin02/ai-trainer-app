@@ -56,7 +56,7 @@ const validate = (schema, source = 'body') => {
     // Validate data against schema
     const { error, value } = schema.validate(req[source], {
       abortEarly: false,
-      convert: false
+      convert: true
     });
     
     // // DEBUG: Log validation result
@@ -293,10 +293,10 @@ const workoutSchemas = {
       }),
     plan_id: Joi.string()
       .uuid()
-      .required()
+      .allow(null)
+      .optional()
       .messages({
-        'string.guid': 'Plan ID must be a valid UUID',
-        'any.required': 'Plan ID is required'
+        'string.guid': 'Plan ID must be a valid UUID'
       }),
     date: Joi.date()
       .required()

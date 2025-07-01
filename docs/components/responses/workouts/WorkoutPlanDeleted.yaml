@@ -1,0 +1,5 @@
+description: Workout plan deleted successfully
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/common/GenericSuccessResponse.yaml' 

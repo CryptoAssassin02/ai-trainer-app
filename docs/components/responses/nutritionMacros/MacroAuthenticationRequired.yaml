@@ -1,0 +1,30 @@
+description: Authentication required for macro operations
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MacroAuthenticationError.yaml'
+    examples:
+      missing_token:
+        summary: Missing authentication token
+        description: No authentication token provided for macro operations
+        value:
+          status: "error"
+          error: "MACRO_AUTHENTICATION_ERROR"
+          message: "Authentication required to access macro data"
+          details:
+            reason: "missing_token"
+          timestamp: "2024-01-15T10:30:00Z"
+      
+      insufficient_permissions:
+        summary: Insufficient permissions
+        description: User lacks sufficient permissions for this macro operation
+        value:
+          status: "error"
+          error: "MACRO_AUTHENTICATION_ERROR"
+          message: "Insufficient permissions for this operation"
+          details:
+            reason: "insufficient_permissions"
+          timestamp: "2024-01-15T10:30:00Z" 

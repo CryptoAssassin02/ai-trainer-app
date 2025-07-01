@@ -282,9 +282,9 @@ class NutritionAgent extends BaseAgent {
             
             // Fetch user profile from Supabase
             const { data, error } = await this.supabase
-                .from('profiles')
+                .from('user_profiles')
                 .select('*')
-                .eq('id', userId)
+                .eq('user_id', userId)
                 .maybeSingle();
                 
             if (error) {
@@ -369,6 +369,13 @@ class NutritionAgent extends BaseAgent {
         // Ensure validationResults exists
         if (!state.validationResults) {
             state.validationResults = {};
+        }
+        
+        // Check for null/undefined goals and provide a clear error
+        if (!goals || !Array.isArray(goals)) {
+            const errorMessage = `Goals validation failed: Goals must be provided as a non-empty array. Received: ${goals}`;
+            this.log('error', errorMessage, { goals, userId: state.userId });
+            throw new ValidationError(errorMessage, "INVALID_GOALS");
         }
         
         // Use the new ValidationUtils to validate goals
@@ -465,9 +472,9 @@ class NutritionAgent extends BaseAgent {
             macros: state.calculations.macros,
             meal_plan: state.mealPlan,
             food_suggestions: state.foodSuggestions,
-            explanations: state.explanations,
-            goals: state.goals,
-            activity_level: state.activityLevel
+            explanations: state.explanations
+            // Note: activity_level removed - not in nutrition_plans table schema
+            // Note: goals removed - not in nutrition_plans table schema
         };
         
         // Store in Supabase table
@@ -589,11 +596,11 @@ class NutritionAgent extends BaseAgent {
                 state.dietaryPreferences
             );
             
-            // Assign using renamed properties from the (conceptually) modified mock
+            // Assign using correct properties from MacroCalculator.calculateMacros
             state.calculations.macros = {
-                protein_g: macroResult.macro_values.p_g, // Changed access
-                carbs_g: macroResult.macro_values.c_g,   // Changed access
-                fat_g: macroResult.macro_values.f_g,     // Changed access
+                protein_g: macroResult.macros.protein,
+                carbs_g: macroResult.macros.carbs,
+                fat_g: macroResult.macros.fat,
                 calories: macroResult.calories
             };
             
@@ -669,17 +676,15 @@ class NutritionAgent extends BaseAgent {
             `;
             
             // Call OpenAI to generate the meal plan
-            const response = await this.openai.chat.completions.create({
+            const responseContent = await this.openai.generateChatCompletion([
+                { role: "system", content: "You are a nutrition planning AI that creates structured meal plans based on macronutrient requirements." },
+                { role: "user", content: mealPlanningPrompt }
+            ], {
                 model: this.config.model || 'gpt-4o',
-                messages: [
-                    { role: "system", content: "You are a nutrition planning AI that creates structured meal plans based on macronutrient requirements." },
-                    { role: "user", content: mealPlanningPrompt }
-                ],
                 temperature: 0.7,
                 response_format: { type: "json_object" }
             });
             
-            const responseContent = response.choices[0].message.content;
             this.log('info', "Received meal plan structure from OpenAI.", { userId: state.userId });
             
             // Parse and validate the response
@@ -763,17 +768,15 @@ class NutritionAgent extends BaseAgent {
             `;
             
             // Call OpenAI to generate the food suggestions
-            const response = await this.openai.chat.completions.create({
+            const responseContent = await this.openai.generateChatCompletion([
+                { role: "system", content: "You are a nutrition planning AI that suggests suitable foods based on macronutrient requirements." },
+                { role: "user", content: foodSuggestionsPrompt }
+            ], {
                 model: this.config.model || 'gpt-4o',
-                messages: [
-                    { role: "system", content: "You are a nutrition planning AI that suggests suitable foods based on macronutrient requirements." },
-                    { role: "user", content: foodSuggestionsPrompt }
-                ],
                 temperature: 0.7,
                 response_format: { type: "json_object" }
             });
             
-            const responseContent = response.choices[0].message.content;
             this.log('info', "Received food suggestions from OpenAI.", { userId: state.userId });
             
             // Parse and validate the response
@@ -855,20 +858,42 @@ class NutritionAgent extends BaseAgent {
                 }
             `;
 
-            let responseContent;
             try {
                 // Call OpenAI for explanations
-                const response = await this.openai.chat.completions.create({
+                const responseContent = await this.openai.generateChatCompletion([
+                    { role: "system", content: "You are an expert nutritionist who explains nutrition plans clearly and accurately." },
+                    { role: "user", content: explanationsPrompt }
+                ], {
                     model: this.config.model || 'gpt-4o',
-                    messages: [
-                        { role: "system", content: "You are an expert nutritionist who explains nutrition plans clearly and accurately." },
-                        { role: "user", content: explanationsPrompt }
-                    ],
                     temperature: 0.5,
                     response_format: { type: "json_object" }
                 });
-                responseContent = response.choices[0].message.content;
                 this.log('info', "Received explanations from OpenAI.", { userId: state.userId });
+
+                // If OpenAI call was successful, proceed to parse and validate
+                try {
+                    const parsedResponse = JSON.parse(responseContent);
+                    if (!parsedResponse.explanations ||
+                        !parsedResponse.explanations.rationale ||
+                        !parsedResponse.explanations.principles ||
+                        !parsedResponse.explanations.guidelines ||
+                        !Array.isArray(parsedResponse.explanations.references)) {
+                        this.log('error', "Invalid structure received from OpenAI for explanations.", { parsedResponse });
+                        state.errors = state.errors || [];
+                        state.errors.push(`Explanation Structure Error: Invalid structure received from AI response`);
+                        throw new ValidationError("AI response for explanations had an invalid structure.", "INVALID_RESPONSE_STRUCTURE");
+                    }
+                    state.explanations = parsedResponse.explanations;
+                    this.log('info', "Explanations generated and processed.", { userId: state.userId });
+                    return state;
+                } catch (parseOrStructureError) { // Catches JSON.parse error and structure validation error
+                    this.log('error', "Failed to parse or validate explanation structure from OpenAI.", { responseContent, error: parseOrStructureError.message });
+                    state.errors = state.errors || []; 
+                    state.errors.push(`Explanation Parse/Structure Error: ${parseOrStructureError.message}`);
+                    // Determine if it was a parse error or structure error for the code
+                    const errorCode = parseOrStructureError instanceof SyntaxError ? "INVALID_JSON" : "INVALID_RESPONSE_STRUCTURE";
+                    throw new ValidationError(`Failed to process explanations from AI response. Raw content: ${responseContent}. Error: ${parseOrStructureError.message}`, errorCode);
+                }
 
             } catch (apiError) {
                 // OpenAI call failed - use fallback explanations but log the error
@@ -882,31 +907,6 @@ class NutritionAgent extends BaseAgent {
                     references: ["Nutritional recommendations based on established dietary guidelines."]
                 };
                 return state; // Non-critical, so we return state with fallback
-            }
-
-            // If OpenAI call was successful, proceed to parse and validate
-            try {
-                const parsedResponse = JSON.parse(responseContent);
-                if (!parsedResponse.explanations ||
-                    !parsedResponse.explanations.rationale ||
-                    !parsedResponse.explanations.principles ||
-                    !parsedResponse.explanations.guidelines ||
-                    !Array.isArray(parsedResponse.explanations.references)) {
-                    this.log('error', "Invalid structure received from OpenAI for explanations.", { parsedResponse });
-                    state.errors = state.errors || [];
-                    state.errors.push(`Explanation Structure Error: Invalid structure received from AI response`);
-                    throw new ValidationError("AI response for explanations had an invalid structure.", "INVALID_RESPONSE_STRUCTURE");
-                }
-                state.explanations = parsedResponse.explanations;
-                this.log('info', "Explanations generated and processed.", { userId: state.userId });
-                return state;
-            } catch (parseOrStructureError) { // Catches JSON.parse error and structure validation error
-                this.log('error', "Failed to parse or validate explanation structure from OpenAI.", { responseContent, error: parseOrStructureError.message });
-                state.errors = state.errors || []; 
-                state.errors.push(`Explanation Parse/Structure Error: ${parseOrStructureError.message}`);
-                // Determine if it was a parse error or structure error for the code
-                const errorCode = parseOrStructureError instanceof SyntaxError ? "INVALID_JSON" : "INVALID_RESPONSE_STRUCTURE";
-                throw new ValidationError(`Failed to process explanations from AI response. Raw content: ${responseContent}. Error: ${parseOrStructureError.message}`, errorCode);
             }
 
         } catch (error) { // Catches MISSING_DATA from the top, or re-thrown INVALID_JSON/INVALID_RESPONSE_STRUCTURE

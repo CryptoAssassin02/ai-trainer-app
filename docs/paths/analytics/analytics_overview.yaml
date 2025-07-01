@@ -1,0 +1,69 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Get comprehensive analytics overview
+  description: |
+    Retrieve a comprehensive analytics overview including workouts, physical progress, wellness metrics, and adherence data.
+    
+    **Overview Includes:**
+    - Workout completion and consistency metrics
+    - Physical progress (weight, body fat, measurements)
+    - Wellness scores (mood, sleep, energy, stress)
+    - Adherence metrics (workout and nutrition compliance)
+    
+    **Caching:**
+    Data is cached for 5 minutes to optimize performance
+  operationId: getAnalyticsOverview
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: timeframe
+      in: query
+      description: Time period for analytics data
+      schema:
+        type: string
+        enum: ["7 days", "30 days", "90 days", "6 months", "1 year"]
+        default: "30 days"
+        example: "30 days"
+    
+    - name: metrics
+      in: query
+      description: Specific metrics to include (comma-separated)
+      schema:
+        type: string
+        example: "weight,workouts,wellness,adherence"
+    
+    - name: groupBy
+      in: query
+      description: Group data by time period
+      schema:
+        type: string
+        enum: [day, week, month]
+        default: "day"
+        example: "week"
+    
+    - name: includeAI
+      in: query
+      description: Include AI-generated insights in the overview
+      schema:
+        type: boolean
+        default: false
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/AnalyticsOverviewRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

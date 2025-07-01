@@ -1,0 +1,38 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [ANALYTICS_NOT_FOUND]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      resource:
+        type: string
+        description: Resource that was not found (e.g., 'analytics data', 'user data')
+      timeframe:
+        type: string
+        description: Requested timeframe that has no data
+      lastDataPoint:
+        type: string
+        format: date-time
+        description: Timestamp of most recent available data
+      suggestedAction:
+        type: string
+        description: Suggested action to resolve the issue
+    description: Details about what was not found
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

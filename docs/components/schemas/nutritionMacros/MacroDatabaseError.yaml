@@ -1,0 +1,55 @@
+type: object
+description: Database error for macro operations
+required:
+  - status
+  - error
+  - message
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+    example: "error"
+  
+  error:
+    type: string
+    enum: [MACRO_DATABASE_ERROR]
+    description: Error type identifier
+    example: "MACRO_DATABASE_ERROR"
+  
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Database error occurred while processing macro data"
+  
+  details:
+    type: object
+    properties:
+      operation:
+        type: string
+        description: Database operation that failed
+        example: "UPDATE"
+      
+      table:
+        type: string
+        description: Database table involved
+        example: "macro_plans"
+    additionalProperties: false
+    description: Database error details
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: When the error occurred
+    example: "2024-01-15T10:30:00Z"
+
+additionalProperties: false
+
+example:
+  status: "error"
+  error: "MACRO_DATABASE_ERROR"
+  message: "Failed to save macro plan to database"
+  details:
+    operation: "INSERT"
+    table: "macro_plans"
+  timestamp: "2024-01-15T10:30:00Z" 

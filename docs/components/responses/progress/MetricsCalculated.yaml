@@ -1,0 +1,154 @@
+description: Progress metrics successfully calculated
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/progress/MetricsCalculationResponse.yaml'
+    examples:
+      comprehensive_metrics:
+        summary: Complete metrics calculation with trends and projections
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            calculationPeriod:
+              startDate: "2024-01-01"
+              endDate: "2024-01-15"
+              daysCovered: 15
+            physicalMetrics:
+              weight:
+                current: 77.5
+                starting: 80.0
+                change: -2.5
+                changePercentage: -3.1
+                trend: "decreasing"
+                averageWeeklyChange: -0.8
+                projectedMonthlyChange: -3.5
+              bodyFat:
+                current: 18.2
+                starting: 20.8
+                change: -2.6
+                changePercentage: -12.5
+                trend: "decreasing"
+                averageWeeklyChange: -0.9
+              bodyComposition:
+                leanMass: 63.4
+                fatMass: 14.1
+                leanMassChange: 1.2
+                fatMassChange: -3.8
+            measurements:
+              waist:
+                current: 85.5
+                starting: 90.0
+                change: -4.5
+                changePercentage: -5.0
+                trend: "decreasing"
+              chest:
+                current: 102.0
+                starting: 98.5
+                change: 3.5
+                changePercentage: 3.6
+                trend: "increasing"
+            wellnessMetrics:
+              mood:
+                average: 7.8
+                trend: "stable"
+                bestDay: 10
+                worstDay: 5
+                consistency: 0.82
+              sleepQuality:
+                average: 7.5
+                trend: "improving"
+                bestDay: 9
+                worstDay: 6
+                consistency: 0.75
+              energyLevel:
+                average: 8.0
+                trend: "improving"
+                bestDay: 10
+                worstDay: 6
+                consistency: 0.88
+              stressLevel:
+                average: 3.2
+                trend: "decreasing"
+                bestDay: 1
+                worstDay: 6
+                consistency: 0.79
+            progressSummary:
+              overallTrend: "positive"
+              progressScore: 8.5
+              consistencyScore: 0.87
+              dataQuality: 0.93
+              milestones:
+                - type: "weight_loss"
+                  value: 2.5
+                  unit: "kg"
+                  achievedDate: "2024-01-15"
+                - type: "body_fat_reduction"
+                  value: 2.6
+                  unit: "percentage"
+                  achievedDate: "2024-01-15"
+            predictions:
+              nextWeekWeight: 76.7
+              nextMonthWeight: 74.0
+              goalAchievementProbability: 0.85
+              estimatedTimeToGoal: "8 weeks"
+          metadata:
+            calculatedAt: "2024-01-15T12:00:00Z"
+            dataPoints: 15
+            confidence: 0.92
+            lastUpdated: "2024-01-15T12:00:00Z"
+      limited_data_metrics:
+        summary: Metrics calculation with limited data points
+        value:
+          status: success
+          data:
+            userId: "user_456"
+            calculationPeriod:
+              startDate: "2024-01-10"
+              endDate: "2024-01-15"
+              daysCovered: 6
+            physicalMetrics:
+              weight:
+                current: 70.0
+                starting: 70.5
+                change: -0.5
+                changePercentage: -0.7
+                trend: "stable"
+                averageWeeklyChange: -0.6
+            wellnessMetrics:
+              mood:
+                average: 7.0
+                trend: "stable"
+                consistency: 0.65
+              sleepQuality:
+                average: 7.5
+                trend: "stable"
+                consistency: 0.70
+            progressSummary:
+              overallTrend: "stable"
+              progressScore: 6.5
+              consistencyScore: 0.60
+              dataQuality: 0.68
+              limitations:
+                - "Limited data points available"
+                - "Trend analysis may be less accurate"
+                - "Continue regular check-ins for better insights"
+            recommendations:
+              - "Maintain current routine"
+              - "Log more frequent check-ins"
+              - "Focus on consistency over rapid changes"
+          metadata:
+            calculatedAt: "2024-01-15T12:05:00Z"
+            dataPoints: 3
+            confidence: 0.65
+            lastUpdated: "2024-01-15T12:05:00Z"
+            warning: "Limited data available for accurate trend analysis" 

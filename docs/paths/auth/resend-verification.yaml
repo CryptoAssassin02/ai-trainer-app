@@ -1,0 +1,22 @@
+post:
+  tags:
+    - Authentication & User Management
+  summary: Resend email verification
+  description: |
+    Resend email verification link to the specified address. For security,
+    always returns success regardless of whether the email exists.
+  operationId: resendEmailVerification
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/auth/ResendVerificationRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/common/GenericSuccess.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationFailed.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+  security: []  # Public endpoint 

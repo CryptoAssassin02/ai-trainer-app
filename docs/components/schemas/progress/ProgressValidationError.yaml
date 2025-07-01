@@ -1,0 +1,52 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [PROGRESS_VALIDATION_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      field:
+        type: string
+        description: Field that failed validation
+      value:
+        type: string
+        description: Invalid value provided
+      constraint:
+        type: string
+        description: Validation constraint that was violated
+      allowedValues:
+        type: array
+        items:
+          type: string
+        description: List of allowed values (if applicable)
+      allowedRange:
+        type: object
+        properties:
+          min:
+            type: number
+          max:
+            type: number
+        description: Allowed value range (if applicable)
+      dependentFields:
+        type: array
+        items:
+          type: string
+        description: Fields that depend on the invalid field
+    description: Detailed validation error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

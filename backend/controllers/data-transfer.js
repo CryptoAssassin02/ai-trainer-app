@@ -177,72 +177,106 @@ async function importData(req, res, next) {
     
     let result;
     
+    // Determine file type (with fallback for file extension)
+    const isJsonFile = uploadedFile.mimetype === 'application/json' || 
+                       uploadedFile.originalname.toLowerCase().endsWith('.json');
+    const isCsvFile = uploadedFile.mimetype === 'text/csv' || 
+                      uploadedFile.originalname.toLowerCase().endsWith('.csv');
+    const isXlsxFile = uploadedFile.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                       uploadedFile.originalname.toLowerCase().endsWith('.xlsx');
+    
     // Process based on file type
-    switch (uploadedFile.mimetype) {
-      case 'application/json':
-        // Read JSON file content
-        const jsonContent = fs.readFileSync(uploadedFile.path, 'utf8');
-        let parsedJson;
-        
-        try {
-          parsedJson = JSON.parse(jsonContent);
-        } catch (error) {
-          return res.status(400).json({
-            status: 'error',
-            message: 'Invalid JSON file format.'
-          });
-        }
-        
+    if (isJsonFile) {
+      // Read JSON file content
+      const jsonContent = fs.readFileSync(uploadedFile.path, 'utf8');
+      let parsedJson;
+      
+      try {
+        parsedJson = JSON.parse(jsonContent);
+      } catch (error) {
         // Clean up the temporary file
         fs.unlinkSync(uploadedFile.path);
-        
-        // Process the JSON data
-        result = await importService.importJSON(userId, parsedJson, jwtToken);
-        break;
-        
-      case 'text/csv':
-        // Create read stream for CSV file
-        const csvStream = fs.createReadStream(uploadedFile.path);
-        tempFilePath = uploadedFile.path;
-        
-        // Process the CSV data
-        result = await importService.importCSV(userId, csvStream, jwtToken);
-        
-        // Clean up the temporary file
-        fs.unlinkSync(uploadedFile.path);
-        tempFilePath = null;
-        break;
-        
-      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        // Pass the file path to XLSX importer
-        tempFilePath = uploadedFile.path;
-        
-        // Process the XLSX data (file will be deleted by the service)
-        result = await importService.importXLSX(userId, uploadedFile.path, jwtToken);
-        tempFilePath = null;
-        break;
-        
-      default:
-        // Clean up the temporary file
-        fs.unlinkSync(uploadedFile.path);
-        
         return res.status(400).json({
           status: 'error',
-          message: `Unsupported file type: ${uploadedFile.mimetype}`
+          message: 'Invalid JSON file format.'
         });
+      }
+      
+      // Clean up the temporary file
+      fs.unlinkSync(uploadedFile.path);
+      
+      // Process the JSON data
+      result = await importService.importJSON(userId, parsedJson, jwtToken);
+      
+    } else if (isCsvFile) {
+      // Create read stream for CSV file
+      const csvStream = fs.createReadStream(uploadedFile.path);
+      tempFilePath = uploadedFile.path;
+      
+      // Process the CSV data
+      result = await importService.importCSV(userId, csvStream, jwtToken);
+      
+      // Clean up the temporary file
+      fs.unlinkSync(uploadedFile.path);
+      tempFilePath = null;
+      
+    } else if (isXlsxFile) {
+      // Pass the file path to XLSX importer
+      tempFilePath = uploadedFile.path;
+      
+      // Process the XLSX data (file will be deleted by the service)
+      result = await importService.importXLSX(userId, uploadedFile.path, jwtToken);
+      tempFilePath = null;
+      
+    } else {
+      // Clean up the temporary file
+      fs.unlinkSync(uploadedFile.path);
+      
+      return res.status(400).json({
+        status: 'error',
+        message: `Unsupported file type: ${uploadedFile.mimetype} (${uploadedFile.originalname})`
+      });
     }
     
     // Return success response with import results
-    return res.status(200).json({
-      status: 'success',
-      message: 'Data imported successfully.',
-      data: {
-        total: result.total,
-        successful: result.successful,
-        failed: result.failed,
-        errors: result.errors.slice(0, 10) // Limit number of returned errors
-      }
-    });
+    // Check if there were validation failures and return appropriate status
+    if (result.failed > 0 && result.successful === 0) {
+      // All items failed validation - return error status
+      return res.status(400).json({
+        status: 'error',
+        message: 'All data validation failed.',
+        data: {
+          total: result.total,
+          successful: result.successful,
+          failed: result.failed,
+          errors: result.errors.slice(0, 10) // Limit number of returned errors
+        }
+      });
+    } else if (result.failed > 0) {
+      // Some items failed, some succeeded - return success with warnings
+      return res.status(200).json({
+        status: 'success',
+        message: `Data imported with ${result.failed} validation failures.`,
+        data: {
+          total: result.total,
+          successful: result.successful,
+          failed: result.failed,
+          errors: result.errors.slice(0, 10) // Limit number of returned errors
+        }
+      });
+    } else {
+      // All items succeeded
+      return res.status(200).json({
+        status: 'success',
+        message: 'Data imported successfully.',
+        data: {
+          total: result.total,
+          successful: result.successful,
+          failed: result.failed,
+          errors: result.errors.slice(0, 10) // Limit number of returned errors
+        }
+      });
+    }
     
   } catch (error) {
     logger.error(`Error in importData: ${error.message}`, { error });

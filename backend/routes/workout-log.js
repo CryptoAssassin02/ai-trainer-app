@@ -17,8 +17,8 @@ const logger = require('../config/logger');
 
 // Rate limiter for create/update operations
 const logOperationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 20, // Limit each IP to 20 requests per hour
+  windowMs: process.env.NODE_ENV === 'test' ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in test, 1 hour in production
+  max: process.env.NODE_ENV === 'test' ? 100 : 20, // 100 requests per minute in test, 20 per hour in production
   message: {
     status: 'error',
     message: 'Too many workout log operations from this IP, please try again after an hour'

@@ -1,0 +1,157 @@
+get:
+  tags:
+    - Mobile Analytics
+  summary: Get comprehensive mobile notification preferences and settings
+  description: |
+    Retrieve detailed mobile notification preferences including push notifications, scheduling, content customization, and mobile-specific delivery settings.
+    
+    **Notification Categories:**
+    - Workout reminders and scheduling notifications
+    - Progress updates and milestone achievements
+    - Goal tracking and deadline reminders
+    - Social features and peer comparison updates
+    - System updates and maintenance notifications
+    
+    **Mobile-Specific Features:**
+    - Platform-specific notification handling (iOS/Android)
+    - Battery optimization and delivery scheduling
+    - Network-aware notification batching
+    - Offline notification queuing and delivery
+    - Device permission and capability detection
+    
+    **Personalization Options:**
+    - Time zone and scheduling preferences
+    - Notification frequency and batching settings
+    - Content customization and filtering
+    - Priority-based notification management
+    - Do-not-disturb and quiet hours configuration
+    
+    **Privacy & Control:**
+    - Granular opt-in/opt-out controls for all categories
+    - Data sharing preferences for notifications
+    - Anonymization settings for social notifications
+    - Retention and deletion preferences
+    - Third-party integration permission management
+    
+    **Technical Settings:**
+    - Push token management and validation
+    - Delivery method preferences (push/SMS/email)
+    - Fallback notification strategies
+    - Error handling and retry configurations
+    - Analytics and delivery tracking preferences
+  operationId: getMobileNotificationPreferences
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: includeSystemSettings
+      in: query
+      description: Include system-level notification settings
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includePlatformSpecific
+      in: query
+      description: Include platform-specific settings (iOS/Android)
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeDeliveryStatus
+      in: query
+      description: Include notification delivery status and history
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: includeAnalytics
+      in: query
+      description: Include notification analytics and engagement metrics
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: devicePlatform
+      in: query
+      description: Device platform for platform-specific settings
+      schema:
+        type: string
+        enum: [iOS, Android, web, unknown]
+        default: "unknown"
+        example: "iOS"
+    
+    - name: appVersion
+      in: query
+      description: App version for compatibility settings
+      schema:
+        type: string
+        pattern: '^\\d+\\.\\d+\\.\\d+$'
+        example: "2.1.0"
+    
+    - name: osVersion
+      in: query
+      description: Operating system version for capability detection
+      schema:
+        type: string
+        example: "iOS 17.0"
+    
+    - name: timeZone
+      in: query
+      description: User's time zone for scheduling preferences
+      schema:
+        type: string
+        example: "America/New_York"
+    
+    - name: validationMode
+      in: query
+      description: Validation mode for push token and permissions
+      schema:
+        type: string
+        enum: [none, basic, comprehensive]
+        default: "basic"
+        example: "comprehensive"
+    
+    - name: includePermissions
+      in: query
+      description: Include device permission status
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: optimizationLevel
+      in: query
+      description: Battery and performance optimization level
+      schema:
+        type: string
+        enum: [minimal, balanced, aggressive]
+        default: "balanced"
+        example: "aggressive"
+  responses:
+    '200':
+      $ref: '../../components/responses/mobile/MobileNotificationPreferencesRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+    
+    '403':
+      $ref: '../../components/responses/mobile/MobileNotificationAccessDenied.yaml'
+    
+    '404':
+      $ref: '../../components/responses/mobile/MobileNotificationPreferencesNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+    
+    '503':
+      $ref: '../../components/responses/mobile/MobileNotificationServiceUnavailable.yaml' 

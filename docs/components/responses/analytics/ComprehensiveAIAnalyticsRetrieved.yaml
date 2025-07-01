@@ -1,0 +1,212 @@
+description: Comprehensive AI analytics successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/ComprehensiveAIAnalyticsResponse.yaml'
+    examples:
+      complete_analysis:
+        summary: Complete AI analytics combining insights, patterns, and recommendations
+        value:
+          status: success
+          data:
+            insights:
+              - category: "performance"
+                type: "strength_breakthrough"
+                title: "Deadlift Progress Acceleration"
+                description: "Your deadlift has improved 22% in the last 6 weeks, significantly above the typical 10-15% improvement rate."
+                confidence: 0.94
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Continue current progressive overload approach"
+                  - "Add deficit deadlifts to further challenge the movement"
+                supportingData:
+                  currentMax: 140
+                  previousMax: 115
+                  improvementRate: 0.22
+                  peerComparison: "top 10%"
+              - category: "wellness"
+                type: "recovery_optimization"
+                title: "Sleep Impact on Performance"
+                description: "Your workout ratings correlate strongly (r=0.81) with previous night's sleep quality, indicating recovery is your key performance driver."
+                confidence: 0.87
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Prioritize consistent 7.5+ hour sleep schedule"
+                  - "Track sleep quality metrics for better awareness"
+                supportingData:
+                  correlation: 0.81
+                  optimalSleepHours: 7.5
+                  performanceImprovement: 0.18
+            patterns:
+              - patternType: "temporal"
+                category: "workout_consistency"
+                title: "Monday Motivation Peak"
+                description: "Workout intensity and completion rates are 35% higher on Mondays compared to end-of-week sessions."
+                confidence: 0.82
+                strength: "strong"
+                frequency: "weekly"
+                timeframe: "12 weeks"
+                supportingData:
+                  mondayAverage: 8.7
+                  fridayAverage: 6.4
+                  difference: 0.35
+                actionable: true
+                recommendations:
+                  - "Schedule most challenging workouts for Monday/Tuesday"
+                  - "Plan lighter sessions for Thursday/Friday"
+              - patternType: "behavioral"
+                category: "nutrition_adherence"
+                title: "Meal Prep Success Pattern"
+                description: "Weeks with Sunday meal prep show 60% better nutrition adherence throughout the week."
+                confidence: 0.89
+                strength: "strong"
+                frequency: "weekly"
+                timeframe: "8 weeks"
+                supportingData:
+                  prepWeekAdherence: 0.88
+                  noPrepWeekAdherence: 0.55
+                  difference: 0.60
+                actionable: true
+                recommendations:
+                  - "Establish consistent Sunday meal prep routine"
+                  - "Prepare backup healthy snacks for busy days"
+            recommendations:
+              - category: "programming"
+                type: "periodization"
+                title: "Implement Deload Weeks"
+                description: "Based on your training volume and intensity patterns, implementing deload weeks every 4th week will prevent overtraining."
+                priority: "high"
+                confidence: 0.86
+                timeToImplement: "next_cycle"
+                expectedImpact: "major"
+                specificActions:
+                  - "Reduce volume by 40% every 4th week"
+                  - "Maintain intensity but decrease total sets"
+                  - "Focus on mobility and technique during deload"
+                rationale: "Your current training load is approaching overreaching territory based on performance metrics and subjective fatigue scores."
+                supportingData:
+                  currentVolume: 18
+                  sustainableVolume: 16
+                  fatigueScore: 7.2
+              - category: "nutrition"
+                type: "timing_optimization"
+                title: "Pre-Workout Nutrition Strategy"
+                description: "Consuming carbohydrates 60-90 minutes before training will optimize your performance based on your metabolic profile."
+                priority: "medium"
+                confidence: 0.79
+                timeToImplement: "immediate"
+                expectedImpact: "moderate"
+                specificActions:
+                  - "Consume 30-40g carbs 60-90 minutes pre-workout"
+                  - "Focus on easily digestible sources like banana or oats"
+                  - "Track energy levels to optimize timing"
+                rationale: "Your energy dips during longer sessions suggest suboptimal fueling strategy."
+                supportingData:
+                  currentPreWorkoutProtocol: "none"
+                  recommendedCarbs: 35
+                  expectedEnergyImprovement: 0.15
+            goalPredictions:
+              - goalType: "weight_loss"
+                prediction:
+                  achievable: true
+                  estimatedTimeToGoal: "16.5 weeks"
+                  confidenceScore: 0.83
+                  currentTrajectory: "on_track"
+                  milestones:
+                    - description: "10% body weight reduction"
+                      estimatedDate: "2024-03-15T00:00:00Z"
+                      probability: 0.89
+                    - description: "Target weight achievement"
+                      estimatedDate: "2024-04-30T00:00:00Z"
+                      probability: 0.83
+                analysis:
+                  keyFactors: ["caloric_adherence", "workout_consistency", "sleep_quality"]
+                  requiredChanges: ["increase_protein_intake", "add_hiit_sessions"]
+                  potentialChallenges: ["plateau_weeks_12-14", "social_event_disruptions"]
+            metadata:
+              aiGenerated: true
+              model: "gpt-4-turbo"
+              generatedAt: "2024-01-15T18:00:00Z"
+              analysisDepth: "comprehensive"
+              focusAreas: ["performance", "adherence", "progression", "wellness", "motivation"]
+              dataPointsAnalyzed: 892
+              averageConfidence: 0.85
+              processingTime: 8.4
+              cacheExpiry: "2024-01-15T20:00:00Z"
+      focused_analysis:
+        summary: Focused AI analytics for specific performance optimization
+        value:
+          status: success
+          data:
+            insights:
+              - category: "performance"
+                type: "plateau_analysis"
+                title: "Strength Plateau Identification"
+                description: "Your bench press has plateaued for 3 weeks at 85kg, suggesting need for programming changes or deload period."
+                confidence: 0.91
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Implement pause reps to increase time under tension"
+                  - "Add close-grip bench press as accessory movement"
+                  - "Consider 1-week deload to allow supercompensation"
+                supportingData:
+                  plateauDuration: 21
+                  lastImprovement: "2023-12-20T00:00:00Z"
+                  stagnantWeight: 85
+            patterns:
+              - patternType: "performance"
+                category: "strength_stagnation"
+                title: "3-Week Plateau Cycle"
+                description: "Historical data shows you typically plateau for 2-3 weeks before breakthrough, suggesting current plateau is normal."
+                confidence: 0.76
+                strength: "moderate"
+                frequency: "cyclical"
+                timeframe: "6 months"
+                supportingData:
+                  averagePlateauDuration: 18
+                  breakthroughProbability: 0.78
+                  historicalPattern: "consistent"
+                actionable: true
+                recommendations:
+                  - "Maintain consistency through current plateau"
+                  - "Expect breakthrough in next 1-2 sessions"
+            recommendations:
+              - category: "technique"
+                type: "form_optimization"
+                title: "Bench Press Form Analysis"
+                description: "Video analysis suggests improving leg drive and upper back tightness could unlock 5-10% strength gains."
+                priority: "high"
+                confidence: 0.88
+                timeToImplement: "immediate"
+                expectedImpact: "moderate"
+                specificActions:
+                  - "Practice leg drive with lighter weights"
+                  - "Focus on retracting shoulder blades throughout lift"
+                  - "Record sets from side angle to monitor form"
+                rationale: "Technical improvements often yield faster results than strength gains alone."
+                supportingData:
+                  currentFormScore: 7.2
+                  potentialImprovement: 0.8
+                  technicalGainPotential: "5-10%"
+            metadata:
+              aiGenerated: true
+              model: "gpt-4-turbo"
+              generatedAt: "2024-01-15T18:10:00Z"
+              analysisDepth: "focused"
+              focusAreas: ["performance"]
+              dataPointsAnalyzed: 234
+              averageConfidence: 0.85
+              processingTime: 3.2
+              cacheExpiry: "2024-01-15T19:10:00Z" 

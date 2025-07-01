@@ -1,0 +1,91 @@
+type: object
+description: Response containing comprehensive strength progression analysis with exercise-specific metrics and performance trends
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    $ref: './StrengthProgression.yaml'
+  metadata:
+    type: object
+    description: Response metadata including analysis parameters and processing information
+    required:
+      - timestamp
+      - exercisesAnalyzed
+      - lastUpdated
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      exercisesAnalyzed:
+        type: integer
+        minimum: 0
+        description: Total number of exercises included in the strength analysis
+        example: 15
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Timestamp when strength data was last refreshed
+        example: "2024-01-15T09:00:00Z"
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 234.6
+      analysisDepth:
+        type: string
+        description: Level of detail in the strength analysis
+        enum: [basic, detailed, comprehensive]
+        example: comprehensive
+      strengthCalculationMethod:
+        type: string
+        description: Method used to calculate strength progression
+        enum: [one_rep_max, total_volume, progressive_overload]
+        example: one_rep_max
+examples:
+  - status: success
+    data:
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      timeframe: "12 weeks"
+      hasData: true
+      overallProgression:
+        strengthGain: 18.5
+        totalVolumeIncrease: 24.2
+        progressionRate: consistent
+        strengthScore: 847
+      exerciseProgression:
+        - exerciseName: "Bench Press"
+          category: "chest"
+          muscleGroups: ["chest", "triceps", "shoulders"]
+          progression:
+            initialMax: 80.0
+            currentMax: 92.5
+            improvement: 15.6
+            trend: increasing
+          volumeProgression:
+            initialVolume: 2400
+            currentVolume: 3150
+            volumeIncrease: 31.3
+        - exerciseName: "Squat"
+          category: "legs"
+          muscleGroups: ["quadriceps", "glutes", "hamstrings"]
+          progression:
+            initialMax: 100.0
+            currentMax: 120.0
+            improvement: 20.0
+            trend: increasing
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      exercisesAnalyzed: 15
+      lastUpdated: "2024-01-15T09:00:00Z"
+      processingTime: 234.6
+      analysisDepth: comprehensive
+      strengthCalculationMethod: one_rep_max 

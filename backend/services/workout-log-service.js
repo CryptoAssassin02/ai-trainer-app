@@ -14,19 +14,29 @@ const { getSupabaseClientWithToken } = require('./supabase');
  * @throws {ValidationError} If logData is invalid.
  */
 async function storeWorkoutLog(userId, logData, jwtToken) {
-  if (!logData || !logData.date || !logData.loggedExercises || logData.loggedExercises.length === 0) {
-    throw new ValidationError('Invalid workout log data: date and loggedExercises are required.');
+  if (!logData || !logData.date || !logData.exercises_completed || logData.exercises_completed.length === 0) {
+    throw new ValidationError('Invalid workout log data: date and exercises_completed are required.');
   }
   
   const supabase = getSupabaseClientWithToken(jwtToken);
   logger.debug(`Attempting to store workout log for user: ${userId}`);
   try {
+    // CRITICAL FIX: Use exercises_completed field directly (no transformation needed)
+    const dbData = {
+      user_id: userId,
+      plan_id: logData.plan_id || null,
+      date: logData.date,
+      completed: logData.completed !== undefined ? logData.completed : true,
+      exercises_completed: logData.exercises_completed,
+      overall_difficulty: logData.overall_difficulty || null,
+      energy_level: logData.energy_level || null,
+      satisfaction: logData.satisfaction || null,
+      feedback: logData.feedback || null
+    };
+    
     const { data, error } = await supabase
       .from('workout_logs')
-      .insert({
-        user_id: userId,
-        ...logData // This should include plan_id, date, completed, exercises_completed, etc.
-      })
+      .insert(dbData)
       .select()
       .single();
 
@@ -122,6 +132,7 @@ async function retrieveWorkoutLog(logId, userId, jwtToken) {
       .from('workout_logs')
       .select('*')
       .eq('id', logId)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -225,11 +236,10 @@ async function deleteWorkoutLog(logId, userId, jwtToken, retrieveFn = retrieveWo
     await retrieveFn(logId, userId, jwtToken);
 
     // If retrieveFn didn't throw, proceed with deletion
-    // Corrected: Apply filter *before* delete
     const { error: deleteError } = await supabase
       .from('workout_logs')
-      .eq('id', logId) // Filter first
-      .delete(); // Then delete
+      .delete()
+      .eq('id', logId);
 
     if (deleteError) {
       logger.error(`Supabase error deleting workout log ${logId} for user ${userId}: ${deleteError.message}`);
@@ -255,4 +265,4 @@ module.exports = {
   retrieveWorkoutLog,
   updateWorkoutLog,
   deleteWorkoutLog
-}; 
+};

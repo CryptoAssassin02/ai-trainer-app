@@ -1,0 +1,78 @@
+get:
+  tags:
+    - User Profiles
+  summary: Get user profile
+  description: |
+    Retrieve the complete user profile for the authenticated user, including
+    demographics, preferences, and fitness information. Height and weight
+    values are returned in the format specified by the user's unitPreference.
+  operationId: getUserProfile
+  responses:
+    '200':
+      $ref: '../../components/responses/profiles/ProfileRetrieved.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '404':
+      $ref: '../../components/responses/profiles/ProfileNotFound.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+post:
+  tags:
+    - User Profiles
+  summary: Create user profile
+  description: |
+    Create a new user profile with demographics, preferences, and fitness information.
+    Height and weight values should be provided in the format specified by unitPreference.
+    If a profile already exists, this will update the existing profile.
+  operationId: createUserProfile
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/profiles/ProfileCreationRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/profiles/ProfileCreated.yaml'
+    '400':
+      $ref: '../../components/responses/profiles/ProfileValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '409':
+      description: Profile already exists or conversion error
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/schemas/profiles/UnitConversionError.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+put:
+  tags:
+    - User Profiles
+  summary: Update user profile
+  description: |
+    Update an existing user profile with new information. This is a partial update -
+    only provided fields will be updated. Height and weight values should match the
+    format specified by unitPreference.
+  operationId: updateUserProfile
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/profiles/ProfileUpdateRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/profiles/ProfileUpdated.yaml'
+    '400':
+      $ref: '../../components/responses/profiles/ProfileValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '404':
+      $ref: '../../components/responses/profiles/ProfileNotFound.yaml'
+    '409':
+      $ref: '../../components/responses/profiles/UnitConversionFailed.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

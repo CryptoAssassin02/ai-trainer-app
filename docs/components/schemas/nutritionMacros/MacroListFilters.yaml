@@ -1,0 +1,79 @@
+type: object
+description: Query parameters for filtering and paginating macro plan lists
+properties:
+  page:
+    type: integer
+    minimum: 1
+    default: 1
+    description: Page number for pagination
+    example: 1
+  
+  pageSize:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 10
+    description: Number of items per page
+    example: 20
+  
+  startDate:
+    type: string
+    format: date
+    description: Filter plans created on or after this date (YYYY-MM-DD)
+    example: "2024-01-01"
+  
+  endDate:
+    type: string
+    format: date
+    description: Filter plans created on or before this date (YYYY-MM-DD)
+    example: "2024-12-31"
+  
+  status:
+    type: string
+    enum:
+      - active
+      - inactive
+      - archived
+    description: Filter by plan status
+    example: "active"
+  
+  goalType:
+    type: string
+    enum:
+      - weight_loss
+      - maintenance
+      - muscle_gain
+      - performance
+      - custom
+    description: Filter by goal type
+    example: "muscle_gain"
+  
+  sortBy:
+    type: string
+    enum:
+      - created_at
+      - updated_at
+      - calories
+      - status
+    default: created_at
+    description: Field to sort results by
+    example: "created_at"
+  
+  sortOrder:
+    type: string
+    enum:
+      - asc
+      - desc
+    default: desc
+    description: Sort order (ascending or descending)
+    example: "desc"
+
+additionalProperties: false
+
+example:
+  page: 1
+  pageSize: 10
+  startDate: "2024-01-01"
+  status: "active"
+  sortBy: "created_at"
+  sortOrder: "desc" 

@@ -1,0 +1,111 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+    - AI-Powered Analytics
+  summary: Get personalized AI recommendations
+  description: |
+    Retrieve personalized AI-generated recommendations for improving fitness performance, adherence, and goal achievement.
+    
+    **Recommendation Categories:**
+    - Workout optimization and progression suggestions
+    - Recovery and rest period recommendations
+    - Nutrition timing and macro adjustments
+    - Motivation and adherence improvement strategies
+    - Goal setting and milestone adjustments
+    
+    **AI Recommendation Engine:**
+    - Analyzes individual progress patterns and preferences
+    - Considers current fitness level and goals
+    - Incorporates best practices from fitness science
+    - Provides actionable, specific recommendations
+    - Prioritizes recommendations by potential impact
+    
+    **Personalization Factors:**
+    - Training history and performance data
+    - Adherence patterns and behavior insights
+    - Goal priorities and timeline constraints
+    - Wellness metrics and recovery patterns
+  operationId: getPersonalizedRecommendations
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: categories
+      in: query
+      description: Specific recommendation categories (comma-separated)
+      schema:
+        type: string
+        example: "workout,recovery,nutrition,motivation"
+    
+    - name: maxRecommendations
+      in: query
+      description: Maximum number of recommendations to generate
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 15
+        example: 20
+    
+    - name: priorityLevel
+      in: query
+      description: Priority level for recommendations
+      schema:
+        type: string
+        enum: [high_impact, quick_wins, long_term, all]
+        default: "all"
+        example: "high_impact"
+    
+    - name: timeHorizon
+      in: query
+      description: Time horizon for recommendation implementation
+      schema:
+        type: string
+        enum: [immediate, short_term, medium_term, long_term]
+        default: "short_term"
+        example: "medium_term"
+    
+    - name: includeExplanations
+      in: query
+      description: Include detailed explanations for each recommendation
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: difficultyLevel
+      in: query
+      description: Filter recommendations by implementation difficulty
+      schema:
+        type: string
+        enum: [easy, moderate, challenging, all]
+        default: "all"
+        example: "moderate"
+    
+    - name: focusArea
+      in: query
+      description: Primary focus area for recommendations
+      schema:
+        type: string
+        enum: [performance, adherence, progression, health_optimization]
+        example: "progression"
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/PersonalizedRecommendationsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml'
+    
+    '502':
+      $ref: '../../components/responses/analytics/AIAnalyticsFailed.yaml' 

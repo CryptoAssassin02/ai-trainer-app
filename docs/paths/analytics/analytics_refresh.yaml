@@ -1,0 +1,74 @@
+post:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Refresh analytics data
+  description: |
+    Trigger a refresh of analytics data and aggregates for the authenticated user.
+    
+    **Refresh Process:**
+    1. Queues background job for analytics recalculation
+    2. Recalculates all metrics and aggregates
+    3. Updates cached data and insights
+    4. Regenerates AI-powered analytics if requested
+    
+    **Rate Limits:**
+    - 5 requests per hour per user
+    - Background processing prevents immediate repeated requests
+    
+    **Processing Time:**
+    - Basic refresh: 30-60 seconds
+    - Full refresh with AI: 2-5 minutes
+  operationId: refreshAnalytics
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/analytics/AnalyticsRefreshRequest.yaml'
+        examples:
+          basic_refresh:
+            summary: Basic analytics refresh
+            description: Refresh core analytics without AI insights
+            value:
+              refreshType: "basic"
+              forceRecalculation: false
+              includePreviousPeriods: true
+          
+          full_refresh_with_ai:
+            summary: Full refresh with AI insights
+            description: Complete refresh including AI-powered insights and patterns
+            value:
+              refreshType: "full"
+              forceRecalculation: true
+              includePreviousPeriods: true
+              includeAIInsights: true
+              aiAnalysisDepth: "comprehensive"
+          
+          targeted_refresh:
+            summary: Targeted metric refresh
+            description: Refresh specific metrics only
+            value:
+              refreshType: "targeted"
+              metrics: ["strength", "adherence"]
+              timeframe: "12 weeks"
+              forceRecalculation: true
+  responses:
+    '202':
+      $ref: '../../components/responses/analytics/AnalyticsRefreshQueued.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '409':
+      $ref: '../../components/responses/analytics/AnalyticsRefreshInProgress.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

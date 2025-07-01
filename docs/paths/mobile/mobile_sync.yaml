@@ -1,0 +1,150 @@
+post:
+  tags:
+    - Mobile Analytics
+  summary: Sync mobile offline data with intelligent conflict resolution
+  description: |
+    Synchronize offline mobile data with the server including automatic conflict resolution, data validation, and optimized response packaging.
+    
+    **Sync Capabilities:**
+    - Incremental and full synchronization modes
+    - Automatic conflict detection and resolution
+    - Data integrity validation and correction
+    - Optimized payload compression and transmission
+    - Background sync optimization for battery life
+    
+    **Conflict Resolution:**
+    - Timestamp-based automatic resolution
+    - User preference prioritization
+    - Data source reliability scoring
+    - Manual conflict flagging for user review
+    - Merge strategies for compatible changes
+    
+    **Data Types Supported:**
+    - Workout logs and exercise data
+    - Check-in records and measurements
+    - Goal updates and progress tracking
+    - Settings and preference changes
+    - Analytics cache and computed metrics
+    
+    **Mobile Optimizations:**
+    - Compressed request/response payloads
+    - Network failure retry mechanisms
+    - Partial sync support for limited connectivity
+    - Battery-conscious processing
+    - Background sync queue management
+    
+    **Processing Features:**
+    - Real-time validation and error detection
+    - Data deduplication and cleanup
+    - Analytics recalculation triggers
+    - Cache invalidation and refresh
+    - Sync status tracking and reporting
+  operationId: syncMobileData
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    description: Mobile sync data with offline changes and sync metadata
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/mobile/MobileSyncRequest.yaml'
+        examples:
+          incremental_sync:
+            summary: Incremental sync with recent changes
+            description: Sync only recent changes since last successful sync
+            value:
+              syncType: "incremental"
+              lastSyncTimestamp: "2024-01-15T10:30:00Z"
+              deviceId: "mobile-ios-user123"
+              offlineData:
+                workoutLogs:
+                  - id: "temp-workout-1"
+                    date: "2024-01-15"
+                    exercises: [...]
+                    offline_created: true
+                checkIns:
+                  - id: "temp-checkin-1"
+                    date: "2024-01-15"
+                    weight: 78.5
+                    offline_created: true
+              conflictResolution: "auto_with_user_priority"
+              compressionLevel: "high"
+              validateData: true
+          
+          full_sync:
+            summary: Full synchronization after extended offline period
+            description: Complete sync including all offline changes and data
+            value:
+              syncType: "full"
+              lastSyncTimestamp: "2024-01-10T08:00:00Z"
+              deviceId: "mobile-android-user456"
+              offlineData:
+                workoutLogs: [...]
+                checkIns: [...]
+                goalUpdates: [...]
+                settingsChanges: [...]
+              conflictResolution: "manual_review_conflicts"
+              compressionLevel: "adaptive"
+              validateData: true
+              requestFullRefresh: true
+          
+          analytics_sync:
+            summary: Analytics-focused sync
+            description: Sync primarily for analytics data and computed metrics
+            value:
+              syncType: "analytics_only"
+              lastSyncTimestamp: "2024-01-15T09:00:00Z"
+              deviceId: "mobile-tablet-user789"
+              offlineData:
+                analyticsCache: {...}
+                computedMetrics: {...}
+              conflictResolution: "server_priority"
+              includeAnalyticsRefresh: true
+              compressionLevel: "medium"
+          
+          conflict_resolution:
+            summary: Sync with explicit conflict handling
+            description: Sync with detailed conflict resolution preferences
+            value:
+              syncType: "incremental"
+              lastSyncTimestamp: "2024-01-15T11:00:00Z"
+              deviceId: "mobile-ios-user321"
+              offlineData: {...}
+              conflictResolution: "detailed_analysis"
+              conflictPreferences:
+                workout_data: "user_priority"
+                check_ins: "latest_timestamp"
+                goals: "manual_review"
+                settings: "merge_compatible"
+              preserveOfflineData: true
+  responses:
+    '200':
+      $ref: '../../components/responses/mobile/MobileDataSynced.yaml'
+    
+    '207':
+      $ref: '../../components/responses/mobile/MobileSyncPartialSuccess.yaml'
+    
+    '400':
+      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+    
+    '409':
+      $ref: '../../components/responses/mobile/MobileSyncConflictDetected.yaml'
+    
+    '413':
+      $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
+    
+    '422':
+      $ref: '../../components/responses/mobile/MobileSyncFailed.yaml'
+    
+    '429':
+      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+    
+    '503':
+      $ref: '../../components/responses/mobile/MobileSyncServiceUnavailable.yaml' 

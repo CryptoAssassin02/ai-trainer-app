@@ -1,0 +1,122 @@
+type: object
+description: Request body for calculating macronutrient targets based on user data
+required:
+  - weight
+  - height
+  - age
+  - gender
+  - activityLevel
+  - goal
+properties:
+  weight:
+    type: number
+    minimum: 20
+    maximum: 300
+    description: Body weight (will be converted to kg if units are imperial)
+    example: 70
+  
+  height:
+    oneOf:
+      - type: number
+        minimum: 50
+        maximum: 250
+        description: Height in centimeters (metric)
+        example: 175
+      - type: object
+        description: Height in feet and inches (imperial)
+        required:
+          - feet
+          - inches
+        properties:
+          feet:
+            type: integer
+            minimum: 3
+            maximum: 8
+            description: Feet component of height
+            example: 5
+          inches:
+            type: number
+            minimum: 0
+            maximum: 11.99
+            description: Inches component of height
+            example: 9
+        additionalProperties: false
+    description: Height measurement (format depends on units)
+  
+  age:
+    type: integer
+    minimum: 13
+    maximum: 120
+    description: Age in years
+    example: 30
+  
+  gender:
+    type: string
+    enum:
+      - male
+      - female
+      - other
+    description: Biological gender for BMR calculation
+    example: "male"
+  
+  activityLevel:
+    type: string
+    enum:
+      - sedentary
+      - light
+      - moderate
+      - active
+      - very_active
+    description: Physical activity level for TDEE calculation
+    example: "moderate"
+  
+  goal:
+    type: string
+    enum:
+      - weight_loss
+      - maintenance
+      - muscle_gain
+    description: Primary fitness goal for calorie adjustment
+    example: "muscle_gain"
+  
+  units:
+    type: string
+    enum:
+      - metric
+      - imperial
+    default: metric
+    description: Unit system for measurements
+    example: "metric"
+  
+  useExternalApi:
+    type: boolean
+    default: true
+    description: Whether to use AI-powered nutrition agent for enhanced calculations
+    example: true
+
+additionalProperties: false
+
+examples:
+  - summary: Metric units example
+    value:
+      weight: 70
+      height: 175
+      age: 30
+      gender: "male"
+      activityLevel: "moderate"
+      goal: "muscle_gain"
+      units: "metric"
+      useExternalApi: true
+  
+  - summary: Imperial units example
+    value:
+      weight: 154
+      height:
+        feet: 5
+        inches: 9
+      age: 28
+      gender: "female"
+      activityLevel: "active"
+      goal: "weight_loss"
+      units: "imperial"
+      useExternalApi: false 

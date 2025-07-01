@@ -1,0 +1,124 @@
+type: object
+description: User profile data structure for export operations
+required:
+  - user_id
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Profile ID
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  user_id:
+    type: string
+    format: uuid
+    description: Associated user ID
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  name:
+    type: string
+    nullable: true
+    description: User's display name
+    example: "John Doe"
+  age:
+    type: integer
+    minimum: 13
+    maximum: 120
+    nullable: true
+    description: User's age in years
+    example: 30
+  gender:
+    type: string
+    nullable: true
+    enum: ['male', 'female', 'other', 'prefer_not_to_say', 'non-binary']
+    description: User's gender identity
+    example: "male"
+  height:
+    type: number
+    nullable: true
+    description: User's height (in cm for metric, stored as number)
+    example: 180
+  weight:
+    type: number
+    nullable: true
+    description: User's weight (in kg for metric, stored as number)
+    example: 75.5
+  experience_level:
+    type: string
+    nullable: true
+    enum: ['beginner', 'intermediate', 'advanced']
+    description: User's fitness experience level
+    example: "intermediate"
+  fitness_goals:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: User's fitness goals (exported as JSON string in non-JSON formats)
+    example: ["weight_loss", "muscle_gain"]
+  equipment:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Available equipment (exported as JSON string in non-JSON formats)
+    example: ["dumbbells", "resistance_bands"]
+  medical_conditions:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Medical conditions (kept as array in all formats)
+    example: ["hypertension"]
+  unit_preference:
+    type: string
+    nullable: true
+    enum: ['metric', 'imperial']
+    description: User's preferred unit system
+    example: "metric"
+  workout_frequency:
+    type: string
+    nullable: true
+    description: User's preferred workout frequency
+    example: "3x per week"
+  created_at:
+    type: string
+    format: date-time
+    nullable: true
+    description: Profile creation timestamp
+    example: "2024-01-15T10:30:00.000Z"
+  updated_at:
+    type: string
+    format: date-time
+    nullable: true
+    description: Profile last update timestamp
+    example: "2024-01-15T10:30:00.000Z"
+examples:
+  basicProfile:
+    summary: Basic user profile for export
+    value:
+      id: "123e4567-e89b-12d3-a456-426614174000"
+      user_id: "123e4567-e89b-12d3-a456-426614174000"
+      name: "John Doe"
+      age: 30
+      gender: "male"
+      height: 180
+      weight: 75.5
+      experience_level: "intermediate"
+      unit_preference: "metric"
+  completeProfile:
+    summary: Complete user profile with all fields
+    value:
+      id: "123e4567-e89b-12d3-a456-426614174000"
+      user_id: "123e4567-e89b-12d3-a456-426614174000"
+      name: "Jane Smith"
+      age: 28
+      gender: "female"
+      height: 165
+      weight: 60
+      experience_level: "advanced"
+      fitness_goals: ["strength_training", "endurance"]
+      equipment: ["barbell", "squat_rack", "treadmill"]
+      medical_conditions: []
+      unit_preference: "metric"
+      workout_frequency: "5x per week"
+      created_at: "2024-01-10T08:00:00.000Z"
+      updated_at: "2024-01-15T10:30:00.000Z" 

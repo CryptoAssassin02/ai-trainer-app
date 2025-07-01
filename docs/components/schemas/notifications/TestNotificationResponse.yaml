@@ -1,0 +1,23 @@
+description: >
+  Defines the success response for sending a test notification.
+type: object
+required:
+  - status
+  - data
+  - message
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: The status of the response.
+  data:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: Indicates if the test notification was logged successfully.
+        example: true
+  message:
+    type: string
+    description: A message confirming the action, noting that actual delivery depends on user preferences.
+    example: "Test email notification logged successfully. Note: Actual delivery depends on user preferences and service configuration." 

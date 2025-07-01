@@ -1,0 +1,75 @@
+type: object
+description: File-related error response for data transfer operations
+required:
+  - status
+  - message
+properties:
+  status:
+    type: string
+    enum: ['error']
+    description: Error status indicator
+    example: error
+  message:
+    type: string
+    description: Human-readable error message
+    example: "File size exceeds the 10MB limit."
+  errorCode:
+    type: string
+    enum: ['FILE_SIZE_EXCEEDED', 'UNSUPPORTED_FILE_TYPE', 'INVALID_FILE_FORMAT', 'NO_FILE_UPLOADED']
+    description: Specific file error code
+    example: "FILE_SIZE_EXCEEDED"
+  details:
+    type: object
+    properties:
+      fileSize:
+        type: integer
+        description: Actual file size in bytes
+        example: 15728640
+      maxSize:
+        type: integer
+        description: Maximum allowed file size in bytes
+        example: 10485760
+      fileName:
+        type: string
+        description: Name of the uploaded file
+        example: "workout_data.csv"
+      mimeType:
+        type: string
+        description: MIME type of the uploaded file
+        example: "text/plain"
+    description: Additional error details
+examples:
+  fileSizeExceeded:
+    summary: File exceeds 10MB limit
+    value:
+      status: error
+      message: "File size exceeds the 10MB limit."
+      errorCode: "FILE_SIZE_EXCEEDED"
+      details:
+        fileSize: 15728640
+        maxSize: 10485760
+        fileName: "large_workout_data.xlsx"
+  unsupportedFileType:
+    summary: Unsupported file type uploaded
+    value:
+      status: error
+      message: "Unsupported file type: text/plain (data.txt)"
+      errorCode: "UNSUPPORTED_FILE_TYPE"
+      details:
+        fileName: "data.txt"
+        mimeType: "text/plain"
+  noFileUploaded:
+    summary: No file provided in request
+    value:
+      status: error
+      message: "No file uploaded."
+      errorCode: "NO_FILE_UPLOADED"
+  invalidJsonFormat:
+    summary: Invalid JSON file format
+    value:
+      status: error
+      message: "Invalid JSON file format."
+      errorCode: "INVALID_FILE_FORMAT"
+      details:
+        fileName: "invalid.json"
+        mimeType: "application/json" 

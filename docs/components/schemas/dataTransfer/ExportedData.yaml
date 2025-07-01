@@ -1,0 +1,50 @@
+type: object
+description: Container for exported user data organized by type
+properties:
+  profiles:
+    type: array
+    items:
+      $ref: '#/components/schemas/ExportedProfileData'
+    description: Array of exported user profile data
+  workouts:
+    type: array
+    items:
+      $ref: '#/components/schemas/ExportedWorkoutData'
+    description: Array of exported workout plan data
+  workout_logs:
+    type: array
+    items:
+      $ref: '#/components/schemas/ExportedWorkoutLogData'
+    description: Array of exported workout log data
+examples:
+  profilesOnly:
+    summary: Export containing only profile data
+    value:
+      profiles:
+        - user_id: "123e4567-e89b-12d3-a456-426614174000"
+          name: "John Doe"
+          age: 30
+          height: 180
+          weight: 75
+  workoutsOnly:
+    summary: Export containing only workout plans
+    value:
+      workouts:
+        - id: "456e7890-e89b-12d3-a456-426614174001"
+          user_id: "123e4567-e89b-12d3-a456-426614174000"
+          name: "Full Body Workout"
+          description: "Complete training routine"
+  allTypes:
+    summary: Export containing all data types
+    value:
+      profiles:
+        - user_id: "123e4567-e89b-12d3-a456-426614174000"
+          name: "John Doe"
+          age: 30
+      workouts:
+        - id: "456e7890-e89b-12d3-a456-426614174001"
+          name: "Full Body Workout"
+      workout_logs:
+        - id: "789e0123-e89b-12d3-a456-426614174002"
+          date: "2024-01-14"
+          completed: true 

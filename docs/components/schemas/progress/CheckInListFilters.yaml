@@ -1,0 +1,94 @@
+type: object
+properties:
+  startDate:
+    type: string
+    format: date
+    description: Filter check-ins from this date onwards
+  endDate:
+    type: string
+    format: date
+    description: Filter check-ins up to this date
+  type:
+    type: array
+    items:
+      type: string
+      enum: [weekly, biweekly, monthly, custom, milestone]
+    description: Filter by check-in types
+  hasWeight:
+    type: boolean
+    description: Filter check-ins that include weight data
+  hasMeasurements:
+    type: boolean
+    description: Filter check-ins that include body measurements
+  hasPhotos:
+    type: boolean
+    description: Filter check-ins that include progress photos
+  hasGoalUpdates:
+    type: boolean
+    description: Filter check-ins that include goal progress updates
+  hasMilestones:
+    type: boolean
+    description: Filter check-ins that include milestone achievements
+  moodRange:
+    type: object
+    properties:
+      min:
+        type: integer
+        minimum: 1
+        maximum: 10
+      max:
+        type: integer
+        minimum: 1
+        maximum: 10
+    description: Filter by mood rating range
+  energyRange:
+    type: object
+    properties:
+      min:
+        type: integer
+        minimum: 1
+        maximum: 10
+      max:
+        type: integer
+        minimum: 1
+        maximum: 10
+    description: Filter by energy level range
+  weightRange:
+    type: object
+    properties:
+      min:
+        type: number
+        minimum: 0
+      max:
+        type: number
+        minimum: 0
+    description: Filter by weight range
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+    description: Maximum number of check-ins to return
+  offset:
+    type: integer
+    minimum: 0
+    default: 0
+    description: Number of check-ins to skip (for pagination)
+  sortBy:
+    type: string
+    enum: [date, weight, mood, energy, created_at]
+    default: date
+    description: Field to sort results by
+  sortOrder:
+    type: string
+    enum: [asc, desc]
+    default: desc
+    description: Sort order
+  includeTrends:
+    type: boolean
+    default: false
+    description: Whether to include trend analysis in response
+  includeComparisons:
+    type: boolean
+    default: false
+    description: Whether to include comparison data with previous periods 

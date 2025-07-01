@@ -1,0 +1,45 @@
+description: Meal log retrieved successfully
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MealLogResponse.yaml'
+    examples:
+      lunch_retrieved:
+        summary: Lunch meal log retrieved
+        description: Successfully retrieved lunch meal log with calculated macros
+        value:
+          status: "success"
+          message: "Meal log retrieved successfully"
+          data:
+            id: "660e8400-e29b-41d4-a716-446655440000"
+            userId: "123e4567-e89b-12d3-a456-426614174000"
+            nutritionPlanId: "550e8400-e29b-41d4-a716-446655440000"
+            mealName: "Lunch"
+            mealType: "lunch"
+            foods:
+              - name: "Grilled salmon"
+                portionSize: 120
+                units: "grams"
+                protein_g: 25.4
+                carbs_g: 0
+                fat_g: 13.4
+                calories: 231
+              - name: "Brown rice"
+                portionSize: 100
+                units: "grams"
+                protein_g: 2.6
+                carbs_g: 23
+                fat_g: 0.9
+                calories: 111
+            macrosConsumed:
+              protein_g: 28.0
+              carbs_g: 23.0
+              fat_g: 14.3
+              calories: 342
+            notes: "Great post-workout meal"
+            feedback: "Really enjoyed this combination"
+            loggedAt: "2024-01-15T13:15:00Z"
+            createdAt: "2024-01-15T13:20:00Z" 

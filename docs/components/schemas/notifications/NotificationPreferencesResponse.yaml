@@ -1,0 +1,17 @@
+description: >
+  Standard success response wrapper for returning notification preferences.
+type: object
+required:
+  - status
+  - data
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: The status of the response.
+  data:
+    $ref: './NotificationPreferences.yaml'
+  message:
+    type: string
+    description: An optional success message.
+    example: "Notification preferences retrieved successfully." 

@@ -1,0 +1,53 @@
+type: object
+required: [status, message, errorType]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Workout adjustment error message
+  errorType:
+    type: string
+    enum: [invalid_feedback, ai_processing_failed, plan_locked, safety_concerns, conflicting_requirements]
+    description: Specific adjustment error type
+  details:
+    type: object
+    nullable: true
+    properties:
+      feedbackIssues:
+        type: array
+        items:
+          type: string
+        description: Issues with the provided feedback
+      aiErrors:
+        type: array
+        items:
+          type: string
+        description: AI processing errors
+      safetyBlocks:
+        type: array
+        items:
+          type: string
+        description: Safety concerns that prevented adjustment
+      conflictDetails:
+        type: array
+        items:
+          type: string
+        description: Conflicting requirements in the feedback
+    description: Additional error details
+  suggestions:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Suggestions for resolving the error
+    example: ["Try providing more specific feedback", "Consider adjusting one aspect at a time"]
+example:
+  status: error
+  message: Unable to process workout adjustment request
+  errorType: conflicting_requirements
+  details:
+    conflictDetails: ["Cannot simultaneously increase and decrease workout intensity"]
+  suggestions: ["Please specify whether you want to increase OR decrease intensity"] 

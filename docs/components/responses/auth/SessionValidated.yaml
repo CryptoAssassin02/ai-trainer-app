@@ -1,0 +1,5 @@
+description: Session validated successfully
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/auth/ValidateSessionResponse.yaml' 

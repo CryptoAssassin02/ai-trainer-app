@@ -1,0 +1,31 @@
+type: object
+description: Error response for workout log operations when authentication fails
+required:
+  - status
+  - message
+properties:
+  status:
+    type: string
+    enum: ["error"]
+    description: Status indicating an authentication error
+    example: "error"
+  message:
+    type: string
+    description: Error message indicating authentication failure
+    example: "Authentication required to access workout logs"
+  error_type:
+    type: string
+    enum: ["missing_token", "invalid_token", "expired_token", "insufficient_permissions"]
+    description: Specific type of authentication error
+    example: "invalid_token"
+  timestamp:
+    type: string
+    format: date-time
+    description: Timestamp when the error occurred
+    example: "2025-01-15T18:30:00Z"
+
+example:
+  status: "error"
+  message: "Authentication required to access workout logs"
+  error_type: "invalid_token"
+  timestamp: "2025-01-15T18:30:00Z" 

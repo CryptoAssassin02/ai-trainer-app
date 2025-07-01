@@ -31,6 +31,14 @@ async function storeMemory(supabase, openai, config, logger, validators, userId,
     const workoutPlanId = metadata.planId || metadata.workout_plan_id || metadata.workoutPlanId || null;
     const workoutLogId = metadata.logId || metadata.workout_log_id || metadata.workoutLogId || null;
     
+    // ✅ FIXED: For nutrition agents, don't force workout plan references
+    // Only set workout_plan_id if it's actually a workout-related memory AND the agent type is workout-related
+    const shouldReferenceWorkoutPlan = (agentType === 'workout' || agentType === 'adjustment') && 
+                                      workoutPlanId && 
+                                      validators.isValidUUID(workoutPlanId);
+    
+    const shouldReferenceWorkoutLog = workoutLogId && validators.isValidUUID(workoutLogId);
+    
     // Extract type from metadata for database column (required field)
     const memoryType = metadata.type || 'memory'; // Default to 'memory' if not specified
     
@@ -44,9 +52,9 @@ async function storeMemory(supabase, openai, config, logger, validators, userId,
       metadata: metadata || {},
       created_at: new Date().toISOString(),
       is_archived: false,
-      // Add explicit relationship columns if IDs are present and valid
-      workout_plan_id: workoutPlanId && validators.isValidUUID(workoutPlanId) ? workoutPlanId : null,
-      workout_log_id: workoutLogId && validators.isValidUUID(workoutLogId) ? workoutLogId : null
+      // ✅ FIXED: Only add foreign key references when appropriate
+      workout_plan_id: shouldReferenceWorkoutPlan ? workoutPlanId : null,
+      workout_log_id: shouldReferenceWorkoutLog ? workoutLogId : null
     };
     
     // Insert into database

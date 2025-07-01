@@ -13,8 +13,8 @@ const rateLimit = require('express-rate-limit');
 
 // Rate limiter for calculation operations (resource-intensive)
 const calculationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 requests per hour
+  windowMs: process.env.NODE_ENV === 'test' ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in test, 1 hour in production
+  max: process.env.NODE_ENV === 'test' ? 100 : 5, // 100 requests per minute in test, 5 per hour in production
   message: {
     status: 'error',
     message: 'Too many macro calculation requests. Please try again later.'
@@ -25,8 +25,8 @@ const calculationLimiter = rateLimit({
 
 // Rate limiter for standard operations
 const standardLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per 15 minutes
+  windowMs: process.env.NODE_ENV === 'test' ? 60 * 1000 : 15 * 60 * 1000, // 1 minute in test, 15 minutes in production
+  max: process.env.NODE_ENV === 'test' ? 100 : 20, // 100 requests per minute in test, 20 per 15 minutes in production
   message: {
     status: 'error',
     message: 'Too many requests. Please try again later.'

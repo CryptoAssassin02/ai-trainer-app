@@ -1,0 +1,18 @@
+type: object
+required: [status, message, code]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Rate limit error message
+  code:
+    type: string
+    enum: [AUTH_RATE_LIMIT_EXCEEDED, RATE_LIMIT_EXCEEDED]
+    description: Specific rate limit error code
+example:
+  status: error
+  message: Too many authentication attempts. Please try again later.
+  code: AUTH_RATE_LIMIT_EXCEEDED 

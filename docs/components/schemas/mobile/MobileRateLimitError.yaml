@@ -1,0 +1,147 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [MOBILE_RATE_LIMIT_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      limitType:
+        type: string
+        enum: [requests_per_minute, data_transfer_per_hour, sync_operations_per_day, ai_calls_per_hour, background_refresh_per_day]
+        description: Type of rate limit exceeded
+      current:
+        type: integer
+        description: Current usage count
+      limit:
+        type: integer
+        description: Maximum allowed usage
+      resetTime:
+        type: string
+        format: date-time
+        description: When the rate limit resets
+      retryAfter:
+        type: integer
+        description: Seconds to wait before retrying
+      mobileSpecific:
+        type: object
+        properties:
+          deviceClass:
+            type: string
+            enum: [premium, standard, limited]
+            description: Device classification affecting limits
+          networkType:
+            type: string
+            enum: [wifi, cellular, low_bandwidth]
+            description: Network type affecting limits
+          batteryOptimization:
+            type: boolean
+            description: Whether battery optimization is reducing limits
+          backgroundMode:
+            type: boolean
+            description: Whether app is in background affecting limits
+          syncPriority:
+            type: string
+            enum: [high, normal, low, deferred]
+            description: Current sync priority level
+        description: Mobile-specific rate limiting factors
+      recommendations:
+        type: object
+        properties:
+          optimizeRequests:
+            type: boolean
+            description: Whether to optimize request frequency
+          useCaching:
+            type: boolean
+            description: Whether to use cached data
+          deferSync:
+            type: boolean
+            description: Whether to defer sync operations
+          reducePayloadSize:
+            type: boolean
+            description: Whether to reduce payload sizes
+          scheduleBackgroundSync:
+            type: boolean
+            description: Whether to schedule background sync
+        description: Optimization recommendations
+      alternatives:
+        type: object
+        properties:
+          offlineMode:
+            type: boolean
+            description: Whether offline mode is available
+          cachedData:
+            type: boolean
+            description: Whether cached data can be used
+          reducedFunctionality:
+            type: boolean
+            description: Whether reduced functionality is available
+          prioritizedSync:
+            type: boolean
+            description: Whether prioritized sync is available
+        description: Alternative options during rate limiting
+      quota:
+        type: object
+        properties:
+          daily:
+            type: object
+            properties:
+              used:
+                type: integer
+              remaining:
+                type: integer
+              total:
+                type: integer
+          hourly:
+            type: object
+            properties:
+              used:
+                type: integer
+              remaining:
+                type: integer
+              total:
+                type: integer
+          perMinute:
+            type: object
+            properties:
+              used:
+                type: integer
+              remaining:
+                type: integer
+              total:
+                type: integer
+        description: Detailed quota information
+      deviceOptimization:
+        type: object
+        properties:
+          adaptiveThrottling:
+            type: boolean
+            description: Whether adaptive throttling is enabled
+          batteryLevel:
+            type: number
+            description: Current battery level (0-1)
+          powerSaving:
+            type: boolean
+            description: Whether power saving mode is active
+          networkQuality:
+            type: string
+            enum: [excellent, good, fair, poor]
+            description: Current network quality
+        description: Device optimization settings
+    description: Detailed mobile rate limit information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

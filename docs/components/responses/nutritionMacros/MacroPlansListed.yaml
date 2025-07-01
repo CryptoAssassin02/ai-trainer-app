@@ -1,0 +1,53 @@
+description: Macro plans retrieved successfully with pagination
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MacroPlansListResponse.yaml'
+    examples:
+      user_macro_plans:
+        summary: User's macro plans
+        description: List of user's macro plans with pagination and filters
+        value:
+          status: "success"
+          message: "Macro plans retrieved successfully"
+          data:
+            - id: "550e8400-e29b-41d4-a716-446655440000"
+              userId: "123e4567-e89b-12d3-a456-426614174000"
+              calories: 2300
+              macros:
+                protein_g: 144
+                carbs_g: 259
+                fat_g: 77
+                calories: 2300
+              goalType: "muscle_gain"
+              status: "active"
+              source: "calculated"
+              version: 1
+              createdAt: "2024-01-15T10:30:00Z"
+              updatedAt: "2024-01-15T10:30:00Z"
+            - id: "660e8400-e29b-41d4-a716-446655440000"
+              userId: "123e4567-e89b-12d3-a456-426614174000"
+              calories: 1800
+              macros:
+                protein_g: 135
+                carbs_g: 180
+                fat_g: 60
+                calories: 1800
+              goalType: "weight_loss"
+              status: "archived"
+              source: "calculated"
+              version: 1
+              createdAt: "2024-01-10T09:15:00Z"
+              updatedAt: "2024-01-10T09:15:00Z"
+          pagination:
+            total: 15
+            page: 1
+            pageSize: 10
+            totalPages: 2
+            hasNextPage: true
+            hasPreviousPage: false
+          filters:
+            status: "active" 

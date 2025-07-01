@@ -1,0 +1,107 @@
+post:
+  tags:
+    - Progress Tracking
+  summary: Record a new check-in with physical and wellness metrics
+  description: |
+    Record a comprehensive check-in including physical measurements, wellness metrics, and optional notes.
+    
+    **Check-in Data Includes:**
+    - Required: Date of check-in
+    - Physical: Weight, body fat percentage, detailed body measurements
+    - Wellness: Mood, sleep quality, energy level, stress level
+    - Optional: Personal notes and observations
+    
+    **Data Validation:**
+    - Date cannot be in the future
+    - Physical measurements must be within reasonable ranges
+    - Wellness metrics use standardized 1-10 scales
+    - Duplicate entries for same date are prevented
+    
+    **Analytics Integration:**
+    - Automatically triggers progress calculations
+    - Updates trend analysis and patterns
+    - Feeds into AI-powered insights
+    
+    **Rate Limits:**
+    - 5 check-ins per hour per user
+    - Maximum 1 check-in per day per user
+  operationId: recordCheckIn
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    description: Check-in data with physical measurements and wellness metrics
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/progress/CheckInCreateRequest.yaml'
+        examples:
+          comprehensive_checkin:
+            summary: Complete check-in with all metrics
+            description: Full check-in including all physical and wellness measurements
+            value:
+              date: "2024-01-15"
+              weight: 78.2
+              body_fat_percentage: 18.5
+              measurements:
+                waist: 85.0
+                chest: 102.5
+                arms: 32.0
+                legs: 58.5
+                hips: 95.0
+                shoulders: 112.0
+                neck: 38.0
+              mood: 8
+              sleep_quality: 7
+              energy_level: 8
+              stress_level: 3
+              notes: "Feeling strong today, great workout yesterday. Sleep could be better."
+          
+          basic_checkin:
+            summary: Minimal check-in with essential metrics
+            description: Simple check-in with core measurements
+            value:
+              date: "2024-01-15"
+              weight: 79.1
+              mood: 7
+              sleep_quality: 8
+              energy_level: 7
+              notes: "Quick check-in before workout"
+          
+          body_composition_focus:
+            summary: Body composition focused check-in
+            description: Check-in emphasizing body composition and measurements
+            value:
+              date: "2024-01-15"
+              weight: 77.8
+              body_fat_percentage: 17.2
+              measurements:
+                waist: 83.5
+                chest: 104.0
+                arms: 33.2
+                legs: 59.0
+              mood: 8
+              energy_level: 9
+              stress_level: 2
+              notes: "Body composition improving, measurements trending down"
+  responses:
+    '201':
+      $ref: '../../components/responses/progress/CheckInRecorded.yaml'
+    
+    '400':
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/progress/ProgressAuthenticationRequired.yaml'
+    
+    '409':
+      $ref: '../../components/responses/progress/CheckInAlreadyExists.yaml'
+    
+    '422':
+      $ref: '../../components/responses/progress/CheckInDataConflict.yaml'
+    
+    '429':
+      $ref: '../../components/responses/progress/ProgressRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/progress/ProgressDatabaseFailed.yaml' 

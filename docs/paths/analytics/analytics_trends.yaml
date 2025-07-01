@@ -1,0 +1,77 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Get progress trends analysis
+  description: |
+    Retrieve detailed progress trends including weight, workout performance, and wellness metrics over time.
+    
+    **Trend Analysis Includes:**
+    - Weight and body composition trends
+    - Workout completion and difficulty progression
+    - Wellness metric trends (mood, sleep, energy, stress)
+    - Statistical analysis (percentage changes, trend direction)
+    
+    **Data Points:**
+    Returns trend data with configurable grouping and statistical analysis
+  operationId: getProgressTrends
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: timeframe
+      in: query
+      description: Time period for trend analysis
+      schema:
+        type: string
+        enum: ["30 days", "12 weeks", "6 months", "1 year"]
+        default: "12 weeks"
+        example: "12 weeks"
+    
+    - name: groupBy
+      in: query
+      description: Group trend data by time period
+      schema:
+        type: string
+        enum: [day, week, month]
+        default: "week"
+        example: "week"
+    
+    - name: metrics
+      in: query
+      description: Specific metrics for trend analysis (comma-separated)
+      schema:
+        type: string
+        example: "weight,workouts,wellness"
+    
+    - name: includeStatistics
+      in: query
+      description: Include statistical analysis (correlations, R-squared values)
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: smoothing
+      in: query
+      description: Apply trend smoothing for cleaner visualization
+      schema:
+        type: boolean
+        default: false
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/ProgressTrendsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

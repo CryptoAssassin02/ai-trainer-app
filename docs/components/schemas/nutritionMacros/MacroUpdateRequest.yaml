@@ -1,0 +1,102 @@
+type: object
+description: Request body for updating an existing macro plan with partial updates
+properties:
+  calories:
+    type: number
+    minimum: 800
+    maximum: 6000
+    description: Updated total daily calorie target
+    example: 2300
+  
+  macros:
+    type: object
+    properties:
+      protein:
+        type: number
+        minimum: 0
+        maximum: 400
+        description: Updated daily protein target in grams
+        example: 160
+      
+      carbs:
+        type: number
+        minimum: 0
+        maximum: 800
+        description: Updated daily carbohydrate target in grams
+        example: 230
+      
+      fat:
+        type: number
+        minimum: 0
+        maximum: 200
+        description: Updated daily fat target in grams
+        example: 77
+    additionalProperties: false
+    description: Updated macronutrient breakdown in grams
+  
+  bmr:
+    type: number
+    minimum: 800
+    maximum: 4000
+    description: Updated Basal Metabolic Rate
+    example: 1700
+  
+  tdee:
+    type: number
+    minimum: 1000
+    maximum: 6000
+    description: Updated Total Daily Energy Expenditure
+    example: 2635
+  
+  goalType:
+    type: string
+    enum:
+      - weight_loss
+      - maintenance
+      - muscle_gain
+      - performance
+      - custom
+    description: Updated goal associated with this macro plan
+    example: "maintenance"
+  
+  calorieAdjustment:
+    type: integer
+    minimum: -1000
+    maximum: 1000
+    description: Updated calorie adjustment from maintenance level
+    example: 0
+  
+  status:
+    type: string
+    enum:
+      - active
+      - inactive
+      - archived
+    description: Updated status of the macro plan
+    example: "active"
+  
+  notes:
+    type: string
+    maxLength: 500
+    description: Updated notes about this macro plan
+    example: "Adjusted for maintenance phase"
+  
+  version:
+    type: integer
+    minimum: 1
+    description: Current version number for optimistic concurrency control
+    example: 2
+
+additionalProperties: false
+
+example:
+  calories: 2100
+  macros:
+    protein: 140
+    carbs: 210
+    fat: 70
+  goalType: "maintenance"
+  calorieAdjustment: 0
+  status: "active"
+  notes: "Transitioning to maintenance calories"
+  version: 3 

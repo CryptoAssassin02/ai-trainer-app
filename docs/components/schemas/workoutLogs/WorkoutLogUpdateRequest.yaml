@@ -1,0 +1,104 @@
+type: object
+description: Request schema for updating an existing workout log entry
+minProperties: 1
+properties:
+  plan_id:
+    type: string
+    format: uuid
+    nullable: true
+    description: Reference to associated workout plan
+    example: "789e1234-e89b-12d3-a456-426614174001"
+  date:
+    type: string
+    format: date
+    description: Date when the workout was performed
+    example: "2025-01-15"
+  completed:
+    type: boolean
+    description: Whether the workout was completed
+    example: true
+  exercises_completed:
+    type: array
+    description: Array of exercises completed during the workout
+    minItems: 1
+    items:
+      type: object
+      required:
+        - exercise_id
+        - exercise_name
+        - sets_completed
+        - reps_completed
+        - weights_used
+      properties:
+        exercise_id:
+          type: string
+          description: Unique identifier for the exercise
+          example: "bench-press"
+        exercise_name:
+          type: string
+          description: Display name of the exercise
+          example: "Bench Press"
+        sets_completed:
+          type: integer
+          minimum: 1
+          description: Number of sets completed
+          example: 3
+        reps_completed:
+          type: array
+          description: Array of repetitions completed for each set
+          items:
+            type: integer
+            minimum: 0
+          example: [10, 8, 6]
+        weights_used:
+          type: array
+          description: Array of weights used for each set
+          items:
+            type: number
+            minimum: 0
+          example: [135, 155, 175]
+        felt_difficulty:
+          type: integer
+          minimum: 1
+          maximum: 10
+          nullable: true
+          description: Subjective difficulty rating from 1-10
+          example: 7
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes about this specific exercise
+          example: "Good form on last set"
+  overall_difficulty:
+    type: integer
+    minimum: 1
+    maximum: 10
+    nullable: true
+    description: Overall workout difficulty rating from 1-10
+    example: 7
+  energy_level:
+    type: integer
+    minimum: 1
+    maximum: 10
+    nullable: true
+    description: Energy level during workout from 1-10
+    example: 8
+  satisfaction:
+    type: integer
+    minimum: 1
+    maximum: 10
+    nullable: true
+    description: Satisfaction with workout from 1-10
+    example: 9
+  feedback:
+    type: string
+    maxLength: 1000
+    nullable: true
+    description: Optional feedback about the workout session
+    example: "Updated feedback after reflection"
+
+example:
+  overall_difficulty: 8
+  energy_level: 7
+  satisfaction: 8
+  feedback: "Updated feedback after reflection - workout was more challenging than initially thought" 

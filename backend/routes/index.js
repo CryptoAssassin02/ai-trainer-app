@@ -45,6 +45,9 @@ const checkInRoutes = require('./check-in');
 const macroRoutes = require('./macros');
 const notificationRoutes = require('./notifications');
 const dataTransferRoutes = require('./data-transfer');
+const analyticsRoutes = require('./analytics');
+const goalsRoutes = require('./goals');
+const mobileAnalyticsRoutes = require('./mobile-analytics');
 // TODO: Import additional route modules when implemented
 
 // Register routes
@@ -61,11 +64,14 @@ function registerRoutes(app) {
   apiRouter.use('/profile', profileRoutes);
   apiRouter.use('/nutrition', nutritionRoutes); // Updated: use /nutrition prefix to match API structure
   apiRouter.use('/macros', macroRoutes); // New: mount macro routes under /macros prefix
+  apiRouter.use('/', workoutLogRoutes); // CRITICAL: Mount workout log routes BEFORE workout routes to avoid /:planId conflict
   apiRouter.use('/workouts', workoutRoutes);
-  apiRouter.use('/', workoutLogRoutes); // Mount workout log routes at root level since they have full paths
   apiRouter.use('/progress', checkInRoutes); // Mount check-in routes under /progress to match the intended API structure
   apiRouter.use('/notifications', notificationRoutes);
   apiRouter.use('/', dataTransferRoutes); // Mount data transfer routes at root level since they have full paths
+  apiRouter.use('/analytics', analyticsRoutes); // Mount analytics routes under /analytics prefix
+  apiRouter.use('/goals', goalsRoutes); // Mount goal routes under /goals prefix
+  apiRouter.use('/mobile', mobileAnalyticsRoutes); // Mount mobile analytics routes under /mobile prefix
 
   // Mount versioned API routes
   app.use('/v1', apiRouter);

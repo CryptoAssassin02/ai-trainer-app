@@ -1,0 +1,323 @@
+type: object
+description: AI-generated goal achievement predictions with detailed probability analysis and risk assessment
+required:
+  - userId
+  - analysisDate
+  - goalPredictions
+  - overallAssessment
+properties:
+  userId:
+    type: string
+    format: uuid
+    description: Unique identifier for the user
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  analysisDate:
+    type: string
+    format: date-time
+    description: Date and time when predictions were generated
+    example: "2024-01-15T10:30:00Z"
+  goalPredictions:
+    type: array
+    description: Individual goal achievement predictions
+    minItems: 0
+    items:
+      type: object
+      required:
+        - goalId
+        - goalType
+        - currentProgress
+        - predictions
+      properties:
+        goalId:
+          type: string
+          format: uuid
+          description: Unique identifier for the goal
+          example: "goal_123"
+        goalType:
+          type: string
+          description: Type of goal being predicted
+          enum: [weight_loss, muscle_gain, strength, endurance, body_composition, general_fitness]
+          example: weight_loss
+        currentProgress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Current progress towards goal completion (0-1)
+          example: 0.45
+        targetValue:
+          type: object
+          description: Target value and units for this goal
+          properties:
+            value:
+              type: number
+              format: float
+              example: 75.0
+            unit:
+              type: string
+              example: "kg"
+            description:
+              type: string
+              example: "Target weight of 75kg"
+        currentValue:
+          type: object
+          description: Current value and progress metrics
+          properties:
+            value:
+              type: number
+              format: float
+              example: 77.5
+            unit:
+              type: string
+              example: "kg"
+            lastUpdated:
+              type: string
+              format: date-time
+              example: "2024-01-14T09:00:00Z"
+        predictions:
+          type: array
+          description: Predictions for different time horizons
+          minItems: 1
+          items:
+            type: object
+            required:
+              - timeframe
+              - achievementProbability
+              - estimatedCompletion
+              - trajectory
+              - confidence
+            properties:
+              timeframe:
+                type: string
+                description: Time horizon for this prediction
+                enum: [1_month, 3_months, 6_months, 1_year, custom]
+                example: "3_months"
+              achievementProbability:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: Probability of achieving goal in this timeframe (0-1)
+                example: 0.85
+              estimatedCompletion:
+                type: string
+                format: date
+                description: Estimated completion date
+                example: "2024-04-10"
+              trajectory:
+                type: string
+                description: Current trajectory assessment
+                enum: [ahead_of_schedule, on_track, slightly_behind, significantly_behind, unlikely]
+                example: on_track
+              confidence:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: AI confidence in this prediction (0-1)
+                example: 0.87
+              requiredWeeklyProgress:
+                type: number
+                format: float
+                description: Required weekly progress to achieve goal
+                example: 0.5
+              currentWeeklyProgress:
+                type: number
+                format: float
+                description: Current average weekly progress
+                example: 0.48
+        riskFactors:
+          type: array
+          description: Factors that could impact goal achievement
+          items:
+            type: object
+            required:
+              - factor
+              - impact
+              - probability
+            properties:
+              factor:
+                type: string
+                description: Description of the risk factor
+                maxLength: 100
+                example: "Weekend adherence"
+              impact:
+                type: string
+                description: Potential impact on goal achievement
+                enum: [high, medium, low]
+                example: medium
+              probability:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: Probability this risk will occur (0-1)
+                example: 0.65
+              mitigation:
+                type: string
+                description: Suggested mitigation strategy
+                maxLength: 200
+                example: "Schedule weekend workouts and set reminders"
+        recommendations:
+          type: array
+          description: Specific recommendations to improve goal achievement probability
+          items:
+            type: string
+            maxLength: 200
+          example: 
+            - "Maintain current workout consistency"
+            - "Focus on weekend adherence improvement"
+            - "Consider adding one extra cardio session per week"
+        strengthFactors:
+          type: array
+          description: Factors that support goal achievement
+          items:
+            type: object
+            properties:
+              factor:
+                type: string
+                maxLength: 100
+                example: "Consistent weekday workouts"
+              impact:
+                type: string
+                enum: [high, medium, low]
+                example: high
+              confidence:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                example: 0.92
+        alternativeScenarios:
+          type: array
+          description: Alternative scenarios and their probabilities
+          items:
+            type: object
+            properties:
+              scenario:
+                type: string
+                maxLength: 150
+                example: "If weekend adherence improves to 80%"
+              probability:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                example: 0.73
+              impact:
+                type: string
+                maxLength: 200
+                example: "Goal achievement probability increases to 95%"
+  overallAssessment:
+    type: object
+    description: Overall assessment across all goals
+    required:
+      - trajectory
+      - keyInsights
+      - recommendedActions
+    properties:
+      trajectory:
+        type: string
+        description: Overall trajectory across all goals
+        enum: [excellent, positive, mixed, concerning, poor]
+        example: positive
+      averageAchievementProbability:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Average achievement probability across all goals
+        example: 0.82
+      keyInsights:
+        type: array
+        description: Key insights from the prediction analysis
+        items:
+          type: string
+          maxLength: 200
+        minItems: 1
+        example:
+          - "Current rate suggests early goal completion"
+          - "Weekend consistency is primary risk factor across multiple goals"
+      recommendedActions:
+        type: array
+        description: High-level recommended actions
+        items:
+          type: string
+          maxLength: 150
+        minItems: 1
+        example:
+          - "Continue current routine with minor adjustments"
+          - "Address weekend workout gaps as top priority"
+      riskMitigation:
+        type: array
+        description: Overall risk mitigation strategies
+        items:
+          type: string
+          maxLength: 200
+        example:
+          - "Implement weekend accountability system"
+          - "Consider workout buddy for weekend sessions"
+      confidenceLevel:
+        type: string
+        description: Overall confidence in predictions
+        enum: [very_high, high, moderate, low, very_low]
+        example: high
+examples:
+  - userId: "123e4567-e89b-12d3-a456-426614174000"
+    analysisDate: "2024-01-15T10:30:00Z"
+    goalPredictions:
+      - goalId: "goal_123"
+        goalType: weight_loss
+        currentProgress: 0.45
+        targetValue:
+          value: 75.0
+          unit: "kg"
+          description: "Target weight of 75kg"
+        currentValue:
+          value: 77.5
+          unit: "kg"
+          lastUpdated: "2024-01-14T09:00:00Z"
+        predictions:
+          - timeframe: "3_months"
+            achievementProbability: 0.85
+            estimatedCompletion: "2024-04-10"
+            trajectory: on_track
+            confidence: 0.87
+            requiredWeeklyProgress: 0.5
+            currentWeeklyProgress: 0.48
+          - timeframe: "6_months"
+            achievementProbability: 0.96
+            estimatedCompletion: "2024-04-10"
+            trajectory: ahead_of_schedule
+            confidence: 0.92
+            requiredWeeklyProgress: 0.25
+            currentWeeklyProgress: 0.48
+        riskFactors:
+          - factor: "Weekend adherence"
+            impact: medium
+            probability: 0.65
+            mitigation: "Schedule weekend workouts and set reminders"
+        recommendations:
+          - "Maintain current workout consistency"
+          - "Focus on weekend adherence improvement"
+        strengthFactors:
+          - factor: "Consistent weekday workouts"
+            impact: high
+            confidence: 0.92
+        alternativeScenarios:
+          - scenario: "If weekend adherence improves to 80%"
+            probability: 0.73
+            impact: "Goal achievement probability increases to 95%"
+    overallAssessment:
+      trajectory: positive
+      averageAchievementProbability: 0.82
+      keyInsights:
+        - "Current rate suggests early goal completion"
+        - "Weekend consistency is primary risk factor across multiple goals"
+      recommendedActions:
+        - "Continue current routine with minor adjustments"
+        - "Address weekend workout gaps as top priority"
+      riskMitigation:
+        - "Implement weekend accountability system"
+        - "Consider workout buddy for weekend sessions"
+      confidenceLevel: high 

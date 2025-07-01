@@ -1,0 +1,53 @@
+type: object
+description: Validation error response for workout log operations with invalid data
+required:
+  - status
+  - message
+  - errors
+properties:
+  status:
+    type: string
+    enum: ["error"]
+    description: Status indicating a validation error occurred
+    example: "error"
+  message:
+    type: string
+    description: General error message
+    example: "Validation failed for workout log data"
+  errors:
+    type: array
+    description: Array of specific validation errors
+    items:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: The field that failed validation
+          example: "exercises_completed"
+        message:
+          type: string
+          description: Specific validation error message
+          example: "Must contain at least one exercise"
+        value:
+          description: The invalid value that was provided
+          example: []
+  timestamp:
+    type: string
+    format: date-time
+    description: Timestamp when the error occurred
+    example: "2025-01-15T18:30:00Z"
+
+example:
+  status: "error"
+  message: "Validation failed for workout log data"
+  errors:
+    - field: "exercises_completed"
+      message: "Must contain at least one exercise"
+      value: []
+    - field: "overall_difficulty"
+      message: "Must be between 1 and 10"
+      value: 15
+  timestamp: "2025-01-15T18:30:00Z" 

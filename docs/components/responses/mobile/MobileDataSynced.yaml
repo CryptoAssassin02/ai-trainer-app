@@ -1,0 +1,151 @@
+description: Mobile data successfully synced with conflict resolution
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  X-Sync-Version:
+    description: Server sync version after successful sync
+    schema:
+      type: string
+      example: "v2024.01.15.1430"
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/mobile/MobileSyncResponse.yaml'
+    examples:
+      full_sync_completed:
+        summary: Complete mobile data sync with conflict resolution
+        value:
+          status: success
+          data:
+            syncStatus: "completed"
+            syncType: "full"
+            recordsProcessed: 127
+            conflictsResolved: 4
+            conflictDetails:
+              - type: "workout_log"
+                recordId: "log_abc123"
+                resolution: "server_wins"
+                reason: "server_timestamp_newer"
+                description: "Server workout data was more recent"
+              - type: "check_in"
+                recordId: "checkin_def456"
+                resolution: "merge"
+                reason: "compatible_changes"
+                description: "Merged weight and mood data"
+              - type: "goal_progress"
+                recordId: "goal_ghi789"
+                resolution: "client_wins"
+                reason: "user_preference"
+                description: "Client goal update was preferred"
+              - type: "nutrition_log"
+                recordId: "nutrition_jkl012"
+                resolution: "manual_review"
+                reason: "complex_conflict"
+                description: "Flagged for manual review"
+            updatedAnalytics:
+              workoutCount: 156
+              totalProgress: 0.67
+              adherenceScore: 0.84
+              lastWeekSummary:
+                workouts: 4
+                adherence: 0.91
+                satisfaction: 8.2
+            dataIntegrity:
+              checksumMatch: true
+              missingRecords: 0
+              duplicatesRemoved: 2
+              validationErrors: 0
+            nextSyncRecommended: "2024-01-16T14:30:00Z"
+            offlineCapability:
+              daysSupported: 7
+              pendingUploads: 0
+              storageUsed: "45MB"
+          metadata:
+            syncVersion: "v2024.01.15.1430"
+            processingTime: 3450
+            serverLoad: "normal"
+            compressionSaved: "12MB"
+            networkQuality: "good"
+      incremental_sync:
+        summary: Incremental sync with minimal conflicts
+        value:
+          status: success
+          data:
+            syncStatus: "completed"
+            syncType: "incremental"
+            recordsProcessed: 23
+            conflictsResolved: 1
+            conflictDetails:
+              - type: "check_in"
+                recordId: "checkin_xyz789"
+                resolution: "merge"
+                reason: "timestamp_overlap"
+                description: "Merged wellness metrics from both sources"
+            updatedAnalytics:
+              workoutCount: 89
+              totalProgress: 0.34
+              adherenceScore: 0.78
+              lastWeekSummary:
+                workouts: 3
+                adherence: 0.86
+                satisfaction: 7.8
+            dataIntegrity:
+              checksumMatch: true
+              missingRecords: 0
+              duplicatesRemoved: 0
+              validationErrors: 0
+            nextSyncRecommended: "2024-01-15T22:30:00Z"
+            offlineCapability:
+              daysSupported: 7
+              pendingUploads: 0
+              storageUsed: "12MB"
+          metadata:
+            syncVersion: "v2024.01.15.1430"
+            processingTime: 890
+            serverLoad: "low"
+            compressionSaved: "2.1MB"
+            networkQuality: "excellent"
+      analytics_only_sync:
+        summary: Analytics-only sync for quick updates
+        value:
+          status: success
+          data:
+            syncStatus: "completed"
+            syncType: "analytics_only"
+            recordsProcessed: 0
+            conflictsResolved: 0
+            conflictDetails: []
+            updatedAnalytics:
+              workoutCount: 67
+              totalProgress: 0.48
+              adherenceScore: 0.81
+              lastWeekSummary:
+                workouts: 5
+                adherence: 0.95
+                satisfaction: 8.7
+              trendsUpdate:
+                weight: "improving"
+                strength: "steady_progress"
+                consistency: "excellent"
+            dataIntegrity:
+              checksumMatch: true
+              missingRecords: 0
+              duplicatesRemoved: 0
+              validationErrors: 0
+            nextSyncRecommended: "2024-01-15T23:00:00Z"
+            offlineCapability:
+              daysSupported: 7
+              pendingUploads: 0
+              storageUsed: "8MB"
+          metadata:
+            syncVersion: "v2024.01.15.1430"
+            processingTime: 245
+            serverLoad: "minimal"
+            compressionSaved: "450KB"
+            networkQuality: "good" 

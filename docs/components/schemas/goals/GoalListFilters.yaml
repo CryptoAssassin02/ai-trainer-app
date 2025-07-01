@@ -1,0 +1,129 @@
+type: object
+properties:
+  status:
+    type: array
+    items:
+      type: string
+      enum: [active, paused, completed, abandoned, modified]
+    description: Filter by goal status
+  type:
+    type: array
+    items:
+      type: string
+      enum: [weight_loss, muscle_gain, strength, endurance, body_composition, performance, habit]
+    description: Filter by goal type
+  priority:
+    type: array
+    items:
+      type: string
+      enum: [low, medium, high, critical]
+    description: Filter by priority level
+  timeframe:
+    type: array
+    items:
+      type: string
+      enum: [1month, 3months, 6months, 1year, custom]
+    description: Filter by timeframe
+  createdDateRange:
+    type: object
+    properties:
+      startDate:
+        type: string
+        format: date
+      endDate:
+        type: string
+        format: date
+    description: Filter by goal creation date range
+  targetDateRange:
+    type: object
+    properties:
+      startDate:
+        type: string
+        format: date
+      endDate:
+        type: string
+        format: date
+    description: Filter by goal target completion date range
+  progressRange:
+    type: object
+    properties:
+      min:
+        type: number
+        minimum: 0
+        maximum: 100
+      max:
+        type: number
+        minimum: 0
+        maximum: 100
+    description: Filter by progress percentage range
+  hasConstraints:
+    type: boolean
+    description: Filter goals that have constraints defined
+  hasMilestones:
+    type: boolean
+    description: Filter goals that have milestones defined
+  hasAccountabilityPartner:
+    type: boolean
+    description: Filter goals with accountability partners
+  isPublic:
+    type: boolean
+    description: Filter by public visibility
+  relatedToGoal:
+    type: string
+    format: uuid
+    description: Filter goals related to a specific goal ID
+  trackingMetric:
+    type: array
+    items:
+      type: string
+      enum: [weight, body_fat, measurements, strength, endurance, habits, performance]
+    description: Filter by tracking metrics
+  searchText:
+    type: string
+    maxLength: 100
+    description: Search in goal descriptions, motivations, and notes
+  sortBy:
+    type: string
+    enum: [created_date, target_date, priority, progress, status, type]
+    default: created_date
+    description: Field to sort results by
+  sortOrder:
+    type: string
+    enum: [asc, desc]
+    default: desc
+    description: Sort order
+  limit:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+    description: Maximum number of goals to return
+  offset:
+    type: integer
+    minimum: 0
+    default: 0
+    description: Number of goals to skip (for pagination)
+  includeCompleted:
+    type: boolean
+    default: true
+    description: Whether to include completed goals
+  includeAbandoned:
+    type: boolean
+    default: false
+    description: Whether to include abandoned goals
+  includeStats:
+    type: boolean
+    default: false
+    description: Whether to include goal statistics
+  includeProgress:
+    type: boolean
+    default: true
+    description: Whether to include progress information
+  includeMilestones:
+    type: boolean
+    default: false
+    description: Whether to include milestone details
+  includeRelated:
+    type: boolean
+    default: false
+    description: Whether to include related goals information 

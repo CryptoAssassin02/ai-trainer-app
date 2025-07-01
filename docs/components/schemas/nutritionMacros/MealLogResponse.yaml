@@ -1,0 +1,48 @@
+type: object
+description: Response containing a logged meal entry
+required:
+  - status
+  - message
+  - data
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: "success"
+  
+  message:
+    type: string
+    description: Response message
+    example: "Meal logged successfully"
+  
+  data:
+    $ref: './MealLog.yaml'
+
+additionalProperties: false
+
+example:
+  status: "success"
+  message: "Meal logged successfully"
+  data:
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    userId: "123e4567-e89b-12d3-a456-426614174000"
+    mealName: "Lunch"
+    foods:
+      - name: "Grilled salmon"
+        portionSize: 120
+        units: "grams"
+        protein_g: 25.4
+        carbs_g: 0
+        fat_g: 13.4
+        calories: 231
+      - name: "Brown rice"
+        portionSize: 100
+        units: "grams"
+        protein_g: 2.6
+        carbs_g: 23
+        fat_g: 0.9
+        calories: 111
+    notes: "Delicious and filling meal"
+    loggedAt: "2024-01-15T13:15:00Z"
+    createdAt: "2024-01-15T13:20:00Z" 

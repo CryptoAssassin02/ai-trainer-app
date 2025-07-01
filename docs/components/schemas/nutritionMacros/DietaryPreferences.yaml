@@ -1,0 +1,99 @@
+type: object
+description: User's dietary preferences and restrictions
+required:
+  - id
+  - userId
+  - createdAt
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Unique identifier for the dietary preferences record
+    example: "550e8400-e29b-41d4-a716-446655440000"
+  
+  userId:
+    type: string
+    format: uuid
+    description: ID of the user these preferences belong to
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  
+  dietType:
+    type: string
+    enum:
+      - standard
+      - vegetarian
+      - vegan
+      - keto
+      - paleo
+      - mediterranean
+      - low_carb
+      - low_fat
+      - gluten_free
+    description: Primary diet type or eating pattern
+    example: "vegetarian"
+  
+  mealFrequency:
+    type: integer
+    minimum: 1
+    maximum: 8
+    description: Number of meals per day
+    example: 3
+  
+  mealTimingPrefs:
+    type: string
+    maxLength: 200
+    description: Preferred meal timing or schedule
+    example: "Early breakfast at 7am, late dinner after 7pm"
+  
+  timeConstraints:
+    type: string
+    maxLength: 200
+    description: Time constraints for meal preparation
+    example: "Limited to 30 minutes prep time"
+  
+  restrictions:
+    type: array
+    items:
+      type: string
+    description: Dietary restrictions or limitations
+    example: ["dairy-free", "nut-free"]
+  
+  allergies:
+    type: array
+    items:
+      type: string
+    description: Food allergies
+    example: ["shellfish", "peanuts"]
+  
+  dislikedFoods:
+    type: array
+    items:
+      type: string
+    description: Foods to avoid based on preference
+    example: ["broccoli", "mushrooms"]
+  
+  preferredCuisine:
+    type: string
+    maxLength: 100
+    description: Preferred cuisine types
+    example: "Mediterranean, Asian"
+  
+  performanceGoals:
+    type: string
+    maxLength: 200
+    description: Performance-related dietary goals
+    example: "Increase energy for morning workouts"
+  
+  updatedAt:
+    type: string
+    format: date-time
+    description: When the preferences were last updated
+    example: "2024-01-15T10:30:00Z"
+  
+  createdAt:
+    type: string
+    format: date-time
+    description: When the preferences were created
+    example: "2024-01-15T10:30:00Z"
+
+additionalProperties: false 

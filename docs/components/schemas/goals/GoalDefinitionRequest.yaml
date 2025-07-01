@@ -1,0 +1,131 @@
+type: object
+required: [type, target, timeframe]
+properties:
+  type:
+    type: string
+    enum: [weight_loss, muscle_gain, strength, endurance, body_composition, performance, habit]
+    description: Type of fitness goal
+  target:
+    type: object
+    properties:
+      value:
+        type: number
+        description: Target value (weight, percentage, etc.)
+      unit:
+        type: string
+        description: Unit of measurement
+      metric:
+        type: string
+        description: Specific metric being targeted
+      description:
+        type: string
+        maxLength: 500
+        description: Detailed target description
+    required: [value, unit, metric]
+    description: Specific target for the goal
+  timeframe:
+    type: string
+    enum: [1month, 3months, 6months, 1year, custom]
+    description: Time period to achieve the goal
+  customTimeframe:
+    type: object
+    properties:
+      startDate:
+        type: string
+        format: date
+      endDate:
+        type: string
+        format: date
+    description: Custom date range (required if timeframe is 'custom')
+  priority:
+    type: string
+    enum: [low, medium, high, critical]
+    default: medium
+    description: Goal priority level
+  motivation:
+    type: string
+    maxLength: 1000
+    description: Personal motivation for this goal
+  milestones:
+    type: array
+    items:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+        description:
+          type: string
+          maxLength: 200
+        targetDate:
+          type: string
+          format: date
+        reward:
+          type: string
+          maxLength: 200
+    description: Intermediate milestones for the goal
+  constraints:
+    type: object
+    properties:
+      medicalRestrictions:
+        type: array
+        items:
+          type: string
+        description: Medical constraints to consider
+      timeConstraints:
+        type: array
+        items:
+          type: string
+        description: Time-related constraints
+      equipmentLimitations:
+        type: array
+        items:
+          type: string
+        description: Equipment limitations
+      budgetConstraints:
+        type: object
+        properties:
+          maxCost:
+            type: number
+          currency:
+            type: string
+        description: Budget constraints
+    description: Constraints that may affect goal achievement
+  relatedGoals:
+    type: array
+    items:
+      type: string
+      format: uuid
+    description: IDs of related goals
+  trackingMetrics:
+    type: array
+    items:
+      type: string
+      enum: [weight, body_fat, measurements, strength, endurance, habits, performance]
+    description: Metrics to track for this goal
+  notifications:
+    type: object
+    properties:
+      reminders:
+        type: boolean
+        default: true
+      frequency:
+        type: string
+        enum: [daily, weekly, biweekly, monthly]
+        default: weekly
+      milestoneAlerts:
+        type: boolean
+        default: true
+      progressReports:
+        type: boolean
+        default: true
+    description: Notification preferences for this goal
+  publicVisibility:
+    type: boolean
+    default: false
+    description: Whether this goal is visible to other users (for accountability)
+  accountabilityPartner:
+    type: string
+    format: uuid
+    description: ID of another user who can see progress (optional) 

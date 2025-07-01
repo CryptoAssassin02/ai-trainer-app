@@ -1,0 +1,57 @@
+description: Analytics request validation failed
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/AnalyticsValidationError.yaml'
+    examples:
+      invalid_timeframe:
+        summary: Invalid timeframe parameter provided
+        value:
+          status: error
+          message: "Validation failed"
+          errors:
+            - field: "timeframe"
+              code: "INVALID_FORMAT"
+              message: "Timeframe must be in format '30 days', '12 weeks', or '6 months'"
+              value: "invalid_period"
+            - field: "groupBy"
+              code: "INVALID_OPTION"
+              message: "groupBy must be one of: day, week, month"
+              value: "year"
+          timestamp: "2024-01-15T19:00:00Z"
+          requestId: "req_123456"
+      missing_required_fields:
+        summary: Required fields missing from analytics request
+        value:
+          status: error
+          message: "Validation failed"
+          errors:
+            - field: "timeframe"
+              code: "FIELD_REQUIRED"
+              message: "Timeframe is required for analytics queries"
+              value: null
+            - field: "metrics"
+              code: "INVALID_ARRAY"
+              message: "At least one metric must be specified"
+              value: []
+          timestamp: "2024-01-15T19:05:00Z"
+          requestId: "req_123457"
+      invalid_date_range:
+        summary: Invalid date range in analytics query
+        value:
+          status: error
+          message: "Validation failed"
+          errors:
+            - field: "startDate"
+              code: "DATE_FORMAT_INVALID"
+              message: "Start date must be in ISO 8601 format"
+              value: "2024-01-32"
+            - field: "endDate"
+              code: "DATE_RANGE_INVALID"
+              message: "End date must be after start date"
+              value: "2024-01-01T00:00:00Z"
+          timestamp: "2024-01-15T19:10:00Z"
+          requestId: "req_123458" 

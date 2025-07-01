@@ -82,8 +82,8 @@ const handleMulterError = (err, req, res, next) => {
 
 // Rate limiting configurations
 const exportLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 5, // 5 requests per hour
+  windowMs: process.env.NODE_ENV === 'test' ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in test, 1 hour in production
+  max: process.env.NODE_ENV === 'test' ? 100 : 5, // 100 requests per minute in test, 5 per hour in production
   message: {
     status: 'error',
     message: 'Too many export requests. Please try again later.'
@@ -94,8 +94,8 @@ const exportLimiter = rateLimit({
 });
 
 const importLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 3, // 3 requests per hour
+  windowMs: process.env.NODE_ENV === 'test' ? 60 * 1000 : 60 * 60 * 1000, // 1 minute in test, 1 hour in production
+  max: process.env.NODE_ENV === 'test' ? 100 : 3, // 100 requests per minute in test, 3 per hour in production
   message: {
     status: 'error',
     message: 'Too many import requests. Please try again later.'
@@ -128,11 +128,11 @@ const exportSchema = Joi.object({
 // Routes
 
 /**
- * @route POST /v1/export
+ * @route POST /data-transfer/export
  * @desc Export user data in specified format
  * @access Private
  */
-router.post('/v1/export',
+router.post('/data-transfer/export',
   authenticate,
   exportLimiter,
   validate(exportSchema),
@@ -140,11 +140,11 @@ router.post('/v1/export',
 );
 
 /**
- * @route POST /v1/import
+ * @route POST /data-transfer/import
  * @desc Import data from uploaded file
  * @access Private
  */
-router.post('/v1/import',
+router.post('/data-transfer/import',
   authenticate,
   importLimiter,
   upload.single('file'),

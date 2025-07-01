@@ -168,7 +168,7 @@ const signup = async (req, res, next) => {
         status: 'success',
         message: 'Account created',
         userId: userId,
-        accessToken: sessionData?.session?.access_token,
+        jwtToken: sessionData?.session?.access_token,
         refreshToken: sessionData?.session?.refresh_token 
       });
     } else {
@@ -231,7 +231,7 @@ const signup = async (req, res, next) => {
         status: 'success',
         message: 'Account created',
         userId: userId,
-        accessToken: data.session?.access_token,
+        jwtToken: data.session?.access_token,
         refreshToken: data.session?.refresh_token 
       });
     }

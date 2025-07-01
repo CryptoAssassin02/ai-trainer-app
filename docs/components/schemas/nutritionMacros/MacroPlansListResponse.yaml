@@ -1,0 +1,131 @@
+type: object
+description: Response containing a list of macro plans with pagination metadata
+required:
+  - status
+  - message
+  - data
+  - pagination
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: "success"
+  
+  message:
+    type: string
+    description: Response message
+    example: "Macro plans retrieved successfully"
+  
+  data:
+    type: array
+    items:
+      $ref: './MacroPlan.yaml'
+    description: Array of macro plan entries
+  
+  pagination:
+    type: object
+    required:
+      - total
+      - page
+      - pageSize
+      - totalPages
+      - hasNextPage
+      - hasPreviousPage
+    properties:
+      total:
+        type: integer
+        minimum: 0
+        description: Total number of macro plans available
+        example: 15
+      
+      page:
+        type: integer
+        minimum: 1
+        description: Current page number
+        example: 1
+      
+      pageSize:
+        type: integer
+        minimum: 1
+        description: Number of items per page
+        example: 10
+      
+      totalPages:
+        type: integer
+        minimum: 1
+        description: Total number of pages
+        example: 2
+      
+      hasNextPage:
+        type: boolean
+        description: Whether there are more pages available
+        example: true
+      
+      hasPreviousPage:
+        type: boolean
+        description: Whether there are previous pages available
+        example: false
+    additionalProperties: false
+    description: Pagination information
+  
+  filters:
+    type: object
+    properties:
+      status:
+        type: string
+        description: Applied status filter (if any)
+        example: "active"
+      
+      goalType:
+        type: string
+        description: Applied goal type filter (if any)
+        example: "muscle_gain"
+      
+      startDate:
+        type: string
+        format: date
+        description: Applied start date filter (if any)
+        example: "2024-01-01"
+      
+      endDate:
+        type: string
+        format: date
+        description: Applied end date filter (if any)
+        example: "2024-12-31"
+    additionalProperties: false
+    description: Applied filters for this request
+
+additionalProperties: false
+
+example:
+  status: "success"
+  message: "Macro plans retrieved successfully"
+  data:
+    - id: "550e8400-e29b-41d4-a716-446655440000"
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      calories: 2300
+      macros:
+        protein_g: 144
+        carbs_g: 259
+        fat_g: 77
+        calories: 2300
+      bmr: 1680
+      tdee: 2604
+      goalType: "muscle_gain"
+      calorieAdjustment: 300
+      status: "active"
+      source: "calculated"
+      version: 1
+      createdAt: "2024-01-15T10:30:00Z"
+      updatedAt: "2024-01-15T10:30:00Z"
+  pagination:
+    total: 15
+    page: 1
+    pageSize: 10
+    totalPages: 2
+    hasNextPage: true
+    hasPreviousPage: false
+  filters:
+    status: "active"
+    goalType: "muscle_gain" 

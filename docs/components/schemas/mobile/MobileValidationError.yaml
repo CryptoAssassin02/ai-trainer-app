@@ -1,0 +1,80 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [MOBILE_VALIDATION_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      field:
+        type: string
+        description: Field that failed validation
+      value:
+        type: string
+        description: Invalid value provided
+      constraint:
+        type: string
+        description: Mobile-specific constraint that was violated
+      mobileLimit:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [payload_size, metric_count, timeframe, connection_quality]
+          limit:
+            type: number
+          current:
+            type: number
+          unit:
+            type: string
+        description: Mobile-specific limits that were exceeded
+      deviceSupport:
+        type: object
+        properties:
+          platform:
+            type: string
+          supportedVersions:
+            type: array
+            items:
+              type: string
+          requiredFeatures:
+            type: array
+            items:
+              type: string
+        description: Device support information
+      recommendations:
+        type: array
+        items:
+          type: string
+        description: Recommendations for mobile optimization
+      fallbackOptions:
+        type: array
+        items:
+          type: object
+          properties:
+            option:
+              type: string
+            description:
+              type: string
+            limitations:
+              type: array
+              items:
+                type: string
+        description: Available fallback options for mobile
+    description: Detailed mobile validation error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

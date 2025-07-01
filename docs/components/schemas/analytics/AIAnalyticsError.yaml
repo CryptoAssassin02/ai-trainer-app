@@ -1,0 +1,145 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [AI_ANALYTICS_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      aiService:
+        type: string
+        enum: [openai, pattern_detector, insight_generator, prediction_service]
+        description: AI service that failed
+      operationType:
+        type: string
+        enum: [insight_generation, pattern_analysis, recommendation_creation, goal_prediction, comprehensive_analysis]
+        description: Type of AI operation that failed
+      failureReason:
+        type: string
+        enum: [service_unavailable, quota_exceeded, invalid_input, processing_timeout, model_error, configuration_error]
+        description: Reason for AI service failure
+      aiModelInfo:
+        type: object
+        properties:
+          model:
+            type: string
+            description: AI model used
+          version:
+            type: string
+            description: Model version
+          parameters:
+            type: object
+            description: Model parameters used
+        description: Information about the AI model
+      inputData:
+        type: object
+        properties:
+          dataSize:
+            type: integer
+            description: Size of input data
+          timeRange:
+            type: string
+            description: Time range of data analyzed
+          metrics:
+            type: array
+            items:
+              type: string
+            description: Metrics requested for analysis
+          complexity:
+            type: string
+            enum: [low, medium, high, very_high]
+            description: Complexity of analysis requested
+        description: Input data characteristics
+      fallbackOptions:
+        type: object
+        properties:
+          cachedResults:
+            type: boolean
+            description: Whether cached results are available
+          simplifiedAnalysis:
+            type: boolean
+            description: Whether simplified analysis is available
+          manualAnalysis:
+            type: boolean
+            description: Whether manual analysis fallback exists
+          retryRecommended:
+            type: boolean
+            description: Whether retrying is recommended
+          retryDelay:
+            type: integer
+            description: Recommended retry delay in seconds
+        description: Available fallback options
+      performance:
+        type: object
+        properties:
+          processingTime:
+            type: number
+            description: Time spent processing (seconds)
+          tokensUsed:
+            type: integer
+            description: AI tokens consumed
+          requestSize:
+            type: integer
+            description: Size of request to AI service
+          responseSize:
+            type: integer
+            description: Size of response from AI service
+        description: Performance metrics for the failed operation
+      quota:
+        type: object
+        properties:
+          daily:
+            type: object
+            properties:
+              used:
+                type: integer
+              remaining:
+                type: integer
+              total:
+                type: integer
+          hourly:
+            type: object
+            properties:
+              used:
+                type: integer
+              remaining:
+                type: integer
+              total:
+                type: integer
+          resetTime:
+            type: string
+            format: date-time
+            description: When quota resets
+        description: AI service quota information
+      troubleshooting:
+        type: object
+        properties:
+          suggestions:
+            type: array
+            items:
+              type: string
+            description: Troubleshooting suggestions
+          supportContact:
+            type: string
+            description: Support contact information
+          diagnosticId:
+            type: string
+            description: Diagnostic identifier for support
+        description: Troubleshooting information
+    description: Detailed AI analytics error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

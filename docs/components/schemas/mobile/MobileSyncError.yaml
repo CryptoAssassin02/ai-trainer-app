@@ -1,0 +1,103 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [MOBILE_SYNC_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      syncStage:
+        type: string
+        enum: [initialization, data_retrieval, conflict_resolution, data_upload, finalization]
+        description: Sync stage where error occurred
+      affectedDataTypes:
+        type: array
+        items:
+          type: string
+          enum: [analytics, goals, progress, workouts, notifications, preferences]
+        description: Data types affected by sync error
+      partialSync:
+        type: boolean
+        description: Whether partial sync was completed
+      completedOperations:
+        type: array
+        items:
+          type: object
+          properties:
+            operation:
+              type: string
+            resourceType:
+              type: string
+            count:
+              type: integer
+        description: Operations completed before error
+      failedOperations:
+        type: array
+        items:
+          type: object
+          properties:
+            operation:
+              type: string
+            resourceType:
+              type: string
+            resourceId:
+              type: string
+            error:
+              type: string
+            retryable:
+              type: boolean
+        description: Operations that failed during sync
+      conflictCount:
+        type: integer
+        description: Number of unresolved conflicts
+      dataIntegrity:
+        type: boolean
+        description: Whether data integrity was maintained
+      retryRecommended:
+        type: boolean
+        description: Whether retrying sync is recommended
+      retryDelay:
+        type: integer
+        description: Recommended delay before retry (seconds)
+      networkIssue:
+        type: object
+        properties:
+          connectionType:
+            type: string
+          quality:
+            type: string
+          bandwidth:
+            type: number
+          timeout:
+            type: boolean
+        description: Network-related issues during sync
+      deviceResources:
+        type: object
+        properties:
+          storage:
+            type: string
+            enum: [sufficient, low, critical]
+          memory:
+            type: string
+            enum: [sufficient, low, critical]
+          battery:
+            type: string
+            enum: [sufficient, low, critical]
+        description: Device resource status during sync
+    description: Detailed sync error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

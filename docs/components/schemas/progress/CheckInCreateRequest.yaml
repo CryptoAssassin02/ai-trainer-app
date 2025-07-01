@@ -1,0 +1,127 @@
+type: object
+required: [type]
+properties:
+  type:
+    type: string
+    enum: [weekly, biweekly, monthly, custom, milestone]
+    description: Type of check-in being created
+  date:
+    type: string
+    format: date
+    description: Date of check-in (defaults to current date if not provided)
+  weight:
+    type: number
+    minimum: 0
+    maximum: 1000
+    description: Current weight (kg or lbs based on user preference)
+  bodyFatPercentage:
+    type: number
+    minimum: 0
+    maximum: 100
+    description: Body fat percentage
+  measurements:
+    type: object
+    properties:
+      chest:
+        type: number
+        minimum: 0
+        description: Chest measurement
+      waist:
+        type: number
+        minimum: 0
+        description: Waist measurement
+      hips:
+        type: number
+        minimum: 0
+        description: Hip measurement
+      arms:
+        type: number
+        minimum: 0
+        description: Arm measurement
+      thighs:
+        type: number
+        minimum: 0
+        description: Thigh measurement
+      neck:
+        type: number
+        minimum: 0
+        description: Neck measurement
+      custom:
+        type: object
+        additionalProperties:
+          type: number
+        description: Custom measurements
+    description: Body measurements
+  mood:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Mood rating (1-10 scale)
+  sleepQuality:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Sleep quality rating (1-10 scale)
+  energyLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Energy level rating (1-10 scale)
+  stressLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Stress level rating (1-10 scale)
+  notes:
+    type: string
+    maxLength: 2000
+    description: Additional notes about progress
+  photos:
+    type: array
+    items:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [front, side, back, custom]
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+          maxLength: 500
+    maxItems: 10
+    description: Progress photos
+  goals:
+    type: array
+    items:
+      type: object
+      properties:
+        goalId:
+          type: string
+          format: uuid
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        notes:
+          type: string
+          maxLength: 500
+    description: Goal-specific progress updates
+  milestones:
+    type: array
+    items:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [weight_target, measurement_target, performance_target, habit_milestone]
+        description:
+          type: string
+          maxLength: 500
+        achieved:
+          type: boolean
+        date:
+          type: string
+          format: date
+    description: Milestones achieved or targeted 

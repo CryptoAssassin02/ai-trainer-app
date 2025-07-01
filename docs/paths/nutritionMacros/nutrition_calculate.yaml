@@ -1,0 +1,50 @@
+post:
+  tags:
+    - Nutrition & Macros
+  summary: Generate AI-powered nutrition plan
+  description: |
+    Calculate macros and generate a comprehensive nutrition plan using AI recommendations based on user goals and activity level.
+    
+    **Rate Limits:**
+    - 5 requests per hour (production)
+    - 100 requests per minute (test environment)
+  operationId: calculateNutritionPlan
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/nutritionMacros/NutritionCalculateRequest.yaml'
+        examples:
+          muscle_gain_request:
+            summary: Muscle gain nutrition plan
+            description: Generate nutrition plan for muscle gain goals
+            value:
+              goals: ["muscle_gain"]
+              activityLevel: "moderate"
+              additionalNotes: "Focus on high protein, moderate carbs"
+          
+          weight_loss_request:
+            summary: Weight loss nutrition plan  
+            description: Generate nutrition plan for weight loss goals
+            value:
+              goals: ["weight_loss", "general_health"]
+              activityLevel: "active"
+              additionalNotes: "Prefer whole foods, limit processed foods"
+  responses:
+    '200':
+      $ref: '../../components/responses/nutritionMacros/NutritionPlanGenerated.yaml'
+    
+    '400':
+      $ref: '../../components/responses/nutritionMacros/NutritionValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+    
+    '429':
+      $ref: '../../components/responses/nutritionMacros/NutritionRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml' 

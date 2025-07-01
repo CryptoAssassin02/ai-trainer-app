@@ -1,5 +1,5 @@
 {
-  "name": "codeguide-starter-pro",
+  "name": "ai-trainer-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -20,7 +20,8 @@
     "test:vitest:watch": "vitest watch",
     "check-node": "node scripts/check-node-version.js",
     "predev": "npm run check-node",
-    "prebuild": "npm run check-node"
+    "prebuild": "npm run check-node",
+    "openapi:validate": "node scripts/validate-openapi.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -102,6 +103,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.1.1",
     "@axe-core/react": "^4.10.1",
     "@chromatic-com/storybook": "^3.2.6",
     "@cypress/code-coverage": "^3.13.12",

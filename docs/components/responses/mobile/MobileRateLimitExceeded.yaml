@@ -1,0 +1,315 @@
+description: Mobile rate limit exceeded with mobile-specific guidance
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  Retry-After:
+    description: Seconds to wait before next request
+    schema:
+      type: integer
+      example: 300
+  X-Mobile-Quota-Type:
+    description: Type of mobile quota that was exceeded
+    schema:
+      type: string
+      example: "sync_operations"
+  X-Premium-Available:
+    description: Whether premium upgrade can increase limits
+    schema:
+      type: boolean
+      example: true
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/mobile/MobileRateLimitError.yaml'
+    examples:
+      mobile_sync_rate_limit:
+        summary: Mobile sync operations rate limit exceeded
+        value:
+          error:
+            code: "MOBILE_SYNC_RATE_LIMIT_EXCEEDED"
+            message: "Mobile sync operations rate limit exceeded"
+            details:
+              limit: 10
+              window: "1 hour"
+              remaining: 0
+              resetTime: "2024-01-15T21:45:00Z"
+              retryAfter: 2700
+              quotaType: "sync_operations"
+            mobileSpecific:
+              syncStrategy:
+                currentStrategy: "frequent_sync"
+                recommendedStrategy: "smart_sync"
+                benefits: ["Lower battery usage", "Reduced data usage", "Better performance"]
+              optimization:
+                backgroundSync: 
+                  enabled: false
+                  recommended: true
+                  description: "Sync during charging and WiFi connection"
+                smartSync:
+                  available: true
+                  description: "AI-optimized sync timing based on usage patterns"
+                batchSync:
+                  recommended: true
+                  batchSize: 5
+                  frequency: "every 2 hours"
+              alternatives:
+                offlineMode:
+                  available: true
+                  description: "Continue using app with offline data"
+                  syncOnReconnect: true
+                cacheMode:
+                  available: true
+                  description: "Use cached data for analytics"
+                  freshness: "up to 6 hours old"
+            subscriptionImpact:
+              currentTier: "basic"
+              basicLimits:
+                syncOperations: 10
+                analyticsRequests: 50
+                goalUpdates: 20
+              premiumLimits:
+                syncOperations: 50
+                analyticsRequests: 200
+                goalUpdates: 100
+              upgradeOptions:
+                trial: "7 days free"
+                monthly: "$9.99/month"
+                yearly: "$99.99/year (save 17%)"
+            suggestions:
+              immediate:
+                - "Enable background sync for better efficiency"
+                - "Use offline mode while rate limited"
+                - "Reduce sync frequency to every 2-4 hours"
+                - "Batch multiple changes before syncing"
+              longTerm:
+                - "Consider premium subscription for higher limits"
+                - "Enable smart sync for AI-optimized timing"
+                - "Use WiFi-only sync to save mobile data"
+                - "Set up automatic sync during charging"
+            nextActions:
+              waitTime: "45 minutes"
+              recommendedAction: "Enable offline mode"
+              alternativeEndpoint: "/v1/mobile/cache/refresh"
+              upgradeLink: "https://trainer-api.com/upgrade"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/rate-limits"
+              errorCode: "MOBILE_SYNC_RATE_001"
+              syncOptimization: "https://docs.trainer-api.com/mobile/sync-optimization"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_sync_rate_abc123"
+      mobile_analytics_rate_limit:
+        summary: Mobile analytics requests rate limit exceeded
+        value:
+          error:
+            code: "MOBILE_ANALYTICS_RATE_LIMIT_EXCEEDED"
+            message: "Mobile analytics requests rate limit exceeded"
+            details:
+              limit: 50
+              window: "1 hour"
+              remaining: 0
+              resetTime: "2024-01-15T21:30:00Z"
+              retryAfter: 1800
+              quotaType: "analytics_requests"
+            mobileSpecific:
+              usagePattern:
+                requestsThisHour: 50
+                peakUsage: "20:00-21:00"
+                averageDaily: 180
+                recommendedDaily: 120
+              caching:
+                available: true
+                hitRate: 0.23
+                recommendedHitRate: 0.70
+                cacheStrategies:
+                  - "Enable 30-minute analytics cache"
+                  - "Use incremental data updates"
+                  - "Implement smart refresh triggers"
+              optimization:
+                currentInterval: "every 2 minutes"
+                recommendedInterval: "every 15 minutes"
+                dataSavings: "85% reduction in requests"
+                batteryImpact: "60% less battery usage"
+              alternatives:
+                cachedAnalytics:
+                  available: true
+                  freshness: "15 minutes old"
+                  completeness: "95%"
+                offlineAnalytics:
+                  available: true
+                  localProcessing: true
+                  syncOnConnect: true
+            deviceOptimization:
+              currentDevice: "iPhone 12"
+              appVersion: "2.1.3"
+              recommendations:
+                - "Update to latest app version for better caching"
+                - "Enable low data mode in settings"
+                - "Use WiFi for intensive analytics operations"
+                - "Set up scheduled sync during off-peak hours"
+            subscriptionGuidance:
+              currentUsage: "50 requests/hour"
+              basicAllowance: "50 requests/hour"
+              premiumAllowance: "200 requests/hour"
+              recommendation: "Premium subscription recommended for heavy usage"
+              trialEligible: true
+            suggestions:
+              immediate:
+                - "Enable aggressive caching in app settings"
+                - "Reduce analytics refresh frequency"
+                - "Use cached data for non-critical views"
+                - "Switch to summary view instead of detailed"
+              optimization:
+                - "Set analytics refresh to manual mode"
+                - "Enable WiFi-only analytics updates"
+                - "Use push notifications for important updates"
+                - "Implement smart refresh based on user activity"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/analytics-optimization"
+              errorCode: "MOBILE_ANALYTICS_RATE_002"
+              cachingGuide: "https://docs.trainer-api.com/mobile/caching-strategies"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_analytics_def456"
+      mobile_goal_rate_limit:
+        summary: Mobile goal updates rate limit exceeded
+        value:
+          error:
+            code: "MOBILE_GOAL_RATE_LIMIT_EXCEEDED"
+            message: "Mobile goal updates rate limit exceeded"
+            details:
+              limit: 20
+              window: "1 hour"
+              remaining: 0
+              resetTime: "2024-01-15T21:15:00Z"
+              retryAfter: 900
+              quotaType: "goal_updates"
+            mobileSpecific:
+              usageAnalysis:
+                updatesThisHour: 20
+                averagePerSession: 8
+                sessionCount: 3
+                unusualActivity: true
+              goalManagement:
+                activeGoals: 5
+                updatesPerGoal: 4
+                recommendedFrequency: "1-2 updates per day per goal"
+                batchingRecommended: true
+              optimization:
+                currentPattern: "immediate_updates"
+                recommendedPattern: "batched_updates"
+                benefits:
+                  - "Better user experience"
+                  - "Reduced battery usage"
+                  - "Lower data consumption"
+                  - "Improved app performance"
+              alternatives:
+                offlineEditing:
+                  available: true
+                  description: "Edit goals offline, sync when connected"
+                  queueSize: "unlimited"
+                draftMode:
+                  available: true
+                  description: "Save changes as drafts, sync later"
+                  autoSave: true
+            behaviorGuidance:
+              recommendation: "Avoid frequent small updates"
+              betterPractice: "Make multiple changes, then save once"
+              examples:
+                avoid: "Updating goal target 5 times in 10 minutes"
+                prefer: "Plan changes, update once with final values"
+            subscriptionBenefits:
+              currentLimits: "20 updates/hour"
+              premiumLimits: "100 updates/hour"
+              additionalFeatures:
+                - "Real-time goal synchronization"
+                - "Advanced goal analytics"
+                - "Priority support for goal management"
+                - "Unlimited goal history"
+            suggestions:
+              immediate:
+                - "Enable draft mode for goal editing"
+                - "Batch multiple goal changes together"
+                - "Use offline editing when rate limited"
+                - "Review and finalize changes before saving"
+              workflow:
+                - "Plan goal updates during less active hours"
+                - "Use goal templates to reduce setup time"
+                - "Enable auto-save to prevent data loss"
+                - "Set up goal reminder notifications"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/goal-management"
+              errorCode: "MOBILE_GOAL_RATE_003"
+              bestPractices: "https://docs.trainer-api.com/mobile/goal-best-practices"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_goal_ghi789"
+      mobile_premium_rate_limit:
+        summary: Premium mobile features rate limit with upgrade guidance
+        value:
+          error:
+            code: "MOBILE_PREMIUM_RATE_LIMIT_EXCEEDED"
+            message: "Premium mobile features rate limit exceeded"
+            details:
+              limit: 200
+              window: "1 hour"
+              remaining: 0
+              resetTime: "2024-01-15T21:45:00Z"
+              retryAfter: 2700
+              quotaType: "premium_features"
+            mobileSpecific:
+              featureUsage:
+                aiInsights: 45
+                detailedAnalytics: 78
+                peerComparisons: 32
+                predictiveAnalytics: 25
+                advancedCharts: 20
+              heavyUsageFeatures:
+                - "AI-powered insights (45 requests)"
+                - "Detailed analytics dashboards (78 requests)"
+                - "Real-time peer comparisons (32 requests)"
+              optimization:
+                currentUsage: "power_user"
+                recommendations:
+                  - "Enable intelligent caching for AI insights"
+                  - "Use scheduled analytics updates"
+                  - "Batch peer comparison requests"
+                  - "Implement progressive loading"
+            subscriptionDetails:
+              currentTier: "premium"
+              nextTier: "enterprise"
+              enterpriseLimits:
+                premiumFeatures: 1000
+                apiCalls: 5000
+                dedicatedSupport: true
+                customIntegrations: true
+            enterpriseFeatures:
+              available:
+                - "10x higher rate limits"
+                - "Dedicated API endpoints"
+                - "Priority processing"
+                - "Custom integration support"
+                - "Advanced analytics APIs"
+              pricing: "Contact sales for enterprise pricing"
+              benefits: "Designed for high-volume usage"
+            suggestions:
+              immediate:
+                - "Enable advanced caching for premium features"
+                - "Schedule intensive operations during off-peak"
+                - "Use batch processing for multiple requests"
+                - "Implement smart refresh intervals"
+              upgrade:
+                - "Consider enterprise tier for heavy usage"
+                - "Custom rate limits available"
+                - "Dedicated support and optimization"
+                - "White-label and custom branding options"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/premium-optimization"
+              errorCode: "MOBILE_PREMIUM_RATE_004"
+              enterpriseContact: "sales@trainer-api.com"
+              accountManager: "Available for enterprise customers"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_premium_jkl012" 

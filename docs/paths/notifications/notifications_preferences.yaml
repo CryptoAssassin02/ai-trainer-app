@@ -1,0 +1,43 @@
+get:
+  tags:
+    - Notifications
+  summary: Get notification preferences
+  description: Retrieves the current notification preferences for the authenticated user.
+  operationId: getNotificationPreferences
+  security:
+    - SupabaseJWT: []
+  responses:
+    '200':
+      $ref: '../../components/responses/notifications/NotificationPreferencesRetrieved.yaml'
+    '401':
+      $ref: '../../components/responses/auth/Unauthorized.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+post:
+  tags:
+    - Notifications
+  summary: Update notification preferences
+  description: >
+    Updates the notification preferences for the authenticated user. This operation performs an upsert,
+    creating the preferences record if it doesn't exist or updating it if it does.
+  operationId: updateNotificationPreferences
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/notifications/NotificationPreferencesUpdateRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/notifications/NotificationPreferencesUpdated.yaml'
+    '400':
+      $ref: '../../components/responses/notifications/NotificationValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/auth/Unauthorized.yaml'
+    '429':
+      $ref: '../../components/responses/notifications/NotificationRateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

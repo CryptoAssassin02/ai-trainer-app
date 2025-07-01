@@ -1,0 +1,191 @@
+type: object
+description: Response containing individual goal data with progress tracking, validation, and processing metadata
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    $ref: './Goal.yaml'
+  metadata:
+    type: object
+    description: Response metadata including goal validation, progress assessment, and processing information
+    required:
+      - timestamp
+      - goalId
+      - validationStatus
+      - progressAssessment
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      goalId:
+        type: string
+        format: uuid
+        description: Unique identifier for this goal
+        example: "456e7890-f12a-34b5-c678-def012345678"
+      validationStatus:
+        type: object
+        description: Validation results for the goal data
+        required:
+          - isValid
+          - feasibilityScore
+        properties:
+          isValid:
+            type: boolean
+            description: Whether the goal passed all validation rules
+            example: true
+          feasibilityScore:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Feasibility assessment score (0-1, where 1 is highly feasible)
+            example: 0.82
+          warnings:
+            type: array
+            description: Non-critical validation warnings
+            items:
+              type: string
+            example: ["Target date is aggressive for this goal type"]
+          recommendations:
+            type: array
+            description: Recommendations to improve goal feasibility
+            items:
+              type: string
+            example: ["Consider extending timeline by 2-4 weeks", "Add intermediate milestones"]
+      progressAssessment:
+        type: object
+        description: Current progress assessment for the goal
+        required:
+          - currentProgress
+          - onTrack
+          - projectedCompletion
+        properties:
+          currentProgress:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Current progress towards goal (0-1, where 1 is completed)
+            example: 0.65
+          onTrack:
+            type: boolean
+            description: Whether the goal is on track to be completed on time
+            example: true
+          projectedCompletion:
+            type: string
+            format: date-time
+            description: Projected completion date based on current progress
+            example: "2024-03-15T00:00:00Z"
+          confidenceLevel:
+            type: string
+            enum: [very_low, low, medium, high, very_high]
+            description: Confidence level in achieving the goal
+            example: high
+          riskFactors:
+            type: array
+            description: Identified risk factors that could impede progress
+            items:
+              type: string
+            example: ["Inconsistent workout schedule", "Nutrition adherence gaps"]
+          accelerationFactors:
+            type: array
+            description: Factors that could accelerate goal achievement
+            items:
+              type: string
+            example: ["Strong motivation levels", "Good recovery patterns"]
+      aiInsights:
+        type: object
+        description: AI-generated insights about the goal
+        properties:
+          achievabilityScore:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: AI-calculated achievability score (0-1)
+            example: 0.78
+          optimizedStrategy:
+            type: string
+            description: AI-recommended strategy for achieving the goal
+            example: "Focus on consistency over intensity, with 2 rest days per week"
+          similarGoalsSuccess:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Success rate of similar goals in the system
+            example: 0.73
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 45.7
+      lastUpdated:
+        type: string
+        format: date-time
+        description: Timestamp when goal data was last updated
+        example: "2024-01-15T08:15:00Z"
+      nextReview:
+        type: string
+        format: date-time
+        description: Recommended date for next goal review
+        example: "2024-01-22T10:30:00Z"
+examples:
+  - status: success
+    data:
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      title: "Lose 10kg"
+      description: "Achieve a healthy weight loss of 10kg through consistent exercise and nutrition"
+      category: weight_loss
+      status: active
+      target:
+        value: 65.0
+        unit: kg
+        metric: weight
+      currentValue: 72.5
+      startingValue: 75.0
+      targetDate: "2024-04-15T00:00:00Z"
+      progress:
+        percentage: 0.25
+        onTrack: true
+        milestones:
+          - id: "milestone_001"
+            title: "First 2.5kg"
+            targetValue: 72.5
+            targetDate: "2024-02-15T00:00:00Z"
+            status: completed
+            completedDate: "2024-01-15T00:00:00Z"
+      createdAt: "2024-01-01T10:00:00Z"
+      updatedAt: "2024-01-15T10:30:00Z"
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      validationStatus:
+        isValid: true
+        feasibilityScore: 0.82
+        warnings: ["Target date is aggressive for this goal type"]
+        recommendations: ["Consider extending timeline by 2-4 weeks", "Add intermediate milestones"]
+      progressAssessment:
+        currentProgress: 0.25
+        onTrack: true
+        projectedCompletion: "2024-04-10T00:00:00Z"
+        confidenceLevel: high
+        riskFactors: ["Inconsistent workout schedule"]
+        accelerationFactors: ["Strong motivation levels", "Good recovery patterns"]
+      aiInsights:
+        achievabilityScore: 0.78
+        optimizedStrategy: "Focus on consistency over intensity, with 2 rest days per week"
+        similarGoalsSuccess: 0.73
+      processingTime: 45.7
+      lastUpdated: "2024-01-15T08:15:00Z"
+      nextReview: "2024-01-22T10:30:00Z" 

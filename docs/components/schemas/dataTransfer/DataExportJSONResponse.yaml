@@ -1,0 +1,51 @@
+type: object
+description: Response structure for JSON format data exports
+required:
+  - exportDate
+  - userId
+  - data
+properties:
+  exportDate:
+    type: string
+    format: date-time
+    description: ISO 8601 timestamp when export was generated
+    example: "2024-01-15T10:30:00.000Z"
+  userId:
+    type: string
+    format: uuid
+    description: ID of the user whose data was exported
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  data:
+    $ref: '#/components/schemas/ExportedData'
+examples:
+  profilesOnly:
+    summary: Export containing only user profile data
+    value:
+      exportDate: "2024-01-15T10:30:00.000Z"
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      data:
+        profiles:
+          - user_id: "123e4567-e89b-12d3-a456-426614174000"
+            name: "John Doe"
+            age: 30
+            height: 180
+            weight: 75
+            experience_level: "intermediate"
+  allData:
+    summary: Complete data export with all types
+    value:
+      exportDate: "2024-01-15T10:30:00.000Z"
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      data:
+        profiles:
+          - user_id: "123e4567-e89b-12d3-a456-426614174000"
+            name: "John Doe"
+            age: 30
+        workouts:
+          - id: "456e7890-e89b-12d3-a456-426614174001"
+            name: "Full Body Workout"
+            description: "Complete full body training routine"
+        workout_logs:
+          - id: "789e0123-e89b-12d3-a456-426614174002"
+            date: "2024-01-14"
+            completed: true 

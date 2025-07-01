@@ -1,0 +1,16 @@
+type: object
+required: [status, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Error message
+  details:
+    type: object
+    description: Additional error details (development only)
+example:
+  status: error
+  message: An unexpected error occurred 

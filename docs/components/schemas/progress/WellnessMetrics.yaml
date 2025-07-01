@@ -1,0 +1,275 @@
+type: object
+description: Comprehensive wellness metrics tracking mental and physical well-being indicators that impact fitness progress
+required:
+  - energyLevel
+  - mood
+  - sleepQuality
+  - sleepDuration
+  - stressLevel
+  - motivation
+  - overallWellness
+properties:
+  energyLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported energy level on a scale of 1-10 (10 being highest energy)
+    example: 8
+  mood:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported mood on a scale of 1-10 (10 being most positive mood)
+    example: 7
+  sleepQuality:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported sleep quality on a scale of 1-10 (10 being best quality)
+    example: 8
+  sleepDuration:
+    type: number
+    format: float
+    minimum: 0
+    maximum: 24
+    description: Average sleep duration in hours per night
+    example: 7.5
+  stressLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported stress level on a scale of 1-10 (10 being highest stress)
+    example: 4
+  motivation:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported motivation level for fitness activities on a scale of 1-10
+    example: 9
+  overallWellness:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported overall wellness score on a scale of 1-10
+    example: 8
+  fatigueLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported fatigue level on a scale of 1-10 (10 being most fatigued)
+    example: 3
+  hydrationLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-assessed hydration level on a scale of 1-10 (10 being well-hydrated)
+    example: 8
+  appetiteLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported appetite level on a scale of 1-10 (10 being strongest appetite)
+    example: 7
+  sleepConsistency:
+    type: number
+    format: float
+    minimum: 0
+    maximum: 1
+    description: Consistency of sleep schedule (0-1, where 1 is perfectly consistent)
+    example: 0.83
+  recoveryFeeling:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: How recovered the person feels from previous workouts (1-10)
+    example: 7
+  mentalClarity:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-reported mental clarity and focus on a scale of 1-10
+    example: 8
+  socialSupport:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Perceived social support for fitness goals on a scale of 1-10
+    example: 9
+  workLifeBalance:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Self-assessed work-life balance on a scale of 1-10
+    example: 6
+  nutritionSatisfaction:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Satisfaction with nutrition and eating habits on a scale of 1-10
+    example: 7
+  bodyImage:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Body image satisfaction on a scale of 1-10
+    example: 6
+  confidenceLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Confidence in fitness abilities on a scale of 1-10
+    example: 8
+  painLevel:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Average pain level experienced on a scale of 1-10 (10 being severe pain)
+    example: 2
+  painLocations:
+    type: array
+    description: Body locations where pain is experienced
+    items:
+      type: string
+      enum: [head, neck, shoulders, arms, chest, back, core, hips, legs, feet, joints, muscles, other]
+    example: ["lower_back", "right_knee"]
+  sleepPatterns:
+    type: object
+    description: Detailed sleep pattern information
+    properties:
+      bedTime:
+        type: string
+        pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        description: Average bedtime in HH:MM format
+        example: "22:30"
+      wakeTime:
+        type: string
+        pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        description: Average wake time in HH:MM format
+        example: "06:00"
+      sleepLatency:
+        type: integer
+        minimum: 0
+        description: Average time to fall asleep in minutes
+        example: 15
+      nightWakings:
+        type: integer
+        minimum: 0
+        description: Average number of times awakened during night
+        example: 1
+      sleepEfficiency:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Sleep efficiency percentage (time asleep / time in bed)
+        example: 0.87
+  stressManagement:
+    type: object
+    description: Stress management strategies and effectiveness
+    properties:
+      strategies:
+        type: array
+        description: Stress management strategies being used
+        items:
+          type: string
+          enum: [meditation, deep_breathing, exercise, music, reading, social_support, therapy, medication, other]
+        example: ["meditation", "exercise"]
+      effectiveness:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Effectiveness of stress management strategies on a scale of 1-10
+        example: 7
+  lifestyle:
+    type: object
+    description: Lifestyle factors affecting wellness
+    properties:
+      caffeineIntake:
+        type: integer
+        minimum: 0
+        description: Average daily caffeine intake in mg
+        example: 200
+      alcoholConsumption:
+        type: integer
+        minimum: 0
+        description: Alcoholic drinks per week
+        example: 3
+      smokingStatus:
+        type: string
+        enum: [never, former, current_light, current_moderate, current_heavy]
+        description: Smoking status
+        example: never
+      screenTime:
+        type: number
+        format: float
+        minimum: 0
+        description: Average daily screen time in hours
+        example: 6.5
+  mentalHealthIndicators:
+    type: object
+    description: Mental health screening indicators
+    properties:
+      anxietyLevel:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Self-reported anxiety level on a scale of 1-10
+        example: 3
+      depressionScreening:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Depression screening score on a scale of 1-10 (higher indicates more symptoms)
+        example: 2
+      emotionalStability:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Emotional stability on a scale of 1-10
+        example: 8
+      copingAbility:
+        type: integer
+        minimum: 1
+        maximum: 10
+        description: Ability to cope with challenges on a scale of 1-10
+        example: 7
+examples:
+  - energyLevel: 8
+    mood: 7
+    sleepQuality: 8
+    sleepDuration: 7.5
+    stressLevel: 4
+    motivation: 9
+    overallWellness: 8
+    fatigueLevel: 3
+    hydrationLevel: 8
+    appetiteLevel: 7
+    sleepConsistency: 0.83
+    recoveryFeeling: 7
+    mentalClarity: 8
+    socialSupport: 9
+    workLifeBalance: 6
+    nutritionSatisfaction: 7
+    bodyImage: 6
+    confidenceLevel: 8
+    painLevel: 2
+    painLocations: ["lower_back"]
+    sleepPatterns:
+      bedTime: "22:30"
+      wakeTime: "06:00"
+      sleepLatency: 15
+      nightWakings: 1
+      sleepEfficiency: 0.87
+    stressManagement:
+      strategies: ["meditation", "exercise"]
+      effectiveness: 7
+    lifestyle:
+      caffeineIntake: 200
+      alcoholConsumption: 3
+      smokingStatus: never
+      screenTime: 6.5
+    mentalHealthIndicators:
+      anxietyLevel: 3
+      depressionScreening: 2
+      emotionalStability: 8
+      copingAbility: 7 

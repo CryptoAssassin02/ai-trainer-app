@@ -1,0 +1,55 @@
+type: object
+description: Response structure for data import operations
+required:
+  - status
+  - message
+  - data
+properties:
+  status:
+    type: string
+    enum: ['success', 'error']
+    description: Overall status of the import operation
+    example: success
+  message:
+    type: string
+    description: Human-readable message describing the import result
+    example: "Data imported successfully."
+  data:
+    $ref: '#/components/schemas/DataImportResult'
+examples:
+  completeSuccess:
+    summary: All data imported successfully
+    value:
+      status: success
+      message: "Data imported successfully."
+      data:
+        total: 25
+        successful: 25
+        failed: 0
+        errors: []
+  partialSuccess:
+    summary: Some data failed validation
+    value:
+      status: success
+      message: "Data imported with 3 validation failures."
+      data:
+        total: 25
+        successful: 22
+        failed: 3
+        errors:
+          - "Validation error for profiles: Age must be between 13 and 120 (age: required)"
+          - "Validation error for workouts: Name is required (name: required)"
+          - "Error processing workout_logs row: Invalid date format"
+  completeFailure:
+    summary: All data validation failed
+    value:
+      status: error
+      message: "All data validation failed."
+      data:
+        total: 10
+        successful: 0
+        failed: 10
+        errors:
+          - "Validation error for profiles: User ID must be a valid UUID (user_id: required)"
+          - "Invalid JSON file format"
+          - "Missing required field: name" 

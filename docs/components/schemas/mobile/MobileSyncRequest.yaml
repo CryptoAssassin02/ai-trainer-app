@@ -1,0 +1,145 @@
+type: object
+required: [syncType]
+properties:
+  syncType:
+    type: string
+    enum: [full, incremental, conflict_resolution, offline_queue]
+    description: Type of synchronization to perform
+  lastSync:
+    type: string
+    format: date-time
+    description: Timestamp of last successful sync
+  deviceId:
+    type: string
+    description: Unique device identifier
+  dataTypes:
+    type: array
+    items:
+      type: string
+      enum: [analytics, goals, progress, workouts, notifications, preferences]
+    description: Types of data to synchronize
+  conflicts:
+    type: array
+    items:
+      type: object
+      properties:
+        resourceType:
+          type: string
+          enum: [goal, checkin, workout_log, preference]
+        resourceId:
+          type: string
+          format: uuid
+        serverVersion:
+          type: string
+          format: date-time
+        clientVersion:
+          type: string
+          format: date-time
+        resolution:
+          type: string
+          enum: [use_server, use_client, merge, manual]
+        clientData:
+          type: object
+        priority:
+          type: string
+          enum: [low, medium, high]
+    description: Conflicts to resolve during sync
+  offlineQueue:
+    type: array
+    items:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: [create, update, delete]
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+          format: uuid
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+        retryCount:
+          type: integer
+          minimum: 0
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+    description: Offline operations queue to sync
+  connectionInfo:
+    type: object
+    properties:
+      type:
+        type: string
+        enum: [wifi, cellular, slow, fast]
+      quality:
+        type: string
+        enum: [excellent, good, fair, poor]
+      bandwidth:
+        type: number
+        description: Estimated bandwidth in kbps
+    description: Current connection information
+  preferences:
+    type: object
+    properties:
+      backgroundSync:
+        type: boolean
+        default: true
+      syncFrequency:
+        type: string
+        enum: [immediate, hourly, daily, manual]
+        default: hourly
+      dataLimit:
+        type: integer
+        description: Maximum data usage for sync in bytes
+      priorityFilter:
+        type: array
+        items:
+          type: string
+          enum: [critical, high, medium, low]
+    description: User sync preferences
+  optimizations:
+    type: object
+    properties:
+      compression:
+        type: boolean
+        default: true
+      deltaSync:
+        type: boolean
+        default: true
+      batchSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      timeout:
+        type: integer
+        minimum: 5000
+        maximum: 60000
+        default: 30000
+        description: Sync timeout in milliseconds
+    description: Sync optimization settings
+  metadata:
+    type: object
+    properties:
+      appVersion:
+        type: string
+      platform:
+        type: string
+        enum: [ios, android, mobile_web]
+      timezone:
+        type: string
+      locale:
+        type: string
+    description: Device and app metadata
+  forceFull:
+    type: boolean
+    default: false
+    description: Force full sync regardless of last sync time
+  validateIntegrity:
+    type: boolean
+    default: true
+    description: Whether to validate data integrity during sync 

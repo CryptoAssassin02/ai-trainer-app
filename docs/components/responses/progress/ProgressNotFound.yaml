@@ -1,0 +1,54 @@
+description: Progress data not found
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/progress/ProgressNotFoundError.yaml'
+    examples:
+      check_in_not_found:
+        summary: Specific check-in not found
+        value:
+          status: error
+          message: "Check-in not found"
+          details: "The requested check-in does not exist or you don't have permission to access it"
+          resourceType: "check-in"
+          resourceId: "ci_nonexistent123"
+          timestamp: "2024-01-15T19:00:00Z"
+          requestId: "req_progress_001"
+          suggestions:
+            - "Verify the check-in ID is correct"
+            - "Use GET /progress/check-ins to list available check-ins"
+      no_progress_data:
+        summary: No progress data available for user
+        value:
+          status: error
+          message: "No progress data found"
+          details: "No check-ins or progress data found for the specified user and date range"
+          resourceType: "progress-data"
+          userId: "user_123"
+          dateRange:
+            startDate: "2023-01-01"
+            endDate: "2023-12-31"
+          timestamp: "2024-01-15T19:05:00Z"
+          requestId: "req_progress_002"
+          suggestions:
+            - "Create your first check-in with POST /progress/check-in"
+            - "Adjust the date range to include more recent data"
+            - "Verify you're using the correct user authentication"
+      insufficient_data_for_metrics:
+        summary: Insufficient data for metrics calculation
+        value:
+          status: error
+          message: "Insufficient data for metrics calculation"
+          details: "At least 2 check-ins are required to calculate progress metrics and trends"
+          resourceType: "progress-metrics"
+          availableCheckIns: 1
+          requiredCheckIns: 2
+          timestamp: "2024-01-15T19:10:00Z"
+          requestId: "req_progress_003"
+          suggestions:
+            - "Add more check-ins to enable trend analysis"
+            - "Use individual check-in data instead of metrics"
+            - "Consider a shorter time range if you have recent data" 

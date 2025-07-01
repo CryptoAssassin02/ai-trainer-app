@@ -1,0 +1,476 @@
+type: object
+description: AI-powered goal achievement prediction with risk assessment, acceleration factors, and scenario analysis
+required:
+  - goalId
+  - achievementProbability
+  - projectedCompletion
+  - confidenceLevel
+  - riskFactors
+  - accelerationFactors
+  - scenarios
+  - predictions
+  - generatedAt
+properties:
+  goalId:
+    type: string
+    format: uuid
+    description: Unique identifier for the predicted goal
+    example: "456e7890-f12a-34b5-c678-def012345678"
+  achievementProbability:
+    type: number
+    format: float
+    minimum: 0
+    maximum: 1
+    description: Probability of achieving the goal (0-1, where 1 is 100% probability)
+    example: 0.83
+  projectedCompletion:
+    type: string
+    format: date-time
+    description: Most likely completion date based on current trajectory
+    example: "2024-04-10T00:00:00Z"
+  confidenceLevel:
+    type: string
+    enum: [very_low, low, medium, high, very_high]
+    description: Overall confidence level in the prediction
+    example: high
+  riskFactors:
+    type: array
+    description: Identified factors that could negatively impact goal achievement
+    items:
+      type: object
+      required:
+        - factor
+        - probability
+        - impact
+        - timeframe
+      properties:
+        factor:
+          type: string
+          enum: [plateau_risk, motivation_decline, time_constraints, injury_risk, life_changes, resource_limitations, weather_dependency, social_pressures, burnout_risk, consistency_challenges]
+          description: Type of risk factor
+          example: plateau_risk
+        probability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Probability of this risk occurring (0-1)
+          example: 0.25
+        impact:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Potential impact severity if risk occurs
+          example: medium
+        timeframe:
+          type: string
+          description: Expected timeframe when risk might occur
+          example: "2-3 weeks"
+        description:
+          type: string
+          description: Detailed description of the risk factor
+          example: "Based on progress patterns, user may hit a plateau in weight loss around week 6-8"
+        mitigation:
+          type: string
+          description: Recommended mitigation strategy
+          example: "Vary workout routine and increase protein intake"
+        historicalOccurrence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: How often this risk occurs in similar goals (0-1)
+          example: 0.45
+    example:
+      - factor: plateau_risk
+        probability: 0.25
+        impact: medium
+        timeframe: "2-3 weeks"
+        description: "Based on progress patterns, user may hit a plateau in weight loss around week 6-8"
+        mitigation: "Vary workout routine and increase protein intake"
+        historicalOccurrence: 0.45
+  accelerationFactors:
+    type: array
+    description: Factors that could positively accelerate goal achievement
+    items:
+      type: object
+      required:
+        - factor
+        - probability
+        - impact
+        - timeframe
+      properties:
+        factor:
+          type: string
+          enum: [consistency_improvement, motivation_boost, social_support, resource_access, habit_formation, technique_improvement, environmental_optimization, accountability_increase, reward_implementation, competitor_effect]
+          description: Type of acceleration factor
+          example: consistency_improvement
+        probability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Probability of this factor having positive impact (0-1)
+          example: 0.78
+        impact:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Potential positive impact level
+          example: high
+        timeframe:
+          type: string
+          description: Expected timeframe for impact
+          example: "1-2 weeks"
+        description:
+          type: string
+          description: Detailed description of the acceleration factor
+          example: "User shows strong adherence patterns and could benefit from increased workout frequency"
+        action:
+          type: string
+          description: Recommended action to leverage this factor
+          example: "Maintain current schedule and gradually increase intensity"
+        potentialGain:
+          type: string
+          description: Potential time or performance gain if leveraged
+          example: "Could reduce completion time by 5-10 days"
+    example:
+      - factor: consistency_improvement
+        probability: 0.78
+        impact: high
+        timeframe: "1-2 weeks"
+        description: "User shows strong adherence patterns and could benefit from increased workout frequency"
+        action: "Maintain current schedule and gradually increase intensity"
+        potentialGain: "Could reduce completion time by 5-10 days"
+  scenarios:
+    type: array
+    description: Different achievement scenarios with varying probabilities
+    items:
+      type: object
+      required:
+        - name
+        - probability
+        - completionDate
+        - description
+      properties:
+        name:
+          type: string
+          enum: [pessimistic, realistic, baseline, optimistic, ideal]
+          description: Scenario name
+          example: baseline
+        probability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Probability of this scenario occurring (0-1)
+          example: 0.83
+        completionDate:
+          type: string
+          format: date-time
+          description: Projected completion date for this scenario
+          example: "2024-04-10T00:00:00Z"
+        finalValue:
+          type: number
+          format: float
+          description: Expected final achievement value
+          example: 65.2
+        description:
+          type: string
+          description: Description of scenario conditions
+          example: "Current trajectory maintained with consistent effort"
+        keyAssumptions:
+          type: array
+          description: Key assumptions for this scenario
+          items:
+            type: string
+          example: ["Maintains current workout frequency", "No major life disruptions", "Continues current nutrition plan"]
+        requiredChanges:
+          type: array
+          description: Changes required to achieve this scenario
+          items:
+            type: string
+          example: ["Increase protein intake by 20%", "Add 1 extra workout per week"]
+    minItems: 3
+    maxItems: 5
+    example:
+      - name: baseline
+        probability: 0.83
+        completionDate: "2024-04-10T00:00:00Z"
+        finalValue: 65.2
+        description: "Current trajectory maintained with consistent effort"
+        keyAssumptions: ["Maintains current workout frequency", "No major life disruptions"]
+        requiredChanges: []
+      - name: optimistic
+        probability: 0.91
+        completionDate: "2024-04-01T00:00:00Z"
+        finalValue: 64.8
+        description: "With increased consistency and minor optimizations"
+        keyAssumptions: ["Increases workout frequency", "Optimizes nutrition timing"]
+        requiredChanges: ["Add 1 extra workout per week", "Meal prep on Sundays"]
+  predictions:
+    type: object
+    description: Detailed prediction metrics and analysis
+    required:
+      - probability
+      - timeframe
+      - confidence
+    properties:
+      probability:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Overall achievement probability (0-1)
+        example: 0.83
+      timeframe:
+        type: string
+        description: Predicted timeframe for completion
+        example: "89 days"
+      finalValue:
+        type: number
+        format: float
+        description: Predicted final achievement value
+        example: 65.2
+      confidence:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Confidence score in the prediction (0-1)
+        example: 0.87
+      varianceRange:
+        type: object
+        description: Expected variance in final outcome
+        properties:
+          lower:
+            type: number
+            format: float
+            description: Lower bound of expected range
+            example: 64.5
+          upper:
+            type: number
+            format: float
+            description: Upper bound of expected range
+            example: 66.0
+          standardDeviation:
+            type: number
+            format: float
+            description: Standard deviation of predicted outcome
+            example: 0.8
+      timeVariance:
+        type: object
+        description: Expected variance in completion time
+        properties:
+          earliest:
+            type: string
+            format: date-time
+            description: Earliest realistic completion date
+            example: "2024-04-01T00:00:00Z"
+          latest:
+            type: string
+            format: date-time
+            description: Latest realistic completion date
+            example: "2024-04-25T00:00:00Z"
+          mostLikely:
+            type: string
+            format: date-time
+            description: Most likely completion date
+            example: "2024-04-10T00:00:00Z"
+  comparativeAnalysis:
+    type: object
+    description: Comparison with similar goals and benchmarks
+    properties:
+      similarGoalsSuccess:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Success rate of similar goals in the system
+        example: 0.67
+      userHistoricalSuccess:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: User's historical success rate with similar goals
+        example: 0.75
+      categoryBenchmark:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Category benchmark success rate
+        example: 0.71
+      difficultyRanking:
+        type: string
+        enum: [very_easy, easy, moderate, challenging, very_challenging]
+        description: Difficulty ranking compared to similar goals
+        example: moderate
+      percentileRank:
+        type: integer
+        minimum: 0
+        maximum: 100
+        description: Percentile rank of this goal's predicted success
+        example: 82
+  adaptiveRecommendations:
+    type: array
+    description: AI-generated adaptive recommendations based on predictions
+    items:
+      type: object
+      required:
+        - type
+        - recommendation
+        - priority
+        - expectedImpact
+      properties:
+        type:
+          type: string
+          enum: [strategy_adjustment, timeline_modification, resource_allocation, milestone_revision, risk_mitigation, acceleration_opportunity]
+          description: Type of recommendation
+          example: strategy_adjustment
+        recommendation:
+          type: string
+          description: Specific recommendation text
+          example: "Consider adding strength training 2x per week to prevent muscle loss during weight loss"
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Priority level of the recommendation
+          example: high
+        expectedImpact:
+          type: string
+          description: Expected impact of implementing the recommendation
+          example: "Could improve success probability by 8-12%"
+        timeframe:
+          type: string
+          description: Recommended implementation timeframe
+          example: "Within 1 week"
+        difficulty:
+          type: string
+          enum: [very_easy, easy, moderate, challenging, very_challenging]
+          description: Implementation difficulty
+          example: moderate
+    maxItems: 10
+    example:
+      - type: strategy_adjustment
+        recommendation: "Consider adding strength training 2x per week to prevent muscle loss during weight loss"
+        priority: high
+        expectedImpact: "Could improve success probability by 8-12%"
+        timeframe: "Within 1 week"
+        difficulty: moderate
+  updateTriggers:
+    type: array
+    description: Conditions that should trigger prediction updates
+    items:
+      type: object
+      required:
+        - trigger
+        - condition
+        - urgency
+      properties:
+        trigger:
+          type: string
+          enum: [significant_progress_change, milestone_miss, behavior_pattern_change, external_factor_change, time_threshold, performance_deviation]
+          description: Type of update trigger
+          example: significant_progress_change
+        condition:
+          type: string
+          description: Specific condition for triggering update
+          example: "Progress velocity changes by >20% for 7+ consecutive days"
+        urgency:
+          type: string
+          enum: [low, medium, high, immediate]
+          description: Urgency level for prediction update
+          example: high
+        description:
+          type: string
+          description: Detailed description of the trigger condition
+          example: "Significant deviation from expected progress trajectory detected"
+    example:
+      - trigger: significant_progress_change
+        condition: "Progress velocity changes by >20% for 7+ consecutive days"
+        urgency: high
+        description: "Significant deviation from expected progress trajectory detected"
+  generatedAt:
+    type: string
+    format: date-time
+    description: Timestamp when prediction was generated
+    example: "2024-01-15T10:30:00Z"
+  validUntil:
+    type: string
+    format: date-time
+    description: Timestamp when prediction should be refreshed
+    example: "2024-01-22T10:30:00Z"
+  modelVersion:
+    type: string
+    description: Version of the prediction model used
+    example: "v2.1.3"
+examples:
+  - goalId: "456e7890-f12a-34b5-c678-def012345678"
+    achievementProbability: 0.83
+    projectedCompletion: "2024-04-10T00:00:00Z"
+    confidenceLevel: high
+    riskFactors:
+      - factor: plateau_risk
+        probability: 0.25
+        impact: medium
+        timeframe: "2-3 weeks"
+        description: "Based on progress patterns, user may hit a plateau in weight loss around week 6-8"
+        mitigation: "Vary workout routine and increase protein intake"
+        historicalOccurrence: 0.45
+    accelerationFactors:
+      - factor: consistency_improvement
+        probability: 0.78
+        impact: high
+        timeframe: "1-2 weeks"
+        description: "User shows strong adherence patterns and could benefit from increased workout frequency"
+        action: "Maintain current schedule and gradually increase intensity"
+        potentialGain: "Could reduce completion time by 5-10 days"
+    scenarios:
+      - name: baseline
+        probability: 0.83
+        completionDate: "2024-04-10T00:00:00Z"
+        finalValue: 65.2
+        description: "Current trajectory maintained with consistent effort"
+        keyAssumptions: ["Maintains current workout frequency", "No major life disruptions"]
+        requiredChanges: []
+      - name: optimistic
+        probability: 0.91
+        completionDate: "2024-04-01T00:00:00Z"
+        finalValue: 64.8
+        description: "With increased consistency and minor optimizations"
+        keyAssumptions: ["Increases workout frequency", "Optimizes nutrition timing"]
+        requiredChanges: ["Add 1 extra workout per week", "Meal prep on Sundays"]
+    predictions:
+      probability: 0.83
+      timeframe: "89 days"
+      finalValue: 65.2
+      confidence: 0.87
+      varianceRange:
+        lower: 64.5
+        upper: 66.0
+        standardDeviation: 0.8
+      timeVariance:
+        earliest: "2024-04-01T00:00:00Z"
+        latest: "2024-04-25T00:00:00Z"
+        mostLikely: "2024-04-10T00:00:00Z"
+    comparativeAnalysis:
+      similarGoalsSuccess: 0.67
+      userHistoricalSuccess: 0.75
+      categoryBenchmark: 0.71
+      difficultyRanking: moderate
+      percentileRank: 82
+    adaptiveRecommendations:
+      - type: strategy_adjustment
+        recommendation: "Consider adding strength training 2x per week to prevent muscle loss during weight loss"
+        priority: high
+        expectedImpact: "Could improve success probability by 8-12%"
+        timeframe: "Within 1 week"
+        difficulty: moderate
+    updateTriggers:
+      - trigger: significant_progress_change
+        condition: "Progress velocity changes by >20% for 7+ consecutive days"
+        urgency: high
+        description: "Significant deviation from expected progress trajectory detected"
+    generatedAt: "2024-01-15T10:30:00Z"
+    validUntil: "2024-01-22T10:30:00Z"
+    modelVersion: "v2.1.3" 

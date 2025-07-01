@@ -1,0 +1,81 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Get adherence metrics and compliance analysis
+  description: |
+    Retrieve comprehensive adherence metrics including workout consistency, nutrition compliance, and overall program adherence.
+    
+    **Adherence Metrics Include:**
+    - Workout completion rates and consistency scores
+    - Nutrition plan compliance and macro adherence
+    - Goal achievement rates and milestone completion
+    - Habit formation and consistency streaks
+    - Weekly and monthly adherence patterns
+    
+    **Compliance Analysis:**
+    - Identifies patterns in missed workouts or nutrition deviations
+    - Provides adherence scoring with actionable insights
+    - Tracks improvement trends over time
+  operationId: getAdherenceMetrics
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: timeframe
+      in: query
+      description: Time period for adherence analysis
+      schema:
+        type: string
+        enum: ["4 weeks", "12 weeks", "6 months", "1 year"]
+        default: "12 weeks"
+        example: "12 weeks"
+    
+    - name: category
+      in: query
+      description: Specific adherence category to analyze
+      schema:
+        type: string
+        enum: [workout, nutrition, overall, goals, habits]
+        example: "workout"
+    
+    - name: includeStreaks
+      in: query
+      description: Include consistency streak analysis
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includePatterns
+      in: query
+      description: Include weekly and daily adherence patterns
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: granularity
+      in: query
+      description: Detail level for adherence breakdown
+      schema:
+        type: string
+        enum: [daily, weekly, monthly]
+        default: "weekly"
+        example: "daily"
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/AdherenceMetricsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

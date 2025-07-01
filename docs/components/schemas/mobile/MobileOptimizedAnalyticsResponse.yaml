@@ -1,0 +1,240 @@
+type: object
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: success
+  data:
+    type: object
+    required:
+      - overview
+      - trends
+      - insights
+    properties:
+      overview:
+        type: object
+        required:
+          - workouts
+          - progress
+          - wellness
+        properties:
+          workouts:
+            type: object
+            properties:
+              completed:
+                type: integer
+                minimum: 0
+                example: 12
+              totalExercises:
+                type: integer
+                minimum: 0
+                example: 45
+              avgDifficulty:
+                type: number
+                format: float
+                minimum: 1.0
+                maximum: 10.0
+                example: 7.2
+              avgSatisfaction:
+                type: number
+                format: float
+                minimum: 1.0
+                maximum: 10.0
+                example: 8.5
+              consistency:
+                type: number
+                format: float
+                minimum: 0.0
+                maximum: 1.0
+                example: 0.85
+          progress:
+            type: object
+            properties:
+              trend:
+                type: string
+                enum: [improving, stable, declining, insufficient_data]
+                example: improving
+              score:
+                type: number
+                format: float
+                minimum: 0.0
+                maximum: 100.0
+                example: 78.5
+              weeklyChange:
+                type: number
+                format: float
+                example: 2.3
+          wellness:
+            type: object
+            properties:
+              overallScore:
+                type: number
+                format: float
+                minimum: 0.0
+                maximum: 100.0
+                example: 82.0
+              mood:
+                type: number
+                format: float
+                minimum: 1.0
+                maximum: 10.0
+                example: 7.8
+              sleep:
+                type: number
+                format: float
+                minimum: 1.0
+                maximum: 10.0
+                example: 8.2
+              energy:
+                type: number
+                format: float
+                minimum: 1.0
+                maximum: 10.0
+                example: 7.5
+      trends:
+        type: object
+        description: Simplified trend data for mobile consumption
+        properties:
+          timeframe:
+            type: string
+            enum: [week, month, 3months]
+            example: month
+          dataPoints:
+            type: array
+            maxItems: 30
+            description: Limited data points for mobile performance
+            items:
+              type: object
+              required:
+                - date
+                - metric
+                - value
+              properties:
+                date:
+                  type: string
+                  format: date
+                  example: "2024-01-15"
+                metric:
+                  type: string
+                  enum: [workouts, weight, wellness, strength, adherence]
+                  example: workouts
+                value:
+                  type: number
+                  format: float
+                  example: 4.0
+          summary:
+            type: object
+            properties:
+              totalChange:
+                type: number
+                format: float
+                example: 12.5
+              percentageChange:
+                type: number
+                format: float
+                example: 8.3
+              trend:
+                type: string
+                enum: [upward, downward, stable]
+                example: upward
+      insights:
+        type: array
+        maxItems: 5
+        description: Key insights optimized for mobile display
+        items:
+          type: object
+          required:
+            - type
+            - message
+            - priority
+          properties:
+            type:
+              type: string
+              enum: [achievement, recommendation, observation, warning]
+              example: achievement
+            message:
+              type: string
+              maxLength: 120
+              example: "Excellent consistency this month! You've completed 85% of planned workouts."
+            priority:
+              type: string
+              enum: [high, medium, low]
+              example: high
+            actionable:
+              type: boolean
+              description: Whether this insight has actionable recommendations
+              example: true
+            icon:
+              type: string
+              description: Icon identifier for mobile UI
+              example: "trophy"
+      quickActions:
+        type: array
+        maxItems: 4
+        description: Quick actions available from analytics view
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "log_workout"
+            label:
+              type: string
+              maxLength: 30
+              example: "Log Workout"
+            enabled:
+              type: boolean
+              example: true
+            deepLink:
+              type: string
+              format: uri
+              example: "app://workout/log"
+  metadata:
+    type: object
+    required:
+      - optimizedForMobile
+      - payloadSize
+      - cacheUntil
+      - backwardCompatible
+    properties:
+      optimizedForMobile:
+        type: boolean
+        description: Indicates mobile optimization applied
+        example: true
+      payloadSize:
+        type: integer
+        description: Response payload size in bytes
+        maximum: 50000
+        example: 32000
+      cacheUntil:
+        type: string
+        format: date-time
+        description: Cache expiration timestamp
+        example: "2024-01-01T12:10:00Z"
+      backwardCompatible:
+        type: boolean
+        description: Maintains compatibility with older mobile app versions
+        example: true
+      apiVersion:
+        type: string
+        description: API version used for this response
+        example: "v1.2"
+      compressionApplied:
+        type: boolean
+        description: Whether data compression was applied
+        example: true
+      responseTime:
+        type: integer
+        description: Response generation time in milliseconds
+        example: 85
+      dataFreshness:
+        type: string
+        description: How recent the analytics data is
+        enum: [real_time, minutes, hours, stale]
+        example: minutes
+description: General mobile-optimized analytics response with backward compatibility and comprehensive mobile-specific optimizations 

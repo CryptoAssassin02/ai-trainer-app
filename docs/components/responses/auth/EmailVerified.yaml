@@ -1,0 +1,5 @@
+description: Email verified successfully
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/auth/VerifyEmailSuccessResponse.yaml' 

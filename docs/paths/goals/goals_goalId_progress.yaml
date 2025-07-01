@@ -1,0 +1,141 @@
+get:
+  tags:
+    - Goal Management
+  summary: Get detailed progress for a specific goal with milestones
+  description: |
+    Retrieve comprehensive progress information for a specific goal including milestone tracking, trend analysis, and achievement predictions.
+    
+    **Progress Analytics:**
+    - Current progress percentage and trajectory
+    - Milestone achievement status and timeline
+    - Progress velocity and consistency analysis
+    - Trend analysis and pattern recognition
+    - Comparative analysis with similar goals
+    
+    **Milestone Tracking:**
+    - Completed, current, and upcoming milestones
+    - Achievement dates and progress tracking
+    - Adaptive milestone adjustment based on progress
+    - Celebration and motivation tracking
+    - Challenge identification and support recommendations
+    
+    **Predictive Analysis:**
+    - Goal achievement probability scoring
+    - Estimated completion timeline adjustment
+    - Success factor analysis and recommendations
+    - Risk factor identification and mitigation
+    - Progress optimization suggestions
+    
+    **Integration Features:**
+    - Check-in data correlation and progress validation
+    - Workout data integration for goal-specific metrics
+    - Wellness impact analysis on goal progress
+    - AI-powered insights and recommendations
+  operationId: getGoalProgress
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: goalId
+      in: path
+      required: true
+      description: Unique identifier for the goal
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    - name: timeRange
+      in: query
+      description: Time range for progress analysis
+      schema:
+        type: string
+        enum: [week, month, quarter, all_time]
+        default: "month"
+        example: "month"
+    
+    - name: includeMilestones
+      in: query
+      description: Include detailed milestone tracking
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeTrends
+      in: query
+      description: Include trend analysis and patterns
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includePredictions
+      in: query
+      description: Include AI-powered achievement predictions
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: includeComparisons
+      in: query
+      description: Include comparison with similar goals
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: includeRecommendations
+      in: query
+      description: Include optimization recommendations
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: granularity
+      in: query
+      description: Data granularity for progress tracking
+      schema:
+        type: string
+        enum: [daily, weekly, monthly]
+        default: "weekly"
+        example: "daily"
+    
+    - name: includeWellnessCorrelation
+      in: query
+      description: Include wellness metric correlation analysis
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: format
+      in: query
+      description: Response format for progress data
+      schema:
+        type: string
+        enum: [detailed, summary, export]
+        default: "detailed"
+        example: "detailed"
+  responses:
+    '200':
+      $ref: '../../components/responses/goals/GoalProgressRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+    
+    '403':
+      $ref: '../../components/responses/goals/GoalAccessDenied.yaml'
+    
+    '404':
+      $ref: '../../components/responses/goals/GoalNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml' 

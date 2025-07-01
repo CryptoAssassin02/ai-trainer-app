@@ -19,7 +19,7 @@ const { DatabaseError, ValidationError } = require('../utils/errors');
  */
 function getSupabaseClient(jwtToken) {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     logger.error('Supabase configuration is missing.');
@@ -45,37 +45,54 @@ function getValidationSchema(dataType) {
   switch (dataType) {
     case 'profiles':
       return Joi.object({
-        id: Joi.string().uuid().required(),
-        height: Joi.number().allow(null),
-        weight: Joi.number().allow(null),
-        age: Joi.number().integer().allow(null),
-        gender: Joi.string().allow(null, ''),
-        preferences: Joi.string().allow(null, ''), // Stored as stringified JSON
-        goals: Joi.string().allow(null, ''), // Stored as stringified JSON
+        user_id: Joi.string().uuid().required(),
+        name: Joi.string().min(1).allow(null, ''),
+        height: Joi.number().positive().allow(null),
+        weight: Joi.number().positive().allow(null),
+        age: Joi.number().integer().min(1).max(120).allow(null),
+        gender: Joi.string().valid('male', 'female', 'other').allow(null, ''),
+        experience_level: Joi.string().valid('beginner', 'intermediate', 'advanced').allow(null, ''),
+        fitness_goals: Joi.array().items(Joi.string()).allow(null),
+        equipment: Joi.array().items(Joi.string()).allow(null),
+        medical_conditions: Joi.array().items(Joi.string()).allow(null),
+        unit_preference: Joi.string().valid('metric', 'imperial').allow(null, ''),
+        workout_frequency: Joi.string().allow(null, ''),
+        created_at: Joi.date().iso().allow(null),
         updated_at: Joi.date().iso().allow(null)
       });
     
     case 'workouts':
       return Joi.object({
-        id: Joi.string().uuid().required(),
         user_id: Joi.string().uuid().required(),
-        plan_name: Joi.string().allow('', null),
-        plan: Joi.string().allow(null, ''), // Stored as stringified JSON
-        exercises: Joi.string().allow(null, ''), // Stored as stringified JSON
-        research_insights: Joi.string().allow(null, ''), // Stored as stringified JSON
-        reasoning: Joi.string().allow(null, ''),
-        created_at: Joi.date().iso().allow(null),
-        updated_at: Joi.date().iso().allow(null)
+        name: Joi.string().min(1).required(),
+        description: Joi.string().allow(null, ''),
+        plan_data: Joi.object().required(),
+        ai_generated: Joi.boolean().allow(null),
+        status: Joi.string().valid('draft', 'active', 'archived').allow(null, ''),
+        difficulty_level: Joi.string().valid('beginner', 'intermediate', 'advanced').allow(null, ''),
+        estimated_duration: Joi.number().integer().positive().allow(null),
+        schedule_frequency: Joi.string().valid('daily', 'weekly', 'monthly', 'custom').allow(null, ''),
+        tags: Joi.array().items(Joi.string()).allow(null),
+        goals: Joi.array().items(Joi.string()).allow(null),
+        equipment_required: Joi.array().items(Joi.string()).allow(null),
+        ai_reasoning: Joi.object().allow(null),
+        version: Joi.number().integer().positive().allow(null),
+        id: Joi.string().uuid().allow(null)
       });
     
     case 'workout_logs':
       return Joi.object({
-        log_id: Joi.string().uuid().required(),
-        plan_id: Joi.string().uuid().required(),
+        log_id: Joi.string().uuid().allow(null),
+        plan_id: Joi.string().uuid().allow(null),
         user_id: Joi.string().uuid().required(),
         date: Joi.date().iso().allow(null),
-        logged_exercises: Joi.string().allow(null, ''), // Stored as stringified JSON
+        completed: Joi.boolean().allow(null),
+        exercises_completed: Joi.string().allow(null, ''),
         notes: Joi.string().allow(null, ''),
+        overall_difficulty: Joi.number().integer().min(1).max(10).allow(null),
+        energy_level: Joi.number().integer().min(1).max(10).allow(null),
+        satisfaction: Joi.number().integer().min(1).max(10).allow(null),
+        feedback: Joi.string().allow(null, ''),
         created_at: Joi.date().iso().allow(null)
       });
     
@@ -128,19 +145,34 @@ function processJsonFields(data, direction = 'parse') {
   if (!data || typeof data !== 'object') return data;
   
   const result = { ...data };
-  const jsonFields = ['preferences', 'goals', 'plan', 'exercises', 'logged_exercises', 'research_insights'];
+  // plan_data should remain as object for validation, so exclude it from stringification
+  const stringifyFields = ['fitness_goals', 'equipment', 'tags', 'goals', 'equipment_required', 'ai_reasoning', 'exercises_completed', 'research_insights'];
+  const parseFields = ['fitness_goals', 'equipment', 'plan_data', 'tags', 'goals', 'equipment_required', 'ai_reasoning', 'exercises_completed', 'research_insights'];
   
-  for (const field of jsonFields) {
+  const fieldsToProcess = direction === 'stringify' ? stringifyFields : parseFields;
+  
+  for (const field of fieldsToProcess) {
     if (result[field] !== undefined && result[field] !== null) {
       if (direction === 'parse' && typeof result[field] === 'string') {
         try {
           result[field] = JSON.parse(result[field]);
         } catch (error) {
           logger.warn(`Failed to parse JSON field '${field}': ${error.message}`);
-          // Keep as string if parsing fails
         }
       } else if (direction === 'stringify' && typeof result[field] === 'object') {
         result[field] = JSON.stringify(result[field]);
+      }
+    }
+  }
+
+  // Special handling for medical_conditions - ensure it remains as array
+  if (result.medical_conditions !== undefined && result.medical_conditions !== null) {
+    if (typeof result.medical_conditions === 'string') {
+      try {
+        result.medical_conditions = JSON.parse(result.medical_conditions);
+      } catch (error) {
+        logger.warn(`Failed to parse medical_conditions: ${error.message}`);
+        result.medical_conditions = [];
       }
     }
   }
@@ -171,17 +203,40 @@ async function batchInsert(tableName, data, userId, supabase) {
     let dbError = null;
     
     try {
-      batch.forEach(item => {
-        if (tableName !== 'profiles') { item.user_id = userId; }
-        else { item.id = userId; }
-      });
+      // Handle workout_logs with null plan_id by linking to user's most recent workout plan
+      if (tableName === 'workout_logs') {
+        for (const item of batch) {
+          if (!item.plan_id) {
+            // Get the user's most recent workout plan
+            const { data: recentPlan } = await supabase
+              .from('workout_plans')
+              .select('id')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+            
+            if (recentPlan) {
+              item.plan_id = recentPlan.id;
+              logger.info(`Auto-linked workout log to plan ${recentPlan.id} for user ${userId}`);
+            } else {
+              // If no workout plan exists, skip this log entry
+              logger.warn(`No workout plan found for user ${userId}, skipping workout log entry`);
+              result.failed += 1;
+              result.errors.push(`Workout log skipped: no workout plan available for user ${userId}`);
+              continue;
+            }
+          }
+        }
+      }
       
       const response = await supabase
         .from(tableName)
         .upsert(batch, { 
-          onConflict: tableName === 'profiles' ? 'id' : 
+          onConflict: tableName === 'user_profiles' ? 'user_id' : 
                       tableName === 'workouts' || tableName === 'workout_plans' ? 'id' :
-                      'log_id'
+                      tableName === 'workout_logs' ? 'id' :
+                      'id'
         });
       
       // Store the error directly from the response
@@ -234,8 +289,16 @@ async function importJSON(userId, fileContent, jwtToken) {
       throw new ValidationError('Invalid JSON format: missing data field');
     }
     
-    // Process each data type in the JSON
-    for (const dataType in fileContent.data) {
+    // Process each data type in the JSON in dependency order
+    const processingOrder = ['profiles', 'workouts', 'workout_logs']; // Process in dependency order
+    const availableDataTypes = Object.keys(fileContent.data);
+    
+    // Process data types in the correct order to handle foreign key dependencies
+    for (const dataType of processingOrder) {
+      if (!availableDataTypes.includes(dataType)) {
+        continue; // Skip if this data type is not in the import file
+      }
+      
       const data = fileContent.data[dataType];
       
       if (!Array.isArray(data)) {
@@ -260,7 +323,14 @@ async function importJSON(userId, fileContent, jwtToken) {
           // Process JSON fields first
           processedItem = processJsonFields(item, 'stringify');
           
-          // Validate against schema
+          // CRITICAL FIX: Add user_id BEFORE validation (not after in batchInsert)
+          if (dataType !== 'profiles') {
+            processedItem.user_id = userId;
+          } else {
+            processedItem.user_id = userId;
+          }
+          
+          // Validate against schema (now with user_id included)
           const validatedItem = validateData(processedItem, schema);
           
           validData.push(validatedItem);
@@ -290,7 +360,9 @@ async function importJSON(userId, fileContent, jwtToken) {
       // Insert valid data into database
       if (validData.length > 0) {
         // Determine table name (might be different from dataType)
-        const tableName = dataType === 'workouts' ? 'workout_plans' : dataType;
+        const tableName = dataType === 'workouts' ? 'workout_plans' : 
+                          dataType === 'profiles' ? 'user_profiles' : 
+                          dataType;
         
         const insertResult = await batchInsert(tableName, validData, userId, supabase);
         
@@ -325,6 +397,7 @@ async function importCSV(userId, fileStream, jwtToken) {
   const results = { total: 0, successful: 0, failed: 0, errors: [] };
   const dataBatches = {};
   let currentDataType = null;
+  let headersProcessed = false;
 
   return new Promise((resolve, reject) => {
     Papa.parse(fileStream, {
@@ -333,24 +406,58 @@ async function importCSV(userId, fileStream, jwtToken) {
       step: function(rowResult, parser) {
         try {
           const row = rowResult.data;
-          if (Object.keys(row).length === 1 && row.dataType) {
-            currentDataType = row.dataType.toLowerCase();
+          
+          // Auto-detect data type from headers on first row
+          if (!headersProcessed) {
+            const headers = Object.keys(row);
+            if (headers.includes('plan_data') || headers.includes('difficulty_level')) {
+              currentDataType = 'workouts';
+            } else if (headers.includes('exercises_completed') || headers.includes('overall_difficulty')) {
+              currentDataType = 'workout_logs';
+            } else if (headers.includes('height') || headers.includes('experience_level')) {
+              currentDataType = 'profiles';
+            } else {
+              // Default to workouts if we can't determine
+              currentDataType = 'workouts';
+            }
+            headersProcessed = true;
             if (!dataBatches[currentDataType]) {
               dataBatches[currentDataType] = [];
             }
+            console.log(`[importCSV] Auto-detected data type: ${currentDataType} from headers:`, headers);
+          }
+          
+          // Skip empty rows or header-only rows
+          const hasData = Object.values(row).some(value => value && value.toString().trim() !== '');
+          if (!hasData) {
             return;
           }
           
           if (!currentDataType) {
             results.failed++;
-            results.errors.push('Skipping row with no data type context');
-            logger.warn('Skipping row with no data type context:', row);
+            results.errors.push('Could not determine data type from CSV headers');
+            logger.warn('Could not determine data type from CSV headers:', row);
             return;
           }
           
           results.total++;
           const schema = getValidationSchema(currentDataType);
           const processedItem = processJsonFields(row, 'stringify');
+          
+          // CRITICAL FIX: Add user_id BEFORE validation (Rule 20) and add default values for required fields
+          if (currentDataType !== 'profiles') {
+            processedItem.user_id = userId;
+          } else {
+            processedItem.user_id = userId;
+          }
+          
+          // Add default values for required fields that aren't typically in CSV format
+          if (currentDataType === 'workouts') {
+            // Add default plan_data if not provided
+            if (!processedItem.plan_data) {
+              processedItem.plan_data = { exercises: [] };
+            }
+          }
           
           try {
             const validatedData = validateData(processedItem, schema);
@@ -391,6 +498,8 @@ async function importCSV(userId, fileStream, jwtToken) {
               let tableName = dataType;
               if (dataType === 'workouts') {
                   tableName = 'workout_plans'; 
+              } else if (dataType === 'profiles') {
+                  tableName = 'user_profiles';
               }
               
               logger.info(`Attempting batch insert for ${batch.length} items into table '${tableName}'`);
@@ -572,7 +681,9 @@ async function importXLSX(userId, filePath, jwtToken) {
       
       // Insert valid data into database ONLY if there is valid data
       if (validData.length > 0) { 
-        const tableName = dataType === 'workouts' ? 'workout_plans' : dataType;
+        const tableName = dataType === 'workouts' ? 'workout_plans' : 
+                          dataType === 'profiles' ? 'user_profiles' : 
+                          dataType;
         logger.info(`Attempting batch insert for ${validData.length} valid ${tableName} records from XLSX.`);
         
         try {

@@ -1,0 +1,44 @@
+type: object
+properties:
+  timeframe:
+    type: string
+    description: Time period for analytics data
+    enum: [7days, 30days, 12weeks, 6months, 1year]
+    example: "30days"
+  groupBy:
+    type: string
+    description: How to group the analytics data
+    enum: [day, week, month]
+    default: week
+    example: "week"
+  metrics:
+    type: array
+    items:
+      type: string
+      enum: [weight, workouts, wellness, adherence, strength, progression]
+    description: Specific metrics to include in analytics
+    example: ["workouts", "adherence", "strength"]
+  includeAI:
+    type: boolean
+    description: Whether to include AI-generated insights
+    default: false
+  startDate:
+    type: string
+    format: date
+    description: Custom start date (overrides timeframe if provided)
+    example: "2024-01-01"
+  endDate:
+    type: string
+    format: date
+    description: Custom end date (overrides timeframe if provided)
+    example: "2024-01-31"
+additionalProperties: false
+examples:
+  - timeframe: "30days"
+    groupBy: "week"
+    metrics: ["workouts", "adherence"]
+    includeAI: false
+  - startDate: "2024-01-01"
+    endDate: "2024-01-31"
+    groupBy: "day"
+    metrics: ["weight", "wellness"] 

@@ -1,0 +1,26 @@
+post:
+  tags:
+    - Authentication & User Management
+  summary: Refresh access token
+  description: |
+    Exchange a valid refresh token for a new access token. May also return a new 
+    refresh token if rotation is enabled.
+  operationId: refreshToken
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/auth/RefreshTokenRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/auth/TokenRefreshSuccess.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/auth/Unauthorized.yaml'
+    '429':
+      $ref: '../../components/responses/auth/AuthRateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+  security: []  # Public endpoint (uses refresh token) 

@@ -1,0 +1,40 @@
+description: Uploaded file exceeds the 10MB size limit
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    description: File size error details
+    schema:
+      $ref: '../../schemas/dataTransfer/DataTransferFileError.yaml'
+    examples:
+      fileSizeExceeded:
+        summary: File exceeds 10MB limit
+        value:
+          status: error
+          message: "File size exceeds the 10MB limit."
+          errorCode: "FILE_SIZE_EXCEEDED"
+          details:
+            fileSize: 15728640
+            maxSize: 10485760
+            fileName: "large_workout_data.xlsx"
+      excelFileTooLarge:
+        summary: Large Excel file rejected
+        value:
+          status: error
+          message: "File size exceeds the 10MB limit."
+          errorCode: "FILE_SIZE_EXCEEDED"
+          details:
+            fileSize: 12582912
+            maxSize: 10485760
+            fileName: "complete_workout_history.xlsx"
+      csvFileTooLarge:
+        summary: Large CSV file rejected
+        value:
+          status: error
+          message: "File size exceeds the 10MB limit."
+          errorCode: "FILE_SIZE_EXCEEDED"
+          details:
+            fileSize: 11534336
+            maxSize: 10485760
+            fileName: "workout_logs_2023.csv" 
