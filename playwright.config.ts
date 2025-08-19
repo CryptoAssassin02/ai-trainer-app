@@ -51,7 +51,7 @@ export default defineConfig({
     // Setup project - runs DUAL authentication for both user contexts
     { 
       name: 'setup', 
-      testMatch: /.*\.setup\.ts/,
+      testMatch: '**/auth-dual.setup.ts',
       // Setup runs without any authentication state
       use: { storageState: undefined }
     },

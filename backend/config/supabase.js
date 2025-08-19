@@ -308,7 +308,17 @@ function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false, jwtT
     if (jwtToken) {
       supabaseUrlToUse = configDetails.url; // Should be env.supabase.url from higher level config
       supabaseKeyToUse = configDetails.key; // Use anon key for JWT-scoped client
-      // Don't set Authorization header here - we'll use setAuth() after client creation
+      // Set Authorization header in client options for RLS context
+      clientOptionsToUse = {
+        ...clientOptionsToUse,
+        global: {
+          ...clientOptionsToUse.global,
+          headers: {
+            ...clientOptionsToUse.global?.headers,
+            'Authorization': `Bearer ${jwtToken}`
+          }
+        }
+      };
       logger.info(`[SupabaseConfig] Creating Supabase client WITH JWT. Environment: ${effectiveNodeEnv}`);
     } else if (effectiveNodeEnv === 'test' && !shouldUseMock) {
         // Integration Test Path: Directly use .env.test variables (via process.env)
@@ -346,8 +356,10 @@ function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false, jwtT
     logger.info(`[SupabaseConfig] Creating Supabase client. Environment: ${effectiveNodeEnv}, ServiceRole: ${useServiceRole}, Mocked: ${shouldUseMock}`);
     const client = createClient(supabaseUrlToUse, supabaseKeyToUse, clientOptionsToUse);
     
-    // Note: For server-side JWT validation, we don't need to set anything on the client
-    // The auth middleware will call getUser() with the specific JWT token
+    // JWT token is now set via Authorization header in clientOptionsToUse above
+    if (jwtToken) {
+      logger.info(`[SupabaseConfig] JWT token set via Authorization header for RLS context`);
+    }
     
     return client;
 

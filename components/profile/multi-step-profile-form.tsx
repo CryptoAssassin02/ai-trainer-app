@@ -249,13 +249,45 @@ export function MultiStepProfileForm({
 
 
 
-  // Step validation function - kept simple without memoization to avoid circular dependencies
+  // Step validation function - checks both required field completion and validation errors
   const isStepValid = (stepIndex: number): boolean => {
     const step = FORM_STEPS[stepIndex];
     const errors = form.formState.errors;
+    const values = form.getValues();
     
     // Check if any required fields in this step have errors
-    return !step.fields.some(field => errors[field as keyof typeof errors]);
+    const hasErrors = step.fields.some(field => errors[field as keyof typeof errors]);
+    if (hasErrors) {
+      return false;
+    }
+    
+    // For step 0 (personal-info), check required fields: name and age
+    if (stepIndex === 0) {
+      const name = values.name;
+      const age = values.age;
+      return !!(name && name.trim() && age && age > 0);
+    }
+    
+    // For step 1 (physical-measurements), check required fields: height and weight  
+    if (stepIndex === 1) {
+      const height = values.height;
+      const weight = values.weight;
+      return !!(height && weight && Number(height) > 0 && Number(weight) > 0);
+    }
+    
+    // For step 2 (fitness-info), check required fields: experienceLevel and goals
+    if (stepIndex === 2) {
+      const experienceLevel = values.experienceLevel;
+      const goals = values.goals;
+      return !!(experienceLevel && goals && Array.isArray(goals) && goals.length > 0);
+    }
+    
+    // For step 3 (equipment-preferences), it's optional so just check no errors
+    if (stepIndex === 3) {
+      return true; // Optional step
+    }
+    
+    return true;
   };
 
   // Step completion calculation - kept simple without memoization to avoid circular dependencies  
@@ -729,14 +761,7 @@ export function MultiStepProfileForm({
         </form>
       </Form>
 
-      {/* Debug Info */}
-      <Alert className="mb-6 bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-800">Debug Info</AlertTitle>
-        <AlertDescription className="text-blue-700" data-testid="debug-info">
-          {debugInfo}
-        </AlertDescription>
-      </Alert>
+      {/* Debug Info - Removed to prevent E2E test interference */}
 
       {/* Success Message */}
       {submitSuccess && (

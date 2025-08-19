@@ -178,6 +178,19 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
         const mappedUser = mapBackendUser(authStatus.user, authStatus.user.email || '');
         setUser(mappedUser);
         setSession(authStatus.session as Session);
+        
+        // Load user profile if authenticated - keep loading until profile is loaded
+        try {
+          console.log('📞 [AUTH PROVIDER] Loading user profile...');
+          const profileService = await import('@/lib/api/services/profile-service');
+          const userProfile = await profileService.profileService.getProfile();
+          console.log('✅ [AUTH PROVIDER] Profile loaded successfully:', userProfile);
+          setProfile(userProfile);
+        } catch (profileError) {
+          console.log('ℹ️ [AUTH PROVIDER] No profile found (user may need to create one):', profileError);
+          setProfile(null);
+        }
+        // Note: loading will be set to false in the finally block after profile loading completes
       } else {
         console.log('👤 [AUTH PROVIDER] User not authenticated, clearing state');
         setUser(null);

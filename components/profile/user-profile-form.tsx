@@ -122,19 +122,28 @@ export function UserProfileForm({
     },
   })
 
-  // Update form when profile changes
+  // Destructure reset method for proper useEffect dependencies (React Hook Form best practice)
+  const { reset } = form;
+
+  // Update form when profile changes - following React Hook Form best practices
   useEffect(() => {
     if (!profileLoading && profile.data) {
       const profileData = profile.data as UserProfile;
       
-      // Update isMetric based on the profile preference
-      setIsMetric(profileData.unitPreference === "metric")
+      // Determine unit preference from profile data
+      const profileIsMetric = profileData.unitPreference === "metric";
+      
+      // Update isMetric state only if it's different (prevent infinite loop)
+      if (profileIsMetric !== isMetric) {
+        setIsMetric(profileIsMetric);
+      }
 
-      form.reset({
+      // Use destructured reset method (React Hook Form best practice)
+      reset({
         name: profileData.name || "",
         age: profileData.age || 30,
         gender: profileData.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
-        height: isMetric 
+        height: profileIsMetric 
           ? (profileData.height || 178)
           : profileData.height 
             ? { 
@@ -142,15 +151,17 @@ export function UserProfileForm({
                 inches: Math.round((profileData.height as number % 30.48) / 2.54) || 10 
               }
             : { feet: 5, inches: 10 },
-        weight: profileData.weight || (isMetric ? 72.5 : 160),
+        weight: profileData.weight || (profileIsMetric ? 72.5 : 160),
         experienceLevel: profileData.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
         goals: profileData.goals || [],
-        medicalConditions: profileData.medicalConditions || "",
+        medicalConditions: Array.isArray(profileData.medicalConditions) 
+          ? profileData.medicalConditions.join(', ') 
+          : (profileData.medicalConditions || ""),
         equipment: profileData.equipment || [],
         unitPreference: profileData.unitPreference || "metric"
       })
     }
-  }, [profile, profileLoading, form, isMetric])
+  }, [profile.data, profileLoading, reset, isMetric]) // Proper dependencies following React Hook Form best practices
 
 
 
@@ -228,7 +239,9 @@ export function UserProfileForm({
           weight: weightInKg || 0,
           experienceLevel: data.experienceLevel,
           goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
-          medicalConditions: data.medicalConditions || "",
+          medicalConditions: data.medicalConditions 
+            ? data.medicalConditions.split(',').map(s => s.trim()).filter(s => s.length > 0)
+            : [],
           equipment: data.equipment || [],
           unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
         }
@@ -318,17 +331,27 @@ export function UserProfileForm({
         )}
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Unit Preference Toggle */}
+              <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8"
+        >
+            {/* Unit Preference Toggle - TEMPORARILY DISABLED TO ISOLATE INFINITE LOOP */}
             <div className="flex justify-end">
               <div className="flex space-x-2 items-center bg-muted rounded-lg p-2">
                 <span className={`text-sm ${!isMetric ? "font-medium" : "text-muted-foreground"}`}>Imperial</span>
-                <Switch 
+                {/* TEMPORARILY DISABLED: Switch causing infinite update loop */}
+                {/* <Switch 
                   checked={isMetric} 
                   onCheckedChange={(checked) => handleUnitChange(checked ? "metric" : "imperial")}
                   data-testid="unit-toggle"
-                />
+                /> */}
+                <button
+                  type="button"
+                  onClick={() => handleUnitChange(isMetric ? "imperial" : "metric")}
+                  className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded"
+                  data-testid="unit-toggle"
+                >
+                  {isMetric ? "Switch to Imperial" : "Switch to Metric"}
+                </button>
                 <span className={`text-sm ${isMetric ? "font-medium" : "text-muted-foreground"}`}>Metric</span>
               </div>
             </div>
@@ -348,7 +371,7 @@ export function UserProfileForm({
                       <Input 
                         placeholder="Enter your name (2-100 characters)" 
                         {...field}
-                        maxLength={VALIDATION_CONSTANTS.NAME_MAX_LENGTH}
+
                         data-testid="name-input"
                       />
                     </FormControl>
@@ -372,8 +395,6 @@ export function UserProfileForm({
                       <FormControl>
                         <Input
                           type="number"
-                          min={VALIDATION_CONSTANTS.AGE_MIN}
-                          max={VALIDATION_CONSTANTS.AGE_MAX}
                           placeholder={`Enter your age (${VALIDATION_CONSTANTS.AGE_MIN}-${VALIDATION_CONSTANTS.AGE_MAX})`}
                           value={value || ""}
                           onChange={(e) => {
@@ -443,7 +464,7 @@ export function UserProfileForm({
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               placeholder="Height"
                               value={typeof value === 'number' ? value : ""}
                               onChange={(e) => {
@@ -473,7 +494,7 @@ export function UserProfileForm({
                               <FormControl>
                                 <Input
                                   type="number"
-                                  min={0}
+    
                                   placeholder="Feet"
                                   value={heightObj.feet || ""}
                                   onChange={(e) => {
@@ -490,8 +511,8 @@ export function UserProfileForm({
                               <FormControl>
                                 <Input
                                   type="number"
-                                  min={0}
-                                  max={11}
+    
+
                                   placeholder="Inches"
                                   value={heightObj.inches || ""}
                                   onChange={(e) => {
@@ -526,7 +547,7 @@ export function UserProfileForm({
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               step={0.1}
                               placeholder="Weight"
                               value={value || ""}
@@ -554,7 +575,7 @@ export function UserProfileForm({
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               placeholder="Weight"
                               value={value || ""}
                               onChange={(e) => {
@@ -653,14 +674,15 @@ export function UserProfileForm({
                         placeholder="Please list any medical conditions, injuries, or movement limitations that might affect your workouts. Maximum 10 conditions, 200 characters each."
                         className="min-h-[100px]"
                         {...field}
-                        maxLength={VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
+
                       />
                     </FormControl>
-                    <FormDescription className="space-y-1">
-                      <div>This information helps us provide safer workout recommendations. It will be kept confidential.</div>
-                      <div className="text-xs text-muted-foreground">
+                    <FormDescription>
+                      This information helps us provide safer workout recommendations. It will be kept confidential.
+                      <br />
+                      <span className="text-xs text-muted-foreground">
                         Character count: {field.value?.length || 0}/{VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
-                      </div>
+                      </span>
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

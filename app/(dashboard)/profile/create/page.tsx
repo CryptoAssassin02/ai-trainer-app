@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { MultiStepProfileForm } from "@/components/profile/multi-step-profile-form"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { useProfileQuery } from '@/hooks/use-profile-queries'
+import { useAuth } from '@/hooks/use-auth'
 
 // Loading component for the form
 function ProfileFormSkeleton() {
@@ -40,19 +40,16 @@ export default function ProfileCreatePage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   
-  // Check if user has a COMPLETE profile and redirect to profile view  
-  // DISABLED: No need to check existing profile during creation
-  // const { data: profileData, isLoading } = useProfileQuery({
-  //   enabled: false  // Disable in create mode to prevent unnecessary API calls
-  // })
-  const profileData = null;
-  const isLoading = false;
+  // Check if user has a COMPLETE profile and redirect to profile view
+  // Use auth context profile data instead of separate query to avoid conflicts
+  const { profile: profileData, loading: authLoading } = useAuth();
   
 
   
   useEffect(() => {
     // Only redirect if user has a COMPLETE profile, not just any profile
-    if (!isLoading && profileData) {
+    // Use auth context data which is already loaded and doesn't conflict with ProfileQueryProvider
+    if (!authLoading && profileData) {
       // Check if profile is complete based on required fields
       const requiredFields = ['name', 'age', 'height', 'weight', 'experienceLevel', 'goals'];
       const hasAllRequiredFields = requiredFields.every(field => {
@@ -62,14 +59,22 @@ export default function ProfileCreatePage() {
       });
       
       if (hasAllRequiredFields) {
+        console.log('🔄 User has complete profile, redirecting to /profile');
         router.push('/profile');
         return;
       }
     }
-  }, [isLoading, profileData, router]);
+    
+    // Log the current state for debugging
+    console.log('📊 Profile creation page state:', { 
+      authLoading, 
+      hasProfile: !!profileData, 
+      profileId: profileData?.id 
+    });
+  }, [authLoading, profileData, router]);
   
-  // Show loading while checking for existing profile
-  if (isLoading) {
+  // Show loading while checking auth status and profile data
+  if (authLoading) {
     return (
       <div className="container py-10">
         <div className="text-center mb-8">
@@ -83,7 +88,7 @@ export default function ProfileCreatePage() {
     );
   }
   
-  // Check if profile is complete before blocking rendering
+  // If user has complete profile, show loading while redirect happens
   if (profileData) {
     const requiredFields = ['name', 'age', 'height', 'weight', 'experienceLevel', 'goals'];
     const hasAllRequiredFields = requiredFields.every(field => {
@@ -92,9 +97,18 @@ export default function ProfileCreatePage() {
              !(Array.isArray(value) && value.length === 0);
     });
     
-    // Only return null if profile is actually complete
     if (hasAllRequiredFields) {
-      return null; // Redirect is happening in useEffect
+      return (
+        <div className="container py-10">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-4">Redirecting...</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              You already have a complete profile. Redirecting to profile page...
+            </p>
+          </div>
+          <ProfileFormSkeleton />
+        </div>
+      );
     }
   }
 

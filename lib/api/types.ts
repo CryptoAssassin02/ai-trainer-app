@@ -78,7 +78,7 @@ export interface UserProfile {
   age?: number; // 13-120
   name?: string; // 2-100 chars
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
-  medicalConditions?: string; // single text field, max 1000 chars
+  medicalConditions?: string[]; // array of medical conditions
   goals?: string[];
   workoutFrequency?: string;
   equipment?: string[];
@@ -101,7 +101,7 @@ export interface CreateProfileRequest {
   equipment?: string[];
   exercisePreferences?: string[]; // mapped to equipment field
   equipmentPreferences?: string[]; // mapped to equipment field
-  medicalConditions?: string;
+  medicalConditions?: string[];
   workoutFrequency?: string;
 }
 
@@ -117,7 +117,7 @@ export interface UpdateProfileRequest {
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   goals?: string[];
   equipment?: string[];
-  medicalConditions?: string;
+  medicalConditions?: string[];
   workoutFrequency?: string;
 }
 

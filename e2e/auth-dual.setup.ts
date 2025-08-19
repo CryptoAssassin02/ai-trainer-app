@@ -9,6 +9,19 @@ const existingUserFile = path.join(__dirname, '../playwright/.auth/existing-user
 setup('authenticate as new user', async ({ page }) => {
   console.log('🔐 Setting up NEW USER authentication (without profile)...');
   
+  // CRITICAL: Clean up any existing profile for this user to ensure clean test state
+  const testUserId = 'eefd1d60-34b9-4de3-bb48-f7eb4b87ee68'; // Fixed user ID for new user
+  console.log('🧹 Cleaning up existing profile for new user to ensure clean test state...');
+  
+  try {
+    // Connect to database and delete any existing profile
+    const { execSync } = require('child_process');
+    execSync(`psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "DELETE FROM user_profiles WHERE user_id = '${testUserId}';"`, { stdio: 'inherit' });
+    console.log('✅ NEW USER: Profile cleanup completed');
+  } catch (error) {
+    console.log('ℹ️ NEW USER: Profile cleanup failed (profile may not exist):', error instanceof Error ? error.message : String(error));
+  }
+  
   // Navigate to signup page
   await page.goto('/auth/signup');
   await page.waitForLoadState('networkidle');
@@ -80,6 +93,19 @@ setup('authenticate as new user', async ({ page }) => {
 // Setup for EXISTING USER (with complete profile) - for testing profile editing flows
 setup('authenticate as existing user', async ({ page }) => {
   console.log('🔐 Setting up EXISTING USER authentication (with complete profile)...');
+  
+  // CRITICAL: Clean up any existing profile for this user to ensure clean test state before creating new one
+  const testUserId = '451bc2da-d99b-4a0e-b2b5-7266edad7eee'; // Fixed user ID for existing user
+  console.log('🧹 Cleaning up existing profile for existing user to ensure clean test state...');
+  
+  try {
+    // Connect to database and delete any existing profile
+    const { execSync } = require('child_process');
+    execSync(`psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "DELETE FROM user_profiles WHERE user_id = '${testUserId}';"`, { stdio: 'inherit' });
+    console.log('✅ EXISTING USER: Profile cleanup completed');
+  } catch (error) {
+    console.log('ℹ️ EXISTING USER: Profile cleanup failed (profile may not exist):', error instanceof Error ? error.message : String(error));
+  }
   
   // Navigate to signup page
   await page.goto('/auth/signup');

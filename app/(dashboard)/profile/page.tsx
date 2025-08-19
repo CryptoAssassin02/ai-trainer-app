@@ -6,7 +6,6 @@ export default function ProfilePage() {
       <UserProfileForm 
         mode="edit"
         enableAutoSave={true}
-        redirectOnSuccess="/dashboard"
         showAdvancedOptions={true}
         enableRealTimeValidation={true}
         showCompletionIndicator={true}
