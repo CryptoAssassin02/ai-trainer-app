@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
 import { generateCompletion } from "./openai";
 import { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam } from "openai/resources/chat/completions";
-import { UserProfile } from "@/lib/profile-context";
+import type { UserProfile } from "@/lib/api/types";
 import Ajv, { JSONSchemaType } from 'ajv';
 
 /**
@@ -834,7 +834,13 @@ export class NutritionAgent implements WorkoutAgent {
   private calculateEstimatedEnergy(profile: UserProfile): { estimatedBMR: number, estimatedTDEE: number } {
     // Default values if profile data is missing
     const weight = profile.weight || 70; // kg
-    const height = profile.height || 170; // cm
+    // Handle height - convert to cm if it's in feet/inches format
+    let height: number;
+    if (typeof profile.height === 'object' && profile.height) {
+      height = (profile.height.feet * 30.48) + (profile.height.inches * 2.54); // Convert to cm
+    } else {
+      height = (profile.height as number) || 170; // cm
+    }
     const age = profile.age || 30;
     const gender = profile.gender || "other";
     const activityLevel = 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"

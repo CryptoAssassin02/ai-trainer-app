@@ -6,7 +6,7 @@ import { z } from "zod"
 import { Loader2, Info, BarChart, Brain, ListChecks, ArrowRight, AlertTriangle, HelpCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
 import { useWorkout } from "@/contexts/workout-context"
 
 import { Button } from "@/components/ui/button"

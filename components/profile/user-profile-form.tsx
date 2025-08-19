@@ -23,7 +23,8 @@ import { NativeRadioGroup } from "@/components/ui/native-radio-group"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
+import type { UserProfile } from "@/lib/api/types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/providers/auth-provider"
@@ -61,9 +62,9 @@ type FormValues = ProfileCreationFormData & {
 }
 
 export function UserProfileForm() {
-  const { profile, updateProfile, isLoading: profileLoading, error: profileError } = useProfile()
+  const { profile, updateProfileAsync, isLoading: profileLoading, error: profileError } = useProfile()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isMetric, setIsMetric] = useState<boolean>(profile.unit_preference === "metric" || true)
+  const [isMetric, setIsMetric] = useState<boolean>(true)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { isAuthenticated } = useAuth()
@@ -77,52 +78,45 @@ export function UserProfileForm() {
     mode: 'onChange', // Real-time validation
 
     defaultValues: {
-      name: profile.name || "",
-      age: profile.age || undefined,
-      gender: profile.gender as any || undefined,
-      height: isMetric 
-        ? (profile.height || undefined)
-        : profile.height 
-          ? { 
-              feet: Math.floor(profile.height / 30.48) || 5, 
-              inches: Math.round((profile.height % 30.48) / 2.54) || 10 
-            }
-          : undefined,
-      weight: profile.weight || undefined,
-      experienceLevel: profile.experienceLevel as any || undefined,
-      goals: (profile as any).fitnessGoals || (profile as any).goals || [],
-      medicalConditions: Array.isArray(profile.medicalConditions) 
-        ? profile.medicalConditions.join(', ') 
-        : (profile.medicalConditions || ""),
-      equipment: profile.equipment || [],
-      unitPreference: profile.unit_preference || "metric"
+      name: "",
+      age: undefined,
+      gender: undefined,
+      height: undefined,
+      weight: undefined,
+      experienceLevel: undefined,
+      goals: [],
+      medicalConditions: "",
+      equipment: [],
+      unitPreference: "metric"
     },
   })
 
   // Update form when profile changes
   useEffect(() => {
-    if (!profileLoading && profile) {
+    if (!profileLoading && profile.data) {
+      const profileData = profile.data as UserProfile;
+      
       // Update isMetric based on the profile preference
-      setIsMetric(profile.unit_preference === "metric")
+      setIsMetric(profileData.unitPreference === "metric")
 
       form.reset({
-        name: profile.name || "",
-        age: profile.age || 30,
-        gender: profile.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
+        name: profileData.name || "",
+        age: profileData.age || 30,
+        gender: profileData.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
         height: isMetric 
-          ? (profile.height || 178)
-          : profile.height 
+          ? (profileData.height || 178)
+          : profileData.height 
             ? { 
-                feet: Math.floor(profile.height / 30.48) || 5, 
-                inches: Math.round((profile.height % 30.48) / 2.54) || 10 
+                feet: Math.floor(profileData.height as number / 30.48) || 5, 
+                inches: Math.round((profileData.height as number % 30.48) / 2.54) || 10 
               }
             : { feet: 5, inches: 10 },
-        weight: profile.weight || (isMetric ? 72.5 : 160),
-        experienceLevel: profile.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
-        goals: (profile as any).fitnessGoals || (profile as any).goals || [],
-        medicalConditions: profile.medicalConditions || "",
-        equipment: profile.equipment || [],
-        unitPreference: profile.unit_preference || "metric"
+        weight: profileData.weight || (isMetric ? 72.5 : 160),
+        experienceLevel: profileData.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
+        goals: profileData.goals || [],
+        medicalConditions: profileData.medicalConditions || "",
+        equipment: profileData.equipment || [],
+        unitPreference: profileData.unitPreference || "metric"
       })
     }
   }, [profile, profileLoading, form, isMetric])
@@ -213,7 +207,7 @@ export function UserProfileForm() {
       }
 
       // Update profile via the ProfileProvider
-      await updateProfile(finalData)
+      await updateProfileAsync(finalData)
       setSuccessMessage("Your profile has been updated successfully.")
     } catch (error) {
       console.error("Error saving profile:", error)
@@ -273,7 +267,7 @@ export function UserProfileForm() {
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{profileError || 'An error occurred loading your profile'}</AlertDescription>
+            <AlertDescription>{profileError?.message || 'An error occurred loading your profile'}</AlertDescription>
           </Alert>
         )}
         

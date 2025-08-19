@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons"
 // TEMPORARILY DISABLED: Workout context until Phase 3
 // import { useWorkout } from "@/contexts/workout-context"
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
 
 type TimePeriod = "1w" | "1m" | "3m" | "6m" | "1y" | "all"
 type MetricType = "weight" | "bodyFat" | "chest" | "waist" | "arms" | "thighs"

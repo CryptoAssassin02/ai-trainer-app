@@ -3,7 +3,8 @@
 // Note: Backend API calls will be handled via the apiClient
 import { useOpenAI } from '@/utils/ai/openai'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useProfile, UserProfile } from '@/lib/profile-context'
+import { useProfile } from '@/hooks/use-profile-queries'
+import type { UserProfile } from '@/lib/api/types'
 import { useToast } from '@/components/ui/use-toast'
 // @ts-ignore - UUID import
 import { v4 as uuidv4 } from 'uuid'

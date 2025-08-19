@@ -35,7 +35,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircledIcon, CrossCircledIcon, ReloadIcon } from "@radix-ui/react-icons"
 // TEMPORARILY DISABLED: Workout context until Phase 3
 // import { useWorkout } from "@/contexts/workout-context"
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 
 // Define form schema with Zod
@@ -126,23 +126,21 @@ export function CheckInForm() {
       }
       
       // Log check-in data
-      const result = await logCheckIn(checkInData)
+      await logCheckIn(checkInData)
       
-      if (result) {
-        setFormState({ isSubmitting: false, isSuccess: true, error: null })
-        // Reset the form
-        form.reset({
-          date: new Date(),
-          mood: "good",
-          sleepQuality: "good",
-          energyLevel: 7,
-          stressLevel: 4,
-          notes: "",
-          measurements: { chest: undefined, waist: undefined, hips: undefined, bicep_r: undefined, thigh_r: undefined }
-        })
-      } else {
-        throw new Error("Failed to save check-in data")
-      }
+      // Success - logCheckIn completed without throwing
+      setFormState({ isSubmitting: false, isSuccess: true, error: null })
+      
+      // Reset the form
+      form.reset({
+        date: new Date(),
+        mood: "good",
+        sleepQuality: "good",
+        energyLevel: 7,
+        stressLevel: 4,
+        notes: "",
+        measurements: { chest: undefined, waist: undefined, hips: undefined, bicep_r: undefined, thigh_r: undefined }
+      })
     } catch (err) {
       console.error("Error saving check-in:", err)
       setFormState({ isSubmitting: false, isSuccess: false, error: "Failed to save your check-in data. Please try again." })
@@ -164,7 +162,7 @@ export function CheckInForm() {
   }
 
   // Get unit display based on preference (profile is guaranteed to exist here)
-  const units = profile.unit_preference ?? 'imperial' // Default still useful if unit_preference itself is null/undefined
+  const units = (profile.data as any)?.unitPreference ?? 'imperial' // Default still useful if unitPreference itself is null/undefined
   const getUnitLabel = (type: 'weight' | 'length') => {
     return units === 'imperial' 
       ? (type === 'weight' ? 'lbs' : 'in')
