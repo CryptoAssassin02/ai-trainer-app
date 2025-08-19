@@ -1,7 +1,7 @@
 'use client'
 
 import { ThemeProvider } from "@/components/ui/theme-provider"
-// import { ProfileProvider } from "@/lib/profile-context" // DISABLED: Using ProfileQueryProvider in dashboard layout instead
+
 import { AuthContextProvider } from "@/providers/auth-provider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState, useEffect, ReactNode } from "react"
@@ -73,7 +73,7 @@ export function Providers({ children }: { children: ReactNode }) {
       >
         <ToastProvider />
         <AuthContextProvider>
-          {/* ProfileProvider DISABLED: Using ProfileQueryProvider in dashboard layout instead */}
+
           {/* TODO: Fix WorkoutProvider SSR issues */}
           {children}
         </AuthContextProvider>
