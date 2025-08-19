@@ -206,7 +206,7 @@ export function UserProfileForm() {
         unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
       }
 
-      // Update profile via the ProfileProvider
+      // Update profile via the modern profile hooks
       await updateProfileAsync(finalData)
       setSuccessMessage("Your profile has been updated successfully.")
     } catch (error) {
