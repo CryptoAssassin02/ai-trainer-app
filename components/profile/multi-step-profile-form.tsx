@@ -34,12 +34,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 import { useProfile } from '@/hooks/use-profile-queries';
 import { useProfileAutoSave } from '@/hooks/use-profile-autosave';
+import { useProfileFormLogic } from '@/hooks/use-profile-form-logic';
 import { ConflictResolutionDialog } from './conflict-resolution-dialog';
 import { 
   createDynamicProfileSchema,
   type ProfileCreationFormData,
   type ProfileUpdateFormData 
 } from '@/lib/validation/profile-schemas';
+import type { MultiStepProfileFormProps } from '@/lib/validation/profile-form-types';
 
 // Step components
 import { PersonalInfoStep } from './steps/personal-info-step';
@@ -68,14 +70,7 @@ interface StepComponentProps {
   validation?: any;
 }
 
-interface MultiStepProfileFormProps {
-  mode?: 'create' | 'update';
-  onSuccess?: (data: any) => void;
-  onCancel?: () => void;
-  enableOptimistic?: boolean;
-  enableAutoSave?: boolean;
-  initialStep?: number;
-}
+
 
 type FormData = ProfileCreationFormData | ProfileUpdateFormData;
 
@@ -124,12 +119,17 @@ const FORM_STEPS: FormStep[] = [
 // ==========================================
 
 export function MultiStepProfileForm({
-  mode = 'update',
+  mode = 'create',
   onSuccess,
   onCancel,
+  redirectOnSuccess,
+  redirectOnCancel,
   enableOptimistic = true,
   enableAutoSave = false,
   initialStep = 0,
+  showProgress = true,
+  allowSkipOptional = true,
+  showStepNavigation = true,
 }: MultiStepProfileFormProps) {
   // State management
   const [currentStep, setCurrentStep] = useState(initialStep);
@@ -148,11 +148,27 @@ export function MultiStepProfileForm({
   } = useProfile({
     enableOptimistic,
     // For create mode, don't suspend on missing profile
-    enabled: mode === 'update',
+    enabled: mode === 'edit',
   });
 
   const isCreateMode = mode === 'create';
-  const isUpdateMode = mode === 'update';
+  const isEditMode = mode === 'edit';
+  
+  // Use shared business logic
+  const {
+    formState: sharedFormState,
+    handleSuccess: sharedHandleSuccess,
+    handleCancel: sharedHandleCancel,
+    handleFormSubmit,
+    isEditMode: sharedIsEditMode
+  } = useProfileFormLogic({
+    mode,
+    onSuccess,
+    onCancel,
+    redirectOnSuccess,
+    redirectOnCancel,
+    enableAutoSave,
+  });
 
   // Handle success callback using the recommended React Hook Form pattern
   // This ensures proper timing - success message displays first, then redirect happens
@@ -181,8 +197,9 @@ export function MultiStepProfileForm({
   
   // Create schema once with initial unit preference - no dynamic updates needed
   const schema = useMemo(() => {
+    const schemaMode = isCreateMode ? 'create' : 'update';
     return createDynamicProfileSchema(
-      isCreateMode ? 'create' : 'update',
+      schemaMode,
       initialUnitPreference
     );
   }, [isCreateMode, initialUnitPreference]);
@@ -373,9 +390,9 @@ export function MultiStepProfileForm({
   const overallProgress = Math.round((completedSteps.size / FORM_STEPS.length) * 100);
   const currentStepProgress = Math.round(((currentStep + 1) / FORM_STEPS.length) * 100);
 
-  // Only show loading state in update mode when fetching existing profile
+  // Only show loading state in edit mode when fetching existing profile
   // In create mode, we don't need to wait for profile to load
-  const isLoading = isUpdateMode && profileLoading;
+  const isLoading = isEditMode && profileLoading;
   const isProcessing = isUpdating;
 
   if (isLoading) {
@@ -619,11 +636,11 @@ export function MultiStepProfileForm({
                     Back
                   </Button>
                   
-                  {onCancel && (
+                  {(onCancel || redirectOnCancel) && (
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={onCancel}
+                      onClick={sharedHandleCancel}
                       disabled={isProcessing}
                       className="flex-1 h-11 touch-manipulation"
                     >
@@ -686,11 +703,11 @@ export function MultiStepProfileForm({
                   )}
                 </div>
 
-                {onCancel && (
+                {(onCancel || redirectOnCancel) && (
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={onCancel}
+                    onClick={sharedHandleCancel}
                     disabled={isProcessing}
                   >
                     Cancel

@@ -24,7 +24,9 @@ import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useProfile } from "@/hooks/use-profile-queries"
+import { useProfileFormLogic } from "@/hooks/use-profile-form-logic"
 import type { UserProfile } from "@/lib/api/types"
+import type { UserProfileFormProps } from "@/lib/validation/profile-form-types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/providers/auth-provider"
@@ -61,21 +63,50 @@ type FormValues = ProfileCreationFormData & {
   medicalConditions: string;
 }
 
-export function UserProfileForm() {
+export function UserProfileForm({
+  mode = 'edit',
+  enableAutoSave = true,
+  onSuccess,
+  onCancel,
+  redirectOnSuccess,
+  redirectOnCancel,
+  showAdvancedOptions = true,
+  enableRealTimeValidation = true,
+  showCompletionIndicator = true,
+  title = "Your Fitness Profile",
+  description = "Update your profile to keep your workout recommendations personalized and effective."
+}: UserProfileFormProps = {}) {
   const { profile, updateProfileAsync, isLoading: profileLoading, error: profileError } = useProfile()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isMetric, setIsMetric] = useState<boolean>(true)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { isAuthenticated } = useAuth()
+  
+  // Use shared business logic
+  const {
+    formState,
+    handleSuccess,
+    handleCancel,
+    handleFormSubmit,
+    setFormError,
+    setSuccessMessage,
+    resetFormState,
+    isEditMode
+  } = useProfileFormLogic({
+    mode,
+    onSuccess,
+    onCancel,
+    redirectOnSuccess,
+    redirectOnCancel,
+    enableAutoSave,
+  })
 
   // Create dynamic schema based on current unit preference
-  const currentSchema = createDynamicProfileSchema('update', isMetric ? 'metric' : 'imperial');
+  const schemaMode = mode === 'edit' ? 'update' : mode;
+  const currentSchema = createDynamicProfileSchema(schemaMode, isMetric ? 'metric' : 'imperial');
   
   // Initialize form with comprehensive validation
   const form = useForm<FormValues>({
     resolver: zodResolver(currentSchema),
-    mode: 'onChange', // Real-time validation
+    mode: enableRealTimeValidation ? 'onChange' : 'onSubmit', // Real-time validation
 
     defaultValues: {
       name: "",
@@ -166,54 +197,53 @@ export function UserProfileForm() {
 
   // Handle form submission
   async function onSubmit(data: FormValues) {
-    setIsSubmitting(true)
-    setFormError(null)
-    setSuccessMessage(null)
-
     try {
-      // Convert height and weight to a single unit for storage
-      let heightInCm, weightInKg
+      await handleFormSubmit(async () => {
+        // Convert height and weight to a single unit for storage
+        let heightInCm, weightInKg
 
-      if (isMetric) {
-        heightInCm = typeof data.height === 'number' ? data.height : undefined
-        weightInKg = typeof data.weight === 'number' ? data.weight : undefined
-      } else {
-        // Convert imperial to metric
-        if (typeof data.height === 'object' && data.height) {
-          const { feet = 0, inches = 0 } = data.height
-          heightInCm = feet * 30.48 + inches * 2.54
+        if (isMetric) {
+          heightInCm = typeof data.height === 'number' ? data.height : undefined
+          weightInKg = typeof data.weight === 'number' ? data.weight : undefined
+        } else {
+          // Convert imperial to metric
+          if (typeof data.height === 'object' && data.height) {
+            const { feet = 0, inches = 0 } = data.height
+            heightInCm = feet * 30.48 + inches * 2.54
+          }
+          weightInKg = typeof data.weight === 'number' ? data.weight * 0.453592 : undefined
         }
-        weightInKg = typeof data.weight === 'number' ? data.weight * 0.453592 : undefined
-      }
 
-      // Check for user authentication
-      if (!isAuthenticated) {
-        // If no authenticated user, show message
-        setFormError("You need to be signed in to save your profile. Your changes will only be saved locally.")
-      }
+        // Check for user authentication
+        if (!isAuthenticated) {
+          throw new Error("You need to be signed in to save your profile.")
+        }
 
-      // Prepare final data object
-      const finalData = {
-        name: data.name,
-        age: data.age,
-        gender: data.gender,
-        height: heightInCm || 0,
-        weight: weightInKg || 0,
-        experienceLevel: data.experienceLevel,
-        goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
-        medicalConditions: data.medicalConditions || "",
-        equipment: data.equipment || [],
-        unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
-      }
+        // Prepare final data object
+        const finalData = {
+          name: data.name,
+          age: data.age,
+          gender: data.gender,
+          height: heightInCm || 0,
+          weight: weightInKg || 0,
+          experienceLevel: data.experienceLevel,
+          goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
+          medicalConditions: data.medicalConditions || "",
+          equipment: data.equipment || [],
+          unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
+        }
 
-      // Update profile via the modern profile hooks
-      await updateProfileAsync(finalData)
-      setSuccessMessage("Your profile has been updated successfully.")
+        // Update profile via the modern profile hooks
+        const updatedProfile = await updateProfileAsync(finalData)
+        
+        // Handle success with the updated profile
+        await handleSuccess(updatedProfile)
+        
+        return updatedProfile
+      })
     } catch (error) {
       console.error("Error saving profile:", error)
-      setFormError("Failed to save your profile. Please try again.")
-    } finally {
-      setIsSubmitting(false)
+      // Error handling is done by handleFormSubmit
     }
   }
 
@@ -250,9 +280,9 @@ export function UserProfileForm() {
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl">Your Fitness Profile</CardTitle>
+        <CardTitle className="text-2xl">{title}</CardTitle>
         <CardDescription>
-          Complete your profile to get personalized workout and nutrition recommendations.
+          {description}
         </CardDescription>
         <div className="mt-2 rounded-md bg-primary/10 p-3 text-sm">
           <p className="flex items-center gap-2">
@@ -271,19 +301,19 @@ export function UserProfileForm() {
           </Alert>
         )}
         
-        {formError && (
+        {formState.error && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{formError}</AlertDescription>
+            <AlertDescription>{formState.error}</AlertDescription>
           </Alert>
         )}
         
-        {successMessage && (
+        {formState.successMessage && (
           <Alert className="mt-4 bg-green-50 border-green-200 text-green-800">
             <Check className="h-4 w-4 text-green-600" />
             <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{successMessage}</AlertDescription>
+            <AlertDescription>{formState.successMessage}</AlertDescription>
           </Alert>
         )}
       </CardHeader>
@@ -691,22 +721,35 @@ export function UserProfileForm() {
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full bg-[#3E9EFF] hover:bg-[#3E9EFF]/90"
-              disabled={isSubmitting || profileLoading || Object.keys(form.formState.errors).length > 0}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving Profile...
-                </>
-              ) : Object.keys(form.formState.errors).length > 0 ? (
-                "Please Complete Required Fields"
-              ) : (
-                "Save Profile"
+            <div className="flex gap-4">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={formState.isSubmitting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               )}
-            </Button>
+              <Button
+                type="submit"
+                className={`bg-[#3E9EFF] hover:bg-[#3E9EFF]/90 ${onCancel ? 'flex-1' : 'w-full'}`}
+                disabled={formState.isSubmitting || profileLoading || Object.keys(form.formState.errors).length > 0}
+              >
+                {formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Profile...
+                  </>
+                ) : Object.keys(form.formState.errors).length > 0 ? (
+                  "Please Complete Required Fields"
+                ) : (
+                  "Save Profile"
+                )}
+              </Button>
+            </div>
             
             {/* Validation Summary */}
             {Object.keys(form.formState.errors).length > 0 && (

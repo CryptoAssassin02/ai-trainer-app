@@ -108,11 +108,14 @@ export default function ProfileCreatePage() {
         </p>
       </div>
       
-      
       <MultiStepProfileForm 
         mode="create"
-        enableAutoSave={false}  // Disable auto-save for profile creation to prevent premature navigation
+        enableAutoSave={false}
         enableOptimistic={true}
+        initialStep={0}
+        showProgress={true}
+        allowSkipOptional={true}
+        showStepNavigation={true}
         onSuccess={async (profile) => {
           // Ensure cache is updated before redirect
           await queryClient.invalidateQueries({ queryKey: ['profile'] });
