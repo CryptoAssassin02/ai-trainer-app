@@ -80,22 +80,7 @@ export async function generateCompletion(args: GenerateCompletionArgs): Promise<
  * @returns OpenAI API instance for making calls to OpenAI
  */
 export function useOpenAI() {
-    const createOpenAIClient = useCallback(() => {
-        // Use environment variables to get API key
-        // This client will be used for browser-side operations
-        // NOTE: For production, you might want to use a server-side API route
-        // to protect your API key
-        const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-        if (!apiKey) {
-            throw new Error("OpenAI API key is not configured");
-        }
-        
-        return new OpenAI({
-            apiKey,
-            dangerouslyAllowBrowser: true, // Allow client-side usage
-        });
-    }, []);
-
-    // Return the OpenAI client instance
-    return createOpenAIClient();
+    // DEPRECATED: This function should not be used on client-side
+    // Use API routes instead for OpenAI calls
+    throw new Error("useOpenAI is deprecated for security reasons. Use API routes instead.");
 }

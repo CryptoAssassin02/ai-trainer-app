@@ -1,6 +1,15 @@
 /**
  * @fileoverview Configuration index file
  * This file consolidates all configuration modules and exports them
+ * 
+ * Available configuration objects:
+ * - env: Environment variables (includes raw vars like ENABLE_DOCS_IN_PRODUCTION, API_DOCS_USERNAME, API_DOCS_PASSWORD)
+ * - config: Server configuration
+ * - logger: Logging utilities
+ * - supabase: Supabase client configuration
+ * - openai: OpenAI client configuration
+ * - perplexity: Perplexity client configuration
+ * - serverConfig: Determined server configuration (uses config.server or defaults)
  */
 
 let env, config, logger, supabase, openai, perplexity;

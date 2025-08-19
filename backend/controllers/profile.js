@@ -79,6 +79,9 @@ const createOrUpdateProfile = async (req, res, next) => {
     const userId = req.user && req.user.id;
     const jwtToken = req.headers.authorization?.split(' ')?.[1]; // Safely get token
     
+    logger.info(`[PROFILE] createOrUpdateProfile called - Method: ${req.method}, UserId: ${userId}, HasToken: ${!!jwtToken}`);
+    logger.info(`[PROFILE] Request body keys: ${Object.keys(req.body).join(', ')}`);
+    
     if (!userId) {
       logger.warn('Profile update request missing user ID');
       return res.status(400).json({
@@ -100,12 +103,14 @@ const createOrUpdateProfile = async (req, res, next) => {
     
     // Check if profile exists
     try {
+      logger.info(`[PROFILE] Checking if profile exists for user: ${userId}`);
       const existingProfile = await profileService.getProfileByUserId(userId, jwtToken);
       
       // Update existing profile
-      logger.debug('Updating existing profile', { userId });
+      logger.info(`[PROFILE] Profile exists, updating for user: ${userId}`);
       const updatedProfile = await profileService.updateProfile(userId, profileData, jwtToken);
       
+      logger.info(`[PROFILE] Profile updated successfully for user: ${userId}`);
       return res.status(200).json({
         status: 'success',
         message: 'Profile updated successfully',
@@ -114,9 +119,10 @@ const createOrUpdateProfile = async (req, res, next) => {
     } catch (error) {
       // If profile not found, create a new one
       if (error instanceof NotFoundError) {
-        logger.debug('Creating new profile', { userId });
+        logger.info(`[PROFILE] Profile not found, creating new profile for user: ${userId}`);
         const newProfile = await profileService.createProfile(profileData, jwtToken);
         
+        logger.info(`[PROFILE] Profile created successfully for user: ${userId}`);
         return res.status(200).json({
           status: 'success',
           message: 'Profile updated successfully',
@@ -124,6 +130,7 @@ const createOrUpdateProfile = async (req, res, next) => {
         });
       }
       
+      logger.error(`[PROFILE] Unexpected error in createOrUpdateProfile: ${error.message}`);
       // Re-throw any other errors
       throw error;
     }

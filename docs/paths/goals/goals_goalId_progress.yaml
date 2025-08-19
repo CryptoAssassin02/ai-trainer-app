@@ -53,13 +53,7 @@ get:
         default: "month"
         example: "month"
     
-    - name: includeMilestones
-      in: query
-      description: Include detailed milestone tracking
-      schema:
-        type: boolean
-        default: true
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeMilestones'
     
     - name: includeTrends
       in: query
@@ -123,19 +117,19 @@ get:
       $ref: '../../components/responses/goals/GoalProgressRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/goals/GoalAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
       $ref: '../../components/responses/goals/GoalNotFound.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

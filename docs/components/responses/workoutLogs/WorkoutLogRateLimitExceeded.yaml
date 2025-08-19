@@ -1,15 +1,4 @@
 description: Rate limit exceeded for workout log operations
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workoutLogs/WorkoutLogRateLimitError.yaml'
-    example:
-      status: "error"
-      message: "Rate limit exceeded for workout log operations"
-      retryAfter: 3600
-      limit: 20
-      window: "1 hour"
-      timestamp: "2025-01-15T18:30:00Z"
 headers:
   Retry-After:
     description: Number of seconds to wait before retrying
@@ -30,4 +19,15 @@ headers:
     description: Time when the rate limit will reset (Unix timestamp)
     schema:
       type: integer
-    example: 1642274400 
+    example: 1642274400
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/workoutLogs/WorkoutLogRateLimitError.yaml'
+    example:
+      status: "error"
+      message: "Rate limit exceeded for workout log operations"
+      retryAfter: 3600
+      limit: 20
+      window: "1 hour"
+      timestamp: "2025-01-15T18:30:00Z" 

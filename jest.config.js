@@ -14,7 +14,7 @@ const customJestConfig = {
   // Use different setup files based on whether we're running integration tests
   setupFilesAfterEnv: isIntegrationTest 
     ? ['<rootDir>/jest.integration.setup.js'] 
-    : ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.ts'],
+    : ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.js'],
   // testEnvironment: 'jest-environment-jsdom', // REMOVED - Handled by projects
   projects: [
     {
@@ -23,9 +23,10 @@ const customJestConfig = {
       testMatch: [
         '**/__tests__/**/*.+(ts|tsx|js)',
         '**/?(*.)+(spec|test).+(ts|tsx|js)',
-        '!**/backend/**' // Exclude backend tests
+        '!**/backend/**', // Exclude backend tests
+        '!**/e2e/**' // Exclude Playwright e2e tests
       ],
-      setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.ts'],
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.ts', '<rootDir>/jest.polyfills.js'],
       moduleNameMapper: {
         // Frontend specific mappers
         '^@/lib/supabase/browser$': '<rootDir>/lib/supabase/browser.ts',
@@ -38,9 +39,20 @@ const customJestConfig = {
         '^@/lib/(.*)$': '<rootDir>/lib/$1',
         '^@/utils/(.*)$': '<rootDir>/utils/$1',
       },
+      // Configure TypeScript and JSX transforms properly
       transform: {
-        '^.+\\.js$': 'babel-jest',
-        '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: './tsconfig.json' }],
+        // Process TypeScript and TSX files with ts-jest
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          tsconfig: {
+            jsx: 'react-jsx',
+            esModuleInterop: true,
+            allowSyntheticDefaultImports: true,
+            module: 'commonjs',
+            target: 'es2018'
+          }
+        }],
+        // Process JavaScript and JSX files with Next.js babel
+        '^.+\\.(js|jsx)$': 'babel-jest',
       },
       transformIgnorePatterns: [
         '/node_modules/(?!(uuid)/).+\\.(js|jsx|mjs|cjs|ts|tsx)$',
@@ -58,8 +70,11 @@ const customJestConfig = {
       moduleNameMapper: {
         // No mappings needed here, setup-tests handles mocks
       },
-      transform: { // Ensure backend JS/TS files are transformed if needed
-          '^.+\\.(js|jsx|ts|tsx)$': 'ts-jest'
+      transform: { // Backend transform configuration
+        '^.+\\.(js|jsx)$': 'babel-jest',
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          tsconfig: './tsconfig.json'
+        }]
       },
       transformIgnorePatterns: [
         '/node_modules/' // Standard node ignore pattern

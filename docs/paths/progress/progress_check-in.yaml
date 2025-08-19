@@ -92,16 +92,16 @@ post:
       $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
     
     '401':
-      $ref: '../../components/responses/progress/ProgressAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '409':
-      $ref: '../../components/responses/progress/CheckInAlreadyExists.yaml'
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
     
     '422':
-      $ref: '../../components/responses/progress/CheckInDataConflict.yaml'
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
     
     '429':
       $ref: '../../components/responses/progress/ProgressRateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/progress/ProgressDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

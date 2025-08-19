@@ -52,32 +52,11 @@ get:
         default: "overview"
         example: "overview"
     
-    - name: timeRange
-      in: query
-      description: Time range for analytics data
-      schema:
-        type: string
-        enum: [week, 2weeks, month, 3months, 6months, year]
-        default: "month"
-        example: "week"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/timeRange'
     
-    - name: compressionLevel
-      in: query
-      description: Data compression level for mobile optimization
-      schema:
-        type: string
-        enum: [none, low, medium, high, adaptive, maximum]
-        default: "adaptive"
-        example: "high"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/compressionLevel'
     
-    - name: connectionType
-      in: query
-      description: Client connection type for optimization
-      schema:
-        type: string
-        enum: [2G, 3G, 4G, 5G, WiFi, unknown]
-        default: "unknown"
-        example: "4G"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/connectionType'
     
     - name: deviceCapabilities
       in: query
@@ -183,28 +162,28 @@ get:
       $ref: '../../components/responses/mobile/MobileOptimizedAnalyticsRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '404':
-      $ref: '../../components/responses/mobile/MobileAnalyticsNotFound.yaml'
+      $ref: '../../components/responses/common/NotFound.yaml'
     
     '413':
       $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
     
     '422':
-      $ref: '../../components/responses/mobile/MobileAnalyticsProcessingFailed.yaml'
+      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
     
     '429':
-      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '503':
-      $ref: '../../components/responses/mobile/MobileAnalyticsServiceUnavailable.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '506':
-      $ref: '../../components/responses/mobile/MobileVersionNotSupported.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

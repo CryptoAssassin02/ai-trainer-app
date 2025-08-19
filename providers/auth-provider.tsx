@@ -1,25 +1,43 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { authService } from '@/lib/api/services/auth-service';
+import { profileService } from '@/lib/api/services/profile-service';
+import type { UserProfile } from '@/lib/api/types';
 
-// Define types for auth context
+// Define types for auth context (simplified for backend auth)
 export type User = {
   id: string;
   email: string;
   name?: string;
   avatarUrl?: string;
-  // Add other user properties as needed
+  created_at?: string;
+  updated_at?: string;
+};
+
+// Simplified session type for backend auth
+export type Session = {
+  access_token: string;
+  refresh_token?: string;
+  user: {
+    id: string;
+    email: string;
+  };
 };
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
+  session: Session | null;
+  loading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  profile?: UserProfile | null;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, userData?: Partial<User>) => Promise<void>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
-  // Add other methods as needed
+  signUp: (name: string, email: string, password: string) => Promise<{ requiresEmailVerification: boolean }>;
+  resetPassword: (email: string) => Promise<{ message: string }>;
+  updatePassword: (newPassword: string) => Promise<{ message: string }>;
+  refreshSession: () => Promise<void>;
+  checkAuthStatus: () => Promise<void>;
 }
 
 // Create the context with a default value
@@ -28,118 +46,176 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Provider component
 export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Mock implementation of auth methods for testing
-  const signIn = async (email: string, password: string) => {
-    // Mock authentication logic
-    setIsLoading(true);
+  const isAuthenticated = !!user && !!session;
+
+  // Helper function to map backend auth user to our User type
+  const mapBackendUser = (backendUser: any, email: string, name?: string): User => ({
+    id: backendUser.id,
+    email: email,
+    name: name || backendUser.user_metadata?.name,
+    avatarUrl: backendUser.user_metadata?.avatar_url,
+    created_at: backendUser.created_at,
+    updated_at: backendUser.updated_at,
+  });
+
+  // Sign in with email and password
+  const signIn = async (email: string, password: string, rememberMe = false) => {
+    console.log('🔑 [AUTH PROVIDER] Sign in started for:', email);
+    setLoading(true);
     try {
-      // In a real implementation, this would call an API
-      setUser({
-        id: 'test-user-id',
-        email,
-        name: 'Test User',
-      });
-      setIsAuthenticated(true);
+      console.log('📞 [AUTH PROVIDER] Calling authService.signIn...');
+      const result = await authService.signIn({ email, password, rememberMe });
+      console.log('✅ [AUTH PROVIDER] AuthService.signIn completed successfully');
+      
+      if (result.user && result.session) {
+        console.log('👤 [AUTH PROVIDER] Setting user and session state');
+        const mappedUser = mapBackendUser(result.user, email);
+        setUser(mappedUser);
+        setSession(result.session as Session);
+        setProfile(result.profile || null);
+        console.log('✅ [AUTH PROVIDER] State updated successfully');
+      }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ [AUTH PROVIDER] Sign in failed:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      console.log('🏁 [AUTH PROVIDER] Setting loading to false');
+      setLoading(false);
     }
   };
 
+  // Sign out
   const signOut = async () => {
-    // Mock sign out logic
-    setIsLoading(true);
+    setLoading(true);
     try {
-      // In a real implementation, this would call an API
+      await authService.signOut();
       setUser(null);
-      setIsAuthenticated(false);
+      setSession(null);
+      setProfile(null);
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('Sign out failed:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, userData?: Partial<User>) => {
-    // Mock sign up logic
-    setIsLoading(true);
+  // Sign up new user
+  const signUp = async (name: string, email: string, password: string) => {
+    setLoading(true);
     try {
-      // In a real implementation, this would call an API
-      setUser({
-        id: 'new-test-user-id',
-        email,
-        name: userData?.name || 'New User',
-        ...userData,
-      });
-      setIsAuthenticated(true);
+      const result = await authService.signUp({ name, email, password });
+      
+      // If session exists, user is automatically logged in
+      if (result.user && result.session) {
+        const mappedUser = mapBackendUser(result.user, email, name);
+        setUser(mappedUser);
+        setSession(result.session as Session);
+        // Explicitly set profile to null for new users - this triggers needsProfileCompletion
+        setProfile(null);
+      }
+      
+      return { requiresEmailVerification: result.requiresEmailVerification };
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('Sign up failed:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const updateProfile = async (userData: Partial<User>) => {
-    // Mock profile update logic
-    setIsLoading(true);
+  // Reset password
+  const resetPassword = async (email: string) => {
     try {
-      // In a real implementation, this would call an API
-      if (user) {
-        setUser({
-          ...user,
-          ...userData,
-        });
+      return await authService.resetPassword(email);
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  };
+
+  // Update password
+  const updatePassword = async (newPassword: string) => {
+    try {
+      return await authService.updatePassword(newPassword);
+    } catch (error) {
+      console.error('Password update failed:', error);
+      throw error;
+    }
+  };
+
+  // Refresh session
+  const refreshSession = async () => {
+    try {
+      const result = await authService.refreshSession();
+      
+      if (result.user && result.session) {
+        const mappedUser = mapBackendUser(result.user, result.user.email || '');
+        setUser(mappedUser);
+        setSession(result.session as Session);
       }
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('Session refresh failed:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  // Effect to simulate checking auth status on mount
+  // Check authentication status - FIXED: useCallback to prevent infinite loops
+  const checkAuthStatus = useCallback(async () => {
+    console.log('🔍 [AUTH PROVIDER] checkAuthStatus called');
+    setLoading(true);
+    try {
+      console.log('📞 [AUTH PROVIDER] Calling authService.checkAuthStatus...');
+      const authStatus = await authService.checkAuthStatus();
+      console.log('✅ [AUTH PROVIDER] checkAuthStatus completed:', authStatus);
+      
+      if (authStatus.isAuthenticated && authStatus.user && authStatus.session) {
+        console.log('👤 [AUTH PROVIDER] User is authenticated, setting state');
+        const mappedUser = mapBackendUser(authStatus.user, authStatus.user.email || '');
+        setUser(mappedUser);
+        setSession(authStatus.session as Session);
+      } else {
+        console.log('👤 [AUTH PROVIDER] User not authenticated, clearing state');
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error('❌ [AUTH PROVIDER] Auth status check failed:', error);
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+    } finally {
+      console.log('🏁 [AUTH PROVIDER] checkAuthStatus setting loading to false');
+      setLoading(false);
+    }
+  }, []); // Empty dependency array since it doesn't depend on any props or state
+
+  // Initial auth check on mount
   useEffect(() => {
-    // Mock check auth status
-    const checkAuth = async () => {
-      setIsLoading(true);
-      try {
-        // In a real implementation, this would check for an existing session
-        const hasSession = false; // For testing purposes
-        if (hasSession) {
-          setUser({
-            id: 'test-user-id',
-            email: 'test@example.com',
-            name: 'Test User',
-          });
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
+    // Check initial auth status
+    console.log('🔍 [AUTH PROVIDER] Starting initial checkAuthStatus...');
+    checkAuthStatus();
   }, []);
 
   // Value object with state and methods
   const value = {
     user,
-    isLoading,
+    session,
+    loading,
     isAuthenticated,
+    profile,
     signIn,
     signOut,
     signUp,
-    updateProfile,
+    resetPassword,
+    updatePassword,
+    refreshSession,
+    checkAuthStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

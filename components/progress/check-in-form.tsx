@@ -33,7 +33,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircledIcon, CrossCircledIcon, ReloadIcon } from "@radix-ui/react-icons"
-import { useWorkout } from "@/contexts/workout-context"
+// TEMPORARILY DISABLED: Workout context until Phase 3
+// import { useWorkout } from "@/contexts/workout-context"
 import { useProfile } from "@/lib/profile-context"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 
@@ -70,7 +71,10 @@ export function CheckInForm() {
   // --- TEMPORARILY REPLACE ENTIRE COMPONENT BODY ---
   // return <div>Simple CheckInForm Mock</div>;
   // --- ORIGINAL CODE BELOW COMMENTED OUT ---
-  const { logCheckIn } = useWorkout()
+  // TEMPORARILY DISABLED: Workout context until Phase 3
+  // const { logCheckIn } = useWorkout()
+  const logCheckIn = async (data: any) => { console.log('Check-in logging disabled until Phase 3', data) } // Temporary placeholder
+  
   // Use the correct property name: isLoading
   const { profile, isLoading } = useProfile()
   const [formState, setFormState] = useState<FormState>({

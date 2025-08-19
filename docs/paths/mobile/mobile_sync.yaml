@@ -123,16 +123,16 @@ post:
       $ref: '../../components/responses/mobile/MobileDataSynced.yaml'
     
     '207':
-      $ref: '../../components/responses/mobile/MobileSyncPartialSuccess.yaml'
+      $ref: '../../components/responses/mobile/MobileDataSynced.yaml'
     
     '400':
-      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '409':
-      $ref: '../../components/responses/mobile/MobileSyncConflictDetected.yaml'
+      $ref: '../../components/responses/mobile/MobileSyncFailed.yaml'
     
     '413':
       $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
@@ -141,10 +141,10 @@ post:
       $ref: '../../components/responses/mobile/MobileSyncFailed.yaml'
     
     '429':
-      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '503':
-      $ref: '../../components/responses/mobile/MobileSyncServiceUnavailable.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

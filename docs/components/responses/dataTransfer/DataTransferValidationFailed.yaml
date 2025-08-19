@@ -4,7 +4,6 @@ headers:
     $ref: '../../headers/X-Request-ID.yaml'
 content:
   application/json:
-    description: Validation error details
     schema:
       $ref: '../../schemas/dataTransfer/DataTransferValidationError.yaml'
     examples:

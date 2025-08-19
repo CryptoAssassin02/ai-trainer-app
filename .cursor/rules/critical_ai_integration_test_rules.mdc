@@ -1,7 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # AI Integration Testing Rules - Mandatory Guidelines
 

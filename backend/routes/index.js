@@ -19,10 +19,15 @@ router.get('/health', (req, res) => {
     seconds: Math.floor(uptime % 60)
   };
 
-  res.status(200).json({
+  const healthResponse = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: env.env,
+    api: {
+      version: 'v1',
+      documentation: env.isProduction ? null : `${req.protocol}://${req.get('host')}/v1/api-docs`,
+      openapi: '3.0.0'
+    },
     server: {
       uptime: uptimeFormatted,
       nodeVersion: process.version,
@@ -31,7 +36,9 @@ router.get('/health', (req, res) => {
       platform: process.platform,
       arch: process.arch
     }
-  });
+  };
+
+  res.status(200).json(healthResponse);
 });
 
 // Import route modules
@@ -48,6 +55,7 @@ const dataTransferRoutes = require('./data-transfer');
 const analyticsRoutes = require('./analytics');
 const goalsRoutes = require('./goals');
 const mobileAnalyticsRoutes = require('./mobile-analytics');
+const docsRoutes = require('./docs');
 // TODO: Import additional route modules when implemented
 
 // Register routes
@@ -57,6 +65,12 @@ function registerRoutes(app) {
   
   // Mount health check at root level
   app.use(router);
+
+  // Documentation routes (only in development/staging)
+  if (!env.isProduction || env.ENABLE_DOCS_IN_PRODUCTION === 'true') {
+    apiRouter.use('/api-docs', docsRoutes);
+    console.log('API documentation enabled at /v1/api-docs');
+  }
 
   // Register route modules
   apiRouter.use('/auth', authRoutes);

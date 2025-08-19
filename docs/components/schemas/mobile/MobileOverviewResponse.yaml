@@ -10,7 +10,7 @@ properties:
     description: Response status
     example: success
   data:
-    $ref: '#/components/schemas/MobileOverview'
+              $ref: './MobileOverview.yaml'
   metadata:
     type: object
     required:

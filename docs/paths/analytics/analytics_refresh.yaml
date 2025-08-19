@@ -56,19 +56,19 @@ post:
               forceRecalculation: true
   responses:
     '202':
-      $ref: '../../components/responses/analytics/AnalyticsRefreshQueued.yaml'
+      $ref: '../../components/responses/analytics/AnalyticsRefreshed.yaml'
     
     '400':
-      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '409':
-      $ref: '../../components/responses/analytics/AnalyticsRefreshInProgress.yaml'
+      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
     
     '429':
-      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
       $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

@@ -8,9 +8,9 @@ get:
   operationId: getCurrentUser
   responses:
     '200':
-      $ref: '../../components/responses/profiles/UserProfileRetrieved.yaml'
+      $ref: '../../components/responses/profiles/ProfileRetrieved.yaml'
     '401':
-      $ref: '../../components/responses/auth/Unauthorized.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '404':
       description: User profile not found
       content:

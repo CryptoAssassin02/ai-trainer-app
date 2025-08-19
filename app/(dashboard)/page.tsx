@@ -1,7 +1,8 @@
 import { BodyMetricsChart } from "@/components/progress/body-metrics-chart"
 import { DashboardSummaryCards } from "@/components/progress/dashboard-summary-cards"
 import { StrengthProgressionChart } from "@/components/progress/strength-progression-chart"
-import { WorkoutConsistencyChart } from "@/components/workout/workout-consistency-chart"
+// TEMPORARILY DISABLED: Workout features until Phase 3 implementation
+// import { WorkoutConsistencyChart } from "@/components/workout/workout-consistency-chart"
 
 export default function Dashboard() {
   return (
@@ -18,7 +19,11 @@ export default function Dashboard() {
       <DashboardSummaryCards />
 
       <div className="mt-8 grid gap-8 md:grid-cols-2">
-        <WorkoutConsistencyChart />
+        {/* TEMPORARILY DISABLED: WorkoutConsistencyChart until Phase 3 */}
+        <div className="rounded-lg border bg-card p-6">
+          <h3 className="text-lg font-semibold mb-4">Workout Consistency</h3>
+          <p className="text-muted-foreground">Workout tracking will be available soon</p>
+        </div>
         <StrengthProgressionChart />
       </div>
 

@@ -11,7 +11,7 @@ headers:
 content:
   application/json:
     schema:
-      $ref: '../../schemas/progress/CheckInListResponse.yaml'
+      $ref: '../../schemas/progress/CheckInsListResponse.yaml'
     examples:
       paginated_check_ins:
         summary: Paginated list of check-ins with filtering

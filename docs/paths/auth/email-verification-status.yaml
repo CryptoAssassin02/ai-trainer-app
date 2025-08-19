@@ -10,7 +10,7 @@ get:
     '200':
       $ref: '../../components/responses/auth/EmailVerificationStatus.yaml'
     '401':
-      $ref: '../../components/responses/auth/Unauthorized.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '404':
       description: User not found
       content:

@@ -20,6 +20,14 @@
         "-y",
         "@supabase/mcp-server-supabase@latest"
       ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y", 
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/dylanloberg/ai-trainer-app"
+      ]
     }
   }
 } 

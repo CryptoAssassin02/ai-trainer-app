@@ -109,7 +109,8 @@ const signup = async (req, res, next) => {
         email,
         password,
         user_metadata: { 
-          name: name
+          name: name,
+          full_name: name  // Add full_name as fallback for trigger compatibility
         },
         email_confirm: true // Mark email as confirmed
       });
@@ -136,25 +137,8 @@ const signup = async (req, res, next) => {
 
       const userId = data.user.id;
 
-      // Create user profile in public.user_profiles table
-      const profileName = name || data.user.user_metadata?.name;
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          name: profileName
-        });
-
-      if (profileError) {
-        // If profile creation fails, we should fail the entire signup
-        // unless it's a duplicate key error (user already exists)
-        if (profileError.code === '23505') {
-          logger.warn('User profile already exists, continuing with signup', { userId });
-        } else {
-          logger.error('Failed to create user profile after signup', { userId, error: profileError });
-          throw new InternalError('User registration failed: Could not create user profile.');
-        }
-      }
+      // Profile creation is now handled automatically by database trigger
+      // See migration: 20250815220922_create_profile_trigger.sql
 
       // For test environment, generate a session manually
       const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
@@ -205,25 +189,8 @@ const signup = async (req, res, next) => {
 
       const userId = data.user.id;
 
-      // Create user profile in public.user_profiles table
-      const profileName = name || data.user.user_metadata?.name;
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          name: profileName
-        });
-
-      if (profileError) {
-        // If profile creation fails, we should fail the entire signup
-        // unless it's a duplicate key error (user already exists)
-        if (profileError.code === '23505') {
-          logger.warn('User profile already exists, continuing with signup', { userId });
-        } else {
-          logger.error('Failed to create user profile after signup', { userId, error: profileError });
-          throw new InternalError('User registration failed: Could not create user profile.');
-        }
-      }
+      // Profile creation is now handled automatically by database trigger
+      // No manual profile creation needed
 
       logger.info('User registered successfully via Supabase', { userId });
 

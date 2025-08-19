@@ -16,7 +16,7 @@ properties:
     description: ID of the user whose data was exported
     example: "123e4567-e89b-12d3-a456-426614174000"
   data:
-    $ref: '#/components/schemas/ExportedData'
+    $ref: './ExportedData.yaml'
 examples:
   profilesOnly:
     summary: Export containing only user profile data

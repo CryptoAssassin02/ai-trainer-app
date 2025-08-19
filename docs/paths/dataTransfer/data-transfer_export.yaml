@@ -59,9 +59,9 @@ post:
     '200':
       $ref: '../../components/responses/dataTransfer/DataExportCompleted.yaml'
     '400':
-      $ref: '../../components/responses/dataTransfer/DataTransferValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     '401':
-      $ref: '../../components/responses/auth/Unauthorized.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '429':
       $ref: '../../components/responses/dataTransfer/DataTransferRateLimitExceeded.yaml'
     '500':

@@ -4,7 +4,6 @@ headers:
     $ref: '../../headers/X-Request-ID.yaml'
 content:
   application/json:
-    description: File size error details
     schema:
       $ref: '../../schemas/dataTransfer/DataTransferFileError.yaml'
     examples:

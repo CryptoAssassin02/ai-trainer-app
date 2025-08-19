@@ -4,17 +4,17 @@ properties:
   profiles:
     type: array
     items:
-      $ref: '#/components/schemas/ExportedProfileData'
+      $ref: './ExportedProfileData.yaml'
     description: Array of exported user profile data
   workouts:
     type: array
     items:
-      $ref: '#/components/schemas/ExportedWorkoutData'
+      $ref: './ExportedWorkoutData.yaml'
     description: Array of exported workout plan data
   workout_logs:
     type: array
     items:
-      $ref: '#/components/schemas/ExportedWorkoutLogData'
+      $ref: './ExportedWorkoutLogData.yaml'
     description: Array of exported workout log data
 examples:
   profilesOnly:

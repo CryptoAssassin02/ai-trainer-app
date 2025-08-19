@@ -68,23 +68,9 @@ get:
         enum: [on_track, behind, ahead, all]
         example: "on_track"
     
-    - name: sortBy
-      in: query
-      description: Field to sort results by
-      schema:
-        type: string
-        enum: [created_at, target_date, progress_percentage, priority, type]
-        default: "created_at"
-        example: "priority"
+    - $ref: '../../components/parameters/SortBy.yaml'
     
-    - name: sortOrder
-      in: query
-      description: Sort order direction
-      schema:
-        type: string
-        enum: [asc, desc]
-        default: "desc"
-        example: "desc"
+    - $ref: '../../components/parameters/SortOrder.yaml'
     
     - name: includeProgress
       in: query
@@ -94,36 +80,24 @@ get:
         default: true
         example: true
     
-    - name: includeMilestones
-      in: query
-      description: Include milestone tracking data
-      schema:
-        type: boolean
-        default: false
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeMilestones'
     
-    - name: includeAnalytics
-      in: query
-      description: Include analytics and insights
-      schema:
-        type: boolean
-        default: false
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeAnalytics'
   responses:
     '200':
       $ref: '../../components/responses/goals/GoalsRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 post:
   tags:
@@ -219,19 +193,19 @@ post:
       $ref: '../../components/responses/goals/GoalCreated.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '409':
       $ref: '../../components/responses/goals/GoalConflictDetected.yaml'
     
     '422':
-      $ref: '../../components/responses/goals/GoalDataConflict.yaml'
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

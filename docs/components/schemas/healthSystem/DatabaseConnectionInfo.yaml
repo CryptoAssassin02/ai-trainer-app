@@ -1,0 +1,31 @@
+type: object
+description: Database connection status and performance information
+properties:
+  connected:
+    type: boolean
+    description: Whether the database connection was successful
+    example: true
+  
+  responseTime:
+    type: string
+    description: Database query response time with units
+    pattern: '^\d+ms$'
+    example: "45ms"
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: ISO timestamp when the connection test was performed
+    example: "2024-01-15T10:30:45.123Z"
+
+required:
+  - connected
+  - responseTime
+  - timestamp
+
+additionalProperties: false
+
+example:
+  connected: true
+  responseTime: "45ms"
+  timestamp: "2024-01-15T10:30:45.123Z" 

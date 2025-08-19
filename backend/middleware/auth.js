@@ -4,7 +4,6 @@
  */
 
 const { env, logger } = require('../config');
-const jwtUtils = require('../utils/jwt');
 const supabaseService = require('../services/supabase');
 const { NotFoundError, AuthenticationError } = require('../utils/errors');
 
@@ -15,9 +14,12 @@ const { NotFoundError, AuthenticationError } = require('../utils/errors');
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   
+  logger.info(`[AUTH] authenticate called for ${req.method} ${req.originalUrl}`);
+  logger.info(`[AUTH] Authorization header present: ${!!authHeader}`);
+  
   // Check if authorization header exists
   if (!authHeader) {
-    logger.warn('Authentication failed: No authorization header', { url: req.originalUrl });
+    logger.warn('[AUTH] Authentication failed: No authorization header', { url: req.originalUrl });
     return res.status(401).json({
       status: 'error',
       message: 'Authentication required',
@@ -39,16 +41,24 @@ const authenticate = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   
   try {
-    const supabase = supabaseService.getSupabaseClient(); // Get Supabase client instance
+    // Use the proper backend Supabase service for JWT validation
+    // This follows v2 server-side authentication patterns from official documentation
+    const supabase = supabaseService.getSupabaseClient();
     
-    // Verify the token and fetch user data using Supabase
+    logger.info(`[AUTH] Verifying token with backend Supabase client...`);
+    logger.info(`[AUTH] Token preview: ${token.substring(0, 50)}...`);
+    logger.info(`[AUTH] Token full length: ${token.length}`);
+    
+    // V2 Pattern: Pass JWT token directly to getUser() for server-side validation
     const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    logger.info(`[AUTH] Supabase auth response - User: ${!!supabaseUser}, Error: ${!!authError}`);
     
     if (authError || !supabaseUser) {
-      logger.warn('Supabase authentication failed or user not found', { 
+      logger.error('[AUTH] Supabase authentication failed', { 
         error: authError ? authError.message : 'No user returned', 
         status: authError ? authError.status : null,
-        url: req.originalUrl 
+        url: req.originalUrl,
+        tokenPrefix: token.substring(0, 20) + '...'
       });
       // Provide a more specific error message if token is expired
       if (authError && (authError.message.includes('token is expired') || authError.message.includes('JWT expired'))) {

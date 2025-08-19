@@ -2,49 +2,48 @@
 
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
+import { useRedirectIfAuthenticated } from '@/hooks/use-auth-redirect'
 
 export default function SignUp() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const supabase = createClient()
+  const { signUp, loading } = useAuth()
+
+  // Redirect if already authenticated
+  useRedirectIfAuthenticated('/dashboard')
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setLoading(true)
     setError(null)
     setMessage(null)
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
-      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long')
       return
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        setError(error.message)
-        return
+      const result = await signUp(name, email, password)
+      
+      if (result.requiresEmailVerification) {
+        setMessage('Check your email for the confirmation link before signing in')
+      } else {
+        // User is automatically logged in, AuthProvider will handle redirect
       }
-
-      setMessage('Check your email for the confirmation link')
     } catch (error) {
-      console.error('An unexpected error occurred:', error)
-      setError('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
+      console.error('Sign up failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      setError(errorMessage)
     }
   }
 
@@ -96,6 +95,27 @@ export default function SignUp() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Full Name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
             <div>
               <label
                 htmlFor="email"

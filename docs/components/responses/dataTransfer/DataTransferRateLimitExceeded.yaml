@@ -15,7 +15,6 @@ headers:
       example: 3600
 content:
   application/json:
-    description: Rate limit error details
     schema:
       $ref: '../../schemas/dataTransfer/DataTransferRateLimitError.yaml'
     examples:

@@ -130,7 +130,7 @@ post:
                     - "Validation error for profiles: User ID must be a valid UUID"
                     - "Missing required field: name"
     '401':
-      $ref: '../../components/responses/auth/Unauthorized.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '429':
       $ref: '../../components/responses/dataTransfer/DataTransferRateLimitExceeded.yaml'
     '500':

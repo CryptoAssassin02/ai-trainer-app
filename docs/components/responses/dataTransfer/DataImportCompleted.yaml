@@ -4,7 +4,6 @@ headers:
     $ref: '../../headers/X-Request-ID.yaml'
 content:
   application/json:
-    description: Import operation result with statistics
     schema:
       $ref: '../../schemas/dataTransfer/DataImportResponse.yaml'
     examples:

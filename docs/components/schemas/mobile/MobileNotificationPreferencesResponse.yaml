@@ -10,7 +10,7 @@ properties:
     description: Response status
     example: success
   data:
-    $ref: '#/components/schemas/MobileNotificationPreferences' 
+              $ref: './MobileNotificationPreferences.yaml' 
   metadata:
     type: object
     required:

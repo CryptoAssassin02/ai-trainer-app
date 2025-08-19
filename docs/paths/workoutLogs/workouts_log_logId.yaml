@@ -21,11 +21,11 @@ get:
     '200':
       $ref: '../../components/responses/workoutLogs/WorkoutLogRetrieved.yaml'
     '401':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '404':
       $ref: '../../components/responses/workoutLogs/WorkoutLogNotFound.yaml'
     '500':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 patch:
   summary: Update a workout log
@@ -71,13 +71,13 @@ patch:
     '400':
       $ref: '../../components/responses/workoutLogs/WorkoutLogValidationFailed.yaml'
     '401':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '404':
       $ref: '../../components/responses/workoutLogs/WorkoutLogNotFound.yaml'
     '429':
       $ref: '../../components/responses/workoutLogs/WorkoutLogRateLimitExceeded.yaml'
     '500':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 delete:
   summary: Delete a workout log
@@ -92,8 +92,8 @@ delete:
     '200':
       $ref: '../../components/responses/workoutLogs/WorkoutLogDeleted.yaml'
     '401':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '404':
       $ref: '../../components/responses/workoutLogs/WorkoutLogNotFound.yaml'
     '500':
-      $ref: '../../components/responses/workoutLogs/WorkoutLogDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

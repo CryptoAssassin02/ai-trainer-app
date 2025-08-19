@@ -1,7 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # Workout Logs Integration Testing Rules - Critical Lessons Learned
 

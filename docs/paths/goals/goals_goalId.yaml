@@ -46,21 +46,9 @@ get:
         default: true
         example: true
     
-    - name: includeMilestones
-      in: query
-      description: Include milestone overview
-      schema:
-        type: boolean
-        default: false
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeMilestones'
     
-    - name: includeAnalytics
-      in: query
-      description: Include analytics and insights
-      schema:
-        type: boolean
-        default: false
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeAnalytics'
     
     - name: includeHistory
       in: query
@@ -71,25 +59,25 @@ get:
         example: true
   responses:
     '200':
-      $ref: '../../components/responses/goals/GoalRetrieved.yaml'
+      $ref: '../../components/responses/goals/GoalCreated.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/goals/GoalAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
       $ref: '../../components/responses/goals/GoalNotFound.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 put:
   tags:
@@ -204,13 +192,13 @@ put:
       $ref: '../../components/responses/goals/GoalUpdated.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/goals/GoalAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
       $ref: '../../components/responses/goals/GoalNotFound.yaml'
@@ -219,10 +207,10 @@ put:
       $ref: '../../components/responses/goals/GoalConflictDetected.yaml'
     
     '422':
-      $ref: '../../components/responses/goals/GoalUpdateConflict.yaml'
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

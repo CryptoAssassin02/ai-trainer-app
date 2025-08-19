@@ -1,0 +1,74 @@
+get:
+  tags:
+    - Health Checks
+  summary: Comprehensive system health check
+  description: |
+    Performs a comprehensive health check of the system including server metrics, 
+    resource utilization, and operational status. This endpoint provides detailed 
+    information about system performance and is primarily used by monitoring systems 
+    and infrastructure teams.
+    
+    **Key Features:**
+    - Server uptime with human-readable format
+    - Memory usage statistics (RSS, heap, external memory)
+    - CPU load averages (1, 5, and 15 minutes)
+    - System platform and architecture information
+    - Node.js version information
+    - Current deployment environment
+    
+    **Monitoring Integration:**
+    This endpoint is designed for integration with monitoring systems like:
+    - Prometheus/Grafana
+    - DataDog
+    - New Relic
+    - Custom monitoring solutions
+    
+    **No Authentication Required:** This endpoint is publicly accessible for 
+    monitoring purposes and does not require authentication.
+  
+  operationId: getSystemHealth
+  
+  # No security requirement - public endpoint
+  security: []
+  
+  responses:
+    '200':
+      $ref: '../../components/responses/healthSystem/SystemHealthOK.yaml'
+    
+    '500':
+      $ref: '../../components/responses/healthSystem/HealthCheckFailed.yaml'
+  
+  # Rate limiting considerations
+  x-rate-limit: "No rate limiting applied - monitoring endpoint"
+  
+  # Additional metadata for documentation
+  x-code-samples:
+    - lang: 'curl'
+      source: |
+        curl -X GET "https://api.trainer.app/health" \
+          -H "Accept: application/json"
+    
+    - lang: 'JavaScript'
+      source: |
+        fetch('https://api.trainer.app/health')
+          .then(response => response.json())
+          .then(data => console.log('System Health:', data))
+          .catch(error => console.error('Health check failed:', error));
+    
+    - lang: 'Python'
+      source: |
+        import requests
+        
+        response = requests.get('https://api.trainer.app/health')
+        if response.status_code == 200:
+            health_data = response.json()
+            print(f"System Status: {health_data['status']}")
+            print(f"Uptime: {health_data['server']['uptime']}")
+        else:
+            print(f"Health check failed: {response.status_code}")
+  
+  # Performance expectations
+  x-performance:
+    typical-response-time: "< 50ms"
+    max-response-time: "< 200ms"
+    availability-target: "99.9%" 

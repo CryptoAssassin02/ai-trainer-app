@@ -41,10 +41,10 @@ post:
       $ref: '../../components/responses/nutritionMacros/NutritionValidationFailed.yaml'
     
     '401':
-      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '429':
       $ref: '../../components/responses/nutritionMacros/NutritionRateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

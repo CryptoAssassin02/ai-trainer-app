@@ -20,14 +20,7 @@ get:
   security:
     - SupabaseJWT: []
   parameters:
-    - name: timeframe
-      in: query
-      description: Time period for adherence analysis
-      schema:
-        type: string
-        enum: ["4 weeks", "12 weeks", "6 months", "1 year"]
-        default: "12 weeks"
-        example: "12 weeks"
+    - $ref: '../../components/parameters/TimeframeFilter.yaml'
     
     - name: category
       in: query
@@ -66,16 +59,16 @@ get:
       $ref: '../../components/responses/analytics/AdherenceMetricsRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '404':
       $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
     
     '429':
-      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
       $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml' 

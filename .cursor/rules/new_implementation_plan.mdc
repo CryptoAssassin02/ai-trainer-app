@@ -1,9 +1,6 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Implementation plan
 
 ## Phase 1: Environment Setup [Cursor]

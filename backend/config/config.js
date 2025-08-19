@@ -22,7 +22,7 @@ const config = {
     isDevelopment: env.isDevelopment,
     isProduction: env.isProduction,
     isTest: env.isTest,
-    port: process.env.PORT || 3001,
+    port: process.env.PORT || 8000,
     maxRequestBodySize: '2mb',
     compressionLevel: 6
   },

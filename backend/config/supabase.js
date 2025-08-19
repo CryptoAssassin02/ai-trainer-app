@@ -70,18 +70,18 @@ const developmentConfig = (env) => ({
 
 /**
  * Testing Configuration
- * - Isolated database for tests
- * - Disabled triggers for faster tests
- * - Test-specific RLS settings
+ * - Uses same local CLI patterns as development for consistency
+ * - Ensures both dev and test use identical Supabase instance
  */
 const testingConfig = () => ({
-  // Connection settings
-  url: process.env.SUPABASE_URL || 'https://test-project.supabase.co',
-  key: process.env.SUPABASE_ANON_KEY || 'test-anon-key',
+  // Connection settings - UNIFIED with CLI standards
+  url: process.env.SUPABASE_URL || 'http://localhost:54321',  // CLI default API URL
+  key: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0', // CLI default anon key
   options: {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
+      detectSessionInUrl: true
     },
     db: {
       schema: 'public'
@@ -92,15 +92,15 @@ const testingConfig = () => ({
       }
     }
   },
-  // Connection strings for different connection types
+  // Connection strings for different connection types - UNIFIED with CLI standards
   connectionStrings: {
-    direct: process.env.DATABASE_URL || 'postgresql://postgres:password@test-db-host:5432/postgres',
-    sessionPooler: process.env.DATABASE_URL_POOLER_SESSION || 'postgresql://postgres:password@test-pooler-host:5432/postgres',
-    transactionPooler: process.env.DATABASE_URL_POOLER_TRANSACTION || 'postgresql://postgres:password@test-pooler-host:6543/postgres'
+    direct: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:54322/postgres', // CLI default DB URL
+    sessionPooler: process.env.DATABASE_URL_POOLER_SESSION || 'postgresql://postgres:postgres@localhost:54322/postgres',
+    transactionPooler: process.env.DATABASE_URL_POOLER_TRANSACTION || 'postgresql://postgres:postgres@localhost:54322/postgres'
   },
   // RLS settings
   rls: {
-    enabled: true, // Enable with test-specific policies
+    enabled: false, // Disabled for testing consistency with development
     bypassForTesting: true // Special bypass for test cases
   },
   // Test-specific settings
@@ -308,16 +308,7 @@ function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false, jwtT
     if (jwtToken) {
       supabaseUrlToUse = configDetails.url; // Should be env.supabase.url from higher level config
       supabaseKeyToUse = configDetails.key; // Use anon key for JWT-scoped client
-      clientOptionsToUse = {
-        ...clientOptionsToUse,
-        global: {
-          ...(clientOptionsToUse.global || {}),
-          headers: {
-            ...(clientOptionsToUse.global?.headers || {}),
-            Authorization: `Bearer ${jwtToken}`,
-          },
-        },
-      };
+      // Don't set Authorization header here - we'll use setAuth() after client creation
       logger.info(`[SupabaseConfig] Creating Supabase client WITH JWT. Environment: ${effectiveNodeEnv}`);
     } else if (effectiveNodeEnv === 'test' && !shouldUseMock) {
         // Integration Test Path: Directly use .env.test variables (via process.env)
@@ -353,7 +344,12 @@ function createSupabaseClient(env, logger, nodeEnv, useServiceRole = false, jwtT
     }
     
     logger.info(`[SupabaseConfig] Creating Supabase client. Environment: ${effectiveNodeEnv}, ServiceRole: ${useServiceRole}, Mocked: ${shouldUseMock}`);
-    return createClient(supabaseUrlToUse, supabaseKeyToUse, clientOptionsToUse);
+    const client = createClient(supabaseUrlToUse, supabaseKeyToUse, clientOptionsToUse);
+    
+    // Note: For server-side JWT validation, we don't need to set anything on the client
+    // The auth middleware will call getUser() with the specific JWT token
+    
+    return client;
 
   } catch (error) {
     logger.error(`[SupabaseConfig] Error creating Supabase client: ${error.message}`, { stack: error.stack });

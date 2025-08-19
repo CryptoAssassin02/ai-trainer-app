@@ -55,23 +55,8 @@ get:
     by creation date (newest first) by default.
   operationId: listWorkoutPlans
   parameters:
-    - name: limit
-      in: query
-      description: Maximum number of plans to return
-      required: false
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 10
-    - name: offset
-      in: query
-      description: Number of plans to skip for pagination
-      required: false
-      schema:
-        type: integer
-        minimum: 0
-        default: 0
+    - $ref: '../../components/parameters/PaginationLimit.yaml'
+    - $ref: '../../components/parameters/PaginationOffset.yaml'
     - name: searchTerm
       in: query
       description: Search term for plan names or descriptions
@@ -102,14 +87,7 @@ get:
         type: string
         enum: [created_at, updated_at, name]
         default: created_at
-    - name: sortOrder
-      in: query
-      description: Sort order
-      required: false
-      schema:
-        type: string
-        enum: [asc, desc]
-        default: desc
+    - $ref: '../../components/parameters/SortOrder.yaml'
   responses:
     '200':
       $ref: '../../components/responses/workouts/WorkoutPlansListed.yaml'

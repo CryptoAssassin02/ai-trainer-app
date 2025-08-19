@@ -28,7 +28,7 @@ const preferencesLimiter = rateLimit({
  * @access Private
  */
 router.post(
-  '/v1/notifications/preferences',
+  '/preferences',
   authenticate,
   preferencesLimiter,
   validateNotificationPreferences,
@@ -41,7 +41,7 @@ router.post(
  * @access Private
  */
 router.get(
-  '/v1/notifications/preferences',
+  '/preferences',
   authenticate,
   notificationController.getPreferences
 );
@@ -52,7 +52,7 @@ router.get(
  * @access Private
  */
 router.post(
-  '/v1/notifications/test',
+  '/test',
   authenticate,
   preferencesLimiter,
   notificationController.testNotification

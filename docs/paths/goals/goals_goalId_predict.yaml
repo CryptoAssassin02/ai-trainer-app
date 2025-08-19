@@ -101,28 +101,28 @@ post:
       $ref: '../../components/responses/goals/GoalPredictionRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/goals/GoalAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/goals/GoalAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
       $ref: '../../components/responses/goals/GoalNotFound.yaml'
     
     '422':
-      $ref: '../../components/responses/goals/GoalPredictionFailed.yaml'
+      $ref: '../../components/responses/goals/GoalValidationFailed.yaml'
     
     '429':
-      $ref: '../../components/responses/goals/GoalRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/goals/GoalDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '502':
-      $ref: '../../components/responses/goals/GoalAIPredictionFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '504':
-      $ref: '../../components/responses/goals/GoalPredictionTimeout.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

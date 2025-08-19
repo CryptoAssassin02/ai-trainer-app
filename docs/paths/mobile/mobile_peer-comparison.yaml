@@ -122,23 +122,9 @@ get:
         default: 20
         example: 10
     
-    - name: connectionType
-      in: query
-      description: Client connection type for optimization
-      schema:
-        type: string
-        enum: [2G, 3G, 4G, 5G, WiFi, unknown]
-        default: "unknown"
-        example: "4G"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/connectionType'
     
-    - name: compressionLevel
-      in: query
-      description: Data compression level preference
-      schema:
-        type: string
-        enum: [low, medium, high, adaptive]
-        default: "adaptive"
-        example: "high"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/compressionLevel'
     
     - name: socialOptOut
       in: query
@@ -160,25 +146,25 @@ get:
       $ref: '../../components/responses/mobile/MobilePeerComparisonRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/mobile/MobilePeerComparisonAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
-      $ref: '../../components/responses/mobile/MobilePeerDataNotFound.yaml'
+      $ref: '../../components/responses/common/NotFound.yaml'
     
     '413':
       $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
     
     '429':
-      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '503':
-      $ref: '../../components/responses/mobile/MobileSocialServiceUnavailable.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

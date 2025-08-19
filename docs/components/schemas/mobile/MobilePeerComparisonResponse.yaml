@@ -10,7 +10,7 @@ properties:
     description: Response status
     example: success
   data:
-    $ref: '#/components/schemas/MobilePeerComparison'
+              $ref: './MobilePeerComparison.yaml'
   metadata:
     type: object
     required:

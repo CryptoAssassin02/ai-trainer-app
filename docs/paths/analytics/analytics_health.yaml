@@ -17,7 +17,7 @@ get:
   parameters: []
   responses:
     '200':
-      $ref: '../../components/responses/analytics/AnalyticsHealthy.yaml'
+      $ref: '../../components/responses/healthSystem/SystemHealthOK.yaml'
     
     '503':
-      $ref: '../../components/responses/analytics/AnalyticsUnhealthy.yaml' 
+      $ref: '../../components/responses/healthSystem/HealthCheckFailed.yaml' 

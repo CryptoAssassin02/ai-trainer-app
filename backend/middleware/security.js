@@ -19,11 +19,11 @@ const configureHelmet = () => {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"],
-        connectSrc: ["'self'", env.supabase && env.supabase.url, "https://api.openai.com"],
+        imgSrc: ["'self'", "data:", "https://cdn.jsdelivr.net", "https://validator.swagger.io"],
+        connectSrc: ["'self'", env.supabase && env.supabase.url, "https://api.openai.com", "https://validator.swagger.io"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -75,8 +75,8 @@ const configureCors = () => {
       logger.warn('CORS blocked request from origin:', origin);
       callback(null, false);
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'x-client-version', 'X-Client-Version', 'x-client-timestamp', 'X-Client-Timestamp'],
     credentials: true,
     maxAge: 86400 // 24 hours
   };

@@ -14,24 +14,8 @@ get:
   security:
     - SupabaseJWT: []
   parameters:
-    - name: page
-      in: query
-      description: Page number for pagination
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-        example: 1
-    
-    - name: pageSize
-      in: query
-      description: Number of items per page
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 10
-        example: 20
+    - $ref: '../../components/parameters/PaginationPage.yaml'
+    - $ref: '../../components/parameters/PaginationPageSize.yaml'
     
     - name: status
       in: query
@@ -49,21 +33,8 @@ get:
         enum: [weight_loss, maintenance, muscle_gain, performance, custom]
         example: "muscle_gain"
     
-    - name: startDate
-      in: query
-      description: Filter plans created on or after this date
-      schema:
-        type: string
-        format: date
-        example: "2024-01-01"
-    
-    - name: endDate
-      in: query
-      description: Filter plans created on or before this date
-      schema:
-        type: string
-        format: date
-        example: "2024-12-31"
+    - $ref: '../../components/parameters/DateRange.yaml#/startDate'
+    - $ref: '../../components/parameters/DateRange.yaml#/endDate'
     
     - name: sortBy
       in: query
@@ -74,23 +45,16 @@ get:
         default: "created_at"
         example: "created_at"
     
-    - name: sortOrder
-      in: query
-      description: Sort order
-      schema:
-        type: string
-        enum: [asc, desc]
-        default: "desc"
-        example: "desc"
+    - $ref: '../../components/parameters/SortOrder.yaml'
   responses:
     '200':
       $ref: '../../components/responses/nutritionMacros/MacroPlansListed.yaml'
     
     '401':
-      $ref: '../../components/responses/nutritionMacros/MacroAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '500':
-      $ref: '../../components/responses/nutritionMacros/MacroDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 post:
   tags:
@@ -146,7 +110,7 @@ post:
       $ref: '../../components/responses/nutritionMacros/MacroValidationFailed.yaml'
     
     '401':
-      $ref: '../../components/responses/nutritionMacros/MacroAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '500':
-      $ref: '../../components/responses/nutritionMacros/MacroDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

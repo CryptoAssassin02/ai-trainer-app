@@ -10,7 +10,7 @@ properties:
     description: Sync operation status
     example: success
   data:
-    $ref: '#/components/schemas/MobileSyncResult'
+              $ref: './MobileSyncResult.yaml'
   metadata:
     type: object
     required:

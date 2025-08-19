@@ -8,6 +8,9 @@ node_modules/
 .env.development
 .env.test
 .env.production
+.env.backup
+.env.production.backup
+.env
 # Don't ignore example env file
 !.env.example
 

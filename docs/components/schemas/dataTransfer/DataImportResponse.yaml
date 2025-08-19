@@ -15,7 +15,7 @@ properties:
     description: Human-readable message describing the import result
     example: "Data imported successfully."
   data:
-    $ref: '#/components/schemas/DataImportResult'
+          $ref: './DataImportResult.yaml'
 examples:
   completeSuccess:
     summary: All data imported successfully

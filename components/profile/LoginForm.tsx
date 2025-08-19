@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { createClient } from '../../lib/supabase/client'
-import { AuthError } from '@supabase/supabase-js'
+import { useAuth } from '../../providers/auth-provider'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -12,7 +11,7 @@ export default function LoginForm() {
   const [passwordError, setPasswordError] = useState('')
   const [status, setStatus] = useState('')
 
-  const supabase = createClient()
+  const { signIn } = useAuth()
 
   const handleEmailBlur = () => {
     if (!email) {
@@ -38,7 +37,6 @@ export default function LoginForm() {
     setPasswordError('')
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -47,20 +45,10 @@ export default function LoginForm() {
     setPasswordError('')
 
     try {
-      const response = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (response && typeof response === 'object' && 'error' in response && response.error) {
-        throw response.error
-      }
-
+      await signIn(email, password, rememberMe)
       setStatus('Sign in successful!')
     } catch (error) {
-      // Check error type more reliably using name property
-      const isAuthError = error && typeof error === 'object' && 'name' in error && error.name === 'AuthError';
-      const message = isAuthError ? (error as AuthError).message : 'An error occurred';
+      const message = error instanceof Error ? error.message : 'An error occurred';
       
       setStatus(message)
       if (message.toLowerCase().includes('email')) {

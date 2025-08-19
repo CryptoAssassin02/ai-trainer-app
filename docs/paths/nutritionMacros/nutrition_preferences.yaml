@@ -12,13 +12,13 @@ get:
       $ref: '../../components/responses/nutritionMacros/DietaryPreferencesRetrieved.yaml'
     
     '401':
-      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '404':
       $ref: '../../components/responses/nutritionMacros/NutritionNotFound.yaml'
     
     '500':
-      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
 
 post:
   tags:
@@ -63,7 +63,7 @@ post:
       $ref: '../../components/responses/nutritionMacros/NutritionValidationFailed.yaml'
     
     '401':
-      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '500':
-      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

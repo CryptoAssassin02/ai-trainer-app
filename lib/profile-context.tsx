@@ -2,11 +2,60 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
+import { profileService } from "@/lib/api/services/profile-service"
 import { useEffect as useEffectWithoutSSR } from "react"
 // Import the specific table type from generated types
 import type { Tables } from "@/types/database.types"
+import type { UserProfile as ApiUserProfile, CreateProfileRequest } from "@/lib/api/types"
+
+// Profile completion calculation (imported from hooks)
+const calculateProfileCompletion = (profile: UserProfile): number => {
+  const requiredFields = ['name', 'age', 'height', 'weight', 'experienceLevel', 'fitnessGoals'];
+  const missingFields = requiredFields.filter(field => {
+    const value = profile[field as keyof UserProfile];
+    return !value || (Array.isArray(value) && value.length === 0);
+  });
+  const totalFields = requiredFields.length;
+  const completedFields = totalFields - missingFields.length;
+  return Math.round((completedFields / totalFields) * 100);
+};
+
+// Helper functions to convert between UserProfile types
+const convertApiToLocalProfile = (apiProfile: ApiUserProfile): UserProfile => {
+  return {
+    id: apiProfile.id,
+    user_id: apiProfile.userId,
+    name: apiProfile.name || '',
+    age: apiProfile.age || 0,
+    gender: apiProfile.gender || '',
+    height: typeof apiProfile.height === 'number' ? apiProfile.height : 0,
+    weight: apiProfile.weight || 0,
+    experienceLevel: apiProfile.experienceLevel || 'beginner',
+    fitnessGoals: apiProfile.goals || [],
+    medicalConditions: apiProfile.medicalConditions || '',
+    equipment: apiProfile.equipment || [],
+    created_at: apiProfile.createdAt,
+    updated_at: apiProfile.updatedAt,
+    unit_preference: apiProfile.unitPreference || 'metric'
+  };
+};
+
+const convertLocalToApiProfile = (localProfile: UserProfile): CreateProfileRequest => {
+  return {
+    unitPreference: localProfile.unit_preference || 'metric',
+    name: localProfile.name,
+    age: localProfile.age,
+    gender: localProfile.gender as any,
+    height: localProfile.height,
+    weight: localProfile.weight,
+    experienceLevel: localProfile.experienceLevel,
+    goals: localProfile.goals || localProfile.fitnessGoals, // FIXED: Support both field names
+    equipment: localProfile.equipment,
+    medicalConditions: localProfile.medicalConditions,
+    workoutFrequency: ''
+  };
+};
 
 // Define the shape of the user profile data
 export interface UserProfile {
@@ -18,7 +67,8 @@ export interface UserProfile {
   height: number // in cm
   weight: number // in kg
   experienceLevel: "beginner" | "intermediate" | "advanced"
-  fitnessGoals: string[]
+  goals?: string[] // New field name (preferred)
+  fitnessGoals: string[] // Legacy field name (for backward compatibility)
   medicalConditions: string
   equipment: string[]
   created_at?: string
@@ -34,7 +84,8 @@ const defaultProfile: UserProfile = {
   height: 178,
   weight: 75,
   experienceLevel: "beginner",
-  fitnessGoals: [],
+  goals: [], // New field name (preferred)
+  fitnessGoals: [], // Legacy field name (for backward compatibility)
   medicalConditions: "",
   equipment: [],
   unit_preference: "metric"
@@ -80,7 +131,9 @@ const transformDbProfileToFrontend = (dbProfile: Tables<'user_profiles'> | null)
       ? dbProfile.experience_level 
       : defaultProfile.experienceLevel,
     fitnessGoals: dbProfile.fitness_goals || defaultProfile.fitnessGoals,
-    medicalConditions: dbProfile.medical_conditions || defaultProfile.medicalConditions,
+    medicalConditions: typeof dbProfile.medical_conditions === 'string' 
+      ? dbProfile.medical_conditions 
+      : defaultProfile.medicalConditions,
     equipment: dbProfile.equipment || defaultProfile.equipment,
     created_at: dbProfile.created_at || undefined,
     updated_at: dbProfile.updated_at || undefined,
@@ -107,7 +160,7 @@ const transformFrontendProfileToDb = (profile: UserProfile, userId: string) => {
     medical_conditions: profile.medicalConditions,
     equipment: profile.equipment,
     unit_preference: profile.unit_preference,
-    // updated_at will be handled by DB/Supabase
+    // updated_at will be handled by backend database
   };
 };
 
@@ -117,21 +170,21 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [isProfileComplete, setIsProfileComplete] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
   const { toast } = useToast()
 
-  // Load profile from Supabase on mount (client-side only)
+  // Load profile from backend API on mount (client-side only)
   useEffectWithoutSSR(() => {
     const fetchUserProfile = async () => {
       try {
         setIsLoading(true)
         setError(null)
 
-        // Get the current user session
-        const { data: { session } } = await supabase.auth.getSession()
+        // Check if user is authenticated via localStorage
+        const authToken = localStorage.getItem('auth_token')
+        const userId = localStorage.getItem('user_id')
         
-        if (!session?.user) {
-          // No authenticated user, use localStorage as fallback
+        if (!authToken || !userId) {
+          console.log('No auth token or user ID, using defaults')
           const savedProfile = localStorage.getItem("userProfile")
           if (savedProfile) {
             setProfile(JSON.parse(savedProfile))
@@ -140,37 +193,34 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const userId = session.user.id
-
-        // Fetch the user's profile from the database
-        const { data: dbData, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single()
-
-        if (error) {
-          // If no profile exists yet, use defaults
-          if (error.code === 'PGRST116') {
-            // Profile doesn't exist yet, use default values
+        // Fetch the user's profile from the backend API
+        try {
+          console.log('Fetching user profile from backend API...')
+          const profileData = await profileService.getProfile()
+          
+          if (profileData) {
+            console.log('Profile found via backend API:', profileData)
+            const transformedProfile = convertApiToLocalProfile(profileData)
+            setProfile(transformedProfile)
+            setIsProfileComplete(calculateProfileCompletion(transformedProfile) >= 80)
+          }
+        } catch (apiError: any) {
+          // Handle API errors
+          if (apiError?.status === 404 || apiError?.message?.includes('not found')) {
+            // No profile found, this is expected for new users
             setProfile({
               ...defaultProfile,
               user_id: userId
             })
+            setIsProfileComplete(false)
           } else {
-            console.error('Error fetching profile:', error)
+            console.error('Error fetching profile from API:', apiError)
             setError('Failed to load profile')
             toast({
               title: "Error",
               description: "Failed to load your profile data",
               variant: "destructive",
             })
-          }
-        } else if (dbData) {
-          // If profile exists, transform it and set state
-          const transformedProfile = transformDbProfileToFrontend(dbData);
-          if (transformedProfile) {
-            setProfile(transformedProfile)
           }
         }
       } catch (err) {
@@ -182,28 +232,21 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchUserProfile()
+  }, [toast])
 
-    // Set up auth state change listener
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        fetchUserProfile()
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(defaultProfile)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase, toast])
-
-  // Check if profile is complete
+  // Check if profile is complete - FIXED: Use specific profile values to prevent infinite loops
   useEffect(() => {
     const requiredFields: (keyof UserProfile)[] = ["name", "experienceLevel"]
     const isComplete = requiredFields.every((field) => Boolean(profile[field]))
-    setIsProfileComplete(isComplete)
-  }, [profile])
+    
+    // Only update state if the completion status actually changed
+    setIsProfileComplete(prev => {
+      if (prev !== isComplete) {
+        return isComplete;
+      }
+      return prev;
+    });
+  }, [profile.name, profile.experienceLevel]) // FIXED: Depend on specific values, not entire profile object
 
   // Update profile function
   const updateProfile = async (data: Partial<UserProfile>) => {
@@ -211,59 +254,43 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true)
       setError(null)
       
+      // Check if user is authenticated
+      const authToken = localStorage.getItem('auth_token')
+      const userId = localStorage.getItem('user_id')
+      
+      if (!authToken || !userId) {
+        console.warn('Not authenticated, saving to localStorage only')
+        const updatedProfile = { ...profile, ...data }
+        setProfile(updatedProfile)
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile))
+        return
+      }
+
       // Merge incoming data with current profile state
       const profileToSave: UserProfile = { ...profile, ...data };
       
-      // Get the current user session
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        const userId = session.user.id
+      // Save profile via backend API
+      try {
+        console.log('Updating profile via backend API...')
+        const apiProfileData = convertLocalToApiProfile(profileToSave)
+        const updatedApiProfile = await profileService.updateProfile(apiProfileData)
         
-        // Transform frontend profile to DB structure before upserting
-        const dbProfileData = transformFrontendProfileToDb(profileToSave, userId);
-
-        // Upsert the profile to Supabase
-        const { error: upsertError } = await supabase
-          .from('user_profiles')
-          .upsert(dbProfileData) // Use transformed data
-          
-        if (upsertError) {
-          console.error('Error updating profile:', upsertError)
-          setError('Failed to update profile')
-          toast({
-            title: "Error",
-            description: "Failed to save your profile data",
-            variant: "destructive",
-          })
-          return
-        }
-        
-        // Refetch the profile to get the latest data (e.g., with generated ID/timestamps)
-        const { data: refetchedDbData, error: fetchError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single()
-          
-        if (fetchError) {
-          console.error('Error fetching updated profile:', fetchError)
-        } else if (refetchedDbData) {
-          // Transform the refetched data before setting state
-          const updatedTransformedProfile = transformDbProfileToFrontend(refetchedDbData);
-          if (updatedTransformedProfile) {
-             setProfile(updatedTransformedProfile)
-          }
-          toast({
-            title: "Success",
-            description: "Your profile has been updated",
-          })
-        }
-      } else {
-        // No authenticated user, update local state and localStorage (no transformation needed here)
-        const updatedLocalProfile = { ...profile, ...data, updated_at: new Date().toISOString() };
-        setProfile(updatedLocalProfile)
-        localStorage.setItem("userProfile", JSON.stringify(updatedLocalProfile))
+        // Convert API response back to local format and update state
+        const updatedProfile = convertApiToLocalProfile(updatedApiProfile)
+        setProfile(updatedProfile)
+        toast({
+          title: "Success",
+          description: "Your profile has been updated",
+        })
+      } catch (apiError: any) {
+        console.error('Error updating profile via backend API:', apiError)
+        setError('Failed to update profile')
+        toast({
+          title: "Error",
+          description: "Failed to save your profile data",
+          variant: "destructive",
+        })
+        return
       }
     } catch (err) {
       console.error('Unexpected error:', err)

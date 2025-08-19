@@ -9,7 +9,7 @@ let supabase;
 let supabaseAdmin;
 
 // Define a port for the test server to listen on, different from dev if possible
-const TEST_PORT = process.env.TEST_PORT || 3001; // Make sure .env.test can supply this
+const TEST_PORT = process.env.TEST_PORT || 8000; // Make sure .env.test can supply this
 
 describe('Auth Endpoints (/v1/auth)', () => {
   beforeAll(async () => {

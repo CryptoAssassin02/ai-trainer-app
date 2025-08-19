@@ -55,14 +55,7 @@ get:
         default: "standard"
         example: "compact"
     
-    - name: connectionType
-      in: query
-      description: Client connection type for optimization
-      schema:
-        type: string
-        enum: [2G, 3G, 4G, 5G, WiFi, unknown]
-        default: "unknown"
-        example: "4G"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/connectionType'
     
     - name: screenSize
       in: query
@@ -90,13 +83,7 @@ get:
         default: "adaptive"
         example: "low"
     
-    - name: includeMilestones
-      in: query
-      description: Include milestone data (may increase payload)
-      schema:
-        type: boolean
-        default: true
-        example: true
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeMilestones'
     
     - name: milestoneLimit
       in: query
@@ -108,23 +95,9 @@ get:
         default: 5
         example: 3
     
-    - name: timeWindow
-      in: query
-      description: Time window for progress data
-      schema:
-        type: string
-        enum: [week, 2weeks, month, all]
-        default: "month"
-        example: "2weeks"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/timeRange'
     
-    - name: compressionLevel
-      in: query
-      description: Data compression level preference
-      schema:
-        type: string
-        enum: [low, medium, high, adaptive]
-        default: "adaptive"
-        example: "high"
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/compressionLevel'
     
     - name: offlineReady
       in: query
@@ -146,25 +119,25 @@ get:
       $ref: '../../components/responses/mobile/MobileGoalProgressRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/mobile/MobileGoalAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
-      $ref: '../../components/responses/mobile/MobileGoalNotFound.yaml'
+      $ref: '../../components/responses/common/NotFound.yaml'
     
     '413':
       $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
     
     '429':
-      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '503':
-      $ref: '../../components/responses/mobile/MobileOptimizationServiceUnavailable.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

@@ -1,7 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 #trAIner REST API Reference
 This document defines all known endpoints, request/response bodies, status codes, and example payloads for the trAIner app. It serves as the single source of truth for both human developers and AI dev tooling.

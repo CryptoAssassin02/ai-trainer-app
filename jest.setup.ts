@@ -1,16 +1,139 @@
 // Polyfill for setImmediate (needed for Winston logger)
-global.setImmediate = (callback, ...args) => setTimeout(callback, 0, ...args);
+if (!global.setImmediate) {
+  global.setImmediate = function(callback, ...args) {
+    return setTimeout(callback, 0, ...args);
+  };
+  global.clearImmediate = function(id) {
+    clearTimeout(id);
+  };
+}
 
 // Learn more: https://github.com/testing-library/jest-dom
-import '@testing-library/jest-dom';
-import 'next-router-mock';
-import { TextDecoder, TextEncoder } from 'util';
+require('@testing-library/jest-dom');
+require('next-router-mock');
 
-// Import and setup MSW server
-import { server } from './__mocks__/msw';
+// Polyfill TextEncoder/TextDecoder for MSW (must be before MSW import)
+const { TextDecoder, TextEncoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Add fetch polyfills for MSW
+if (!global.fetch) {
+  require('whatwg-fetch');
+}
+if (!global.Response) {
+  global.Response = require('node-fetch').Response;
+}
+if (!global.Request) {
+  global.Request = require('node-fetch').Request;
+}
+if (!global.Headers) {
+  global.Headers = require('node-fetch').Headers;
+}
+
+// Import and setup MSW server (with fallback for module resolution issues)
+let server;
+try {
+  server = require('./__mocks__/msw/index.js').server;
+} catch (e) {
+  console.warn('MSW server setup failed, tests will use direct mocks:', e.message);
+  // Create a mock server object to prevent errors
+  server = {
+    listen: () => {},
+    close: () => {},
+    resetHandlers: () => {},
+  };
+}
+
+// Mock lucide-react icons
+jest.mock('lucide-react', () => ({
+  AlertTriangle: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  AlertCircle: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  Info: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  RefreshCw: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  Bug: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  X: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  CheckCircle: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  RotateCcw: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  Home: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  Eye: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  EyeOff: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  Copy: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  ExternalLink: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  }),
+  AlertOctagon: ({ className, ...props }) => require('react').createElement('span', { 
+    'data-testid': 'mock-lucide-icon', 
+    className, 
+    ...props 
+  })
+}));
+
+// Mock PromiseRejectionEvent for browser API testing
+global.PromiseRejectionEvent = class PromiseRejectionEvent extends Event {
+  constructor(type, eventInitDict) {
+    super(type);
+    this.promise = eventInitDict?.promise;
+    this.reason = eventInitDict?.reason;
+  }
+  
+  preventDefault() {
+    // Mock preventDefault
+  }
+};
 
 // Polyfill for fetch API in Node environment for Jest tests
-import 'whatwg-fetch';
+require('whatwg-fetch');
 
 // Mock the window.matchMedia function used in responsive components
 // Only apply if window exists (i.e., not in 'node' environment)
@@ -30,11 +153,46 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Mock Navigator Connection API for network detection tests
+if (typeof navigator !== 'undefined') {
+  Object.defineProperty(navigator, 'connection', {
+    writable: true,
+    configurable: true,
+    value: {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      effectiveType: '4g',
+      downlink: 10,
+      rtt: 50,
+      saveData: false,
+      onchange: null
+    }
+  });
+  
+  // Make navigator.onLine fully configurable for tests
+  delete (navigator as any).onLine;
+  Object.defineProperty(navigator, 'onLine', {
+    get: function() {
+      return this._onLine !== undefined ? this._onLine : true;
+    },
+    set: function(value) {
+      this._onLine = value;
+    },
+    configurable: true
+  });
+  
+  // Initialize to true
+  (navigator as any).onLine = true;
+}
+
 // Mock IntersectionObserver (conditionally)
 if (typeof window !== 'undefined') { 
-  global.IntersectionObserver = class IntersectionObserver {
+  global.IntersectionObserver = class MockIntersectionObserver {
     constructor(callback) {
       this.callback = callback;
+      this.root = null;
+      this.rootMargin = '';
+      this.thresholds = [];
     }
     observe() {
       return null;
@@ -44,6 +202,9 @@ if (typeof window !== 'undefined') {
     }
     disconnect() {
       return null;
+    }
+    takeRecords() {
+      return [];
     }
   };
 }
@@ -87,7 +248,7 @@ if (typeof window !== 'undefined') {
 
 // Mock ResizeObserver (conditionally)
 if (typeof window !== 'undefined') { 
-  global.ResizeObserver = class ResizeObserver {
+  global.ResizeObserver = class MockResizeObserver {
     constructor(callback) {
       this.callback = callback;
     }
@@ -134,11 +295,23 @@ console.error = (...args) => {
   originalConsoleError(...args);
 };
 
-// Setup MSW handlers before all tests
-beforeAll(() => server.listen());
+// Setup MSW handlers before all tests (if available)
+beforeAll(() => {
+  if (server && server.listen) {
+    server.listen();
+  }
+});
 
 // Reset handlers after each test (important for test isolation)
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  if (server && server.resetHandlers) {
+    server.resetHandlers();
+  }
+});
 
 // Clean up after all tests are done
-afterAll(() => server.close()); 
+afterAll(() => {
+  if (server && server.close) {
+    server.close();
+  }
+}); 

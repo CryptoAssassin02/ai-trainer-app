@@ -1,7 +1,5 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # Real AI Integration Testing Rules - Comprehensive Guidelines
 

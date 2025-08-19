@@ -9,7 +9,8 @@ import { CustomChartTooltip } from "@/components/ui/chart-tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons"
-import { useWorkout } from "@/contexts/workout-context"
+// TEMPORARILY DISABLED: Workout context until Phase 3
+// import { useWorkout } from "@/contexts/workout-context"
 import { useProfile } from "@/lib/profile-context"
 
 type TimePeriod = "1w" | "1m" | "3m" | "6m" | "1y" | "all"
@@ -40,7 +41,11 @@ interface ChartDataPoint {
 }
 
 export function BodyMetricsChart() {
-  const { userCheckIns, getCheckInHistory } = useWorkout()
+  // TEMPORARILY DISABLED: Workout context until Phase 3
+  // const { userCheckIns, getCheckInHistory } = useWorkout()
+  const userCheckIns: any[] = [] // Temporary placeholder
+  const getCheckInHistory = async () => {} // Temporary placeholder
+  
   const { profile } = useProfile()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("3m")
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("weight")
@@ -116,7 +121,8 @@ export function BodyMetricsChart() {
     setChartData(formattedData)
   }, [userCheckIns, selectedMetric, timePeriod])
 
-  // Fetch check-in data on mount and when time period changes
+  // FIXED: Consolidate into a single useEffect to prevent infinite loops
+  // Remove processCheckInData from dependencies and call it directly
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -125,6 +131,7 @@ export function BodyMetricsChart() {
         if (userCheckIns.length === 0) {
           await getCheckInHistory()
         }
+        // Call processCheckInData directly instead of using it as a dependency
         processCheckInData()
       } catch (err) {
         console.error("Error fetching body metrics data:", err)
@@ -135,12 +142,7 @@ export function BodyMetricsChart() {
     }
 
     fetchData()
-  }, [timePeriod, getCheckInHistory, userCheckIns.length, processCheckInData])
-
-  // When check-ins or selected metric changes, process the data
-  useEffect(() => {
-    processCheckInData()
-  }, [userCheckIns, selectedMetric, timePeriod, processCheckInData])
+  }, [timePeriod, userCheckIns.length, selectedMetric]) // FIXED: Removed function dependencies
 
   // Calculate progress metrics from the real data
   const calculateProgress = () => {

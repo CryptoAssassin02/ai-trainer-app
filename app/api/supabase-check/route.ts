@@ -1,39 +1,44 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 /**
- * Simple API route to check Supabase connection status
- * This helps verify that your Supabase credentials are working correctly
+ * Simple API route to check backend auth system status
+ * This helps verify that our backend authentication system is working correctly
  */
 export async function GET() {
   try {
     const startTime = Date.now()
-    const supabase = await createClient()
     
-    // Test authentication is initialized
-    const { error } = await supabase.auth.getSession()
+    // Test backend API connectivity instead of Supabase
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
+    const response = await fetch(`${backendUrl}/auth/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
     
-    if (error) {
+    const responseTime = Date.now() - startTime
+    
+    if (!response.ok) {
       return NextResponse.json(
         {
           status: 'error',
-          message: 'Failed to connect to Supabase',
-          error: error.message
+          message: 'Failed to connect to backend auth system',
+          error: `HTTP ${response.status}: ${response.statusText}`
         },
         { status: 500 }
       )
     }
     
-    const responseTime = Date.now() - startTime
+    const data = await response.json()
     
     return NextResponse.json({
       status: 'ok',
       info: {
         connected: true,
         responseTime: `${responseTime}ms`,
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL 
-          ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/https:\/\/|\.supabase\.co/g, '') 
-          : 'undefined',
+        backendUrl: backendUrl,
+        backendStatus: data.status || 'ok',
         environment: process.env.NODE_ENV || 'development',
         timestamp: new Date().toISOString()
       }
@@ -43,7 +48,7 @@ export async function GET() {
     return NextResponse.json(
       {
         status: 'error',
-        message: 'Failed to check Supabase connection',
+        message: 'Failed to check backend auth system',
         error: errorMessage
       },
       { status: 500 }

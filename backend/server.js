@@ -5,7 +5,8 @@ const routes = require('./routes');
 const { notFoundHandler, globalErrorHandler, handleFatalError } = require('./middleware/error-middleware');
 const { setupSecurityMiddleware } = require('./middleware/security');
 const { apiLimiters } = require('./middleware/rateLimit');
-const { cleanupBlacklistedTokens } = require('./utils/jwt');
+// REMOVED: cleanupBlacklistedTokens import - function commented out in Phase 2 Auth Refactor
+// const { cleanupBlacklistedTokens } = require('./utils/jwt');
 
 // Initialize express app
 const app = express();
@@ -69,13 +70,14 @@ app.use(globalErrorHandler);
 // Cleanup function to run periodically
 const performCleanupTasks = async () => {
   try {
-    // Clean up expired blacklisted tokens
-    const removedTokens = await cleanupBlacklistedTokens();
-    if (removedTokens > 0) {
-      logger.info(`Cleaned up ${removedTokens} expired blacklisted tokens`);
-    }
+    // REMOVED: cleanupBlacklistedTokens call - function commented out in Phase 2 Auth Refactor
+    // const removedTokens = await cleanupBlacklistedTokens();
+    // if (removedTokens > 0) {
+    //   logger.info(`Cleaned up ${removedTokens} expired blacklisted tokens`);
+    // }
     
     // Run other cleanup tasks here if needed
+    logger.debug('Cleanup tasks completed (no active cleanup functions)');
   } catch (error) {
     logger.error('Error during cleanup tasks:', error);
   }

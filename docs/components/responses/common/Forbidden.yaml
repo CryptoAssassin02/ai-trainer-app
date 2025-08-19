@@ -1,0 +1,34 @@
+description: Access forbidden - insufficient permissions
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: "error"
+        message:
+          type: string
+          description: Permission error message
+          example: "Access forbidden"
+        errorCode:
+          type: string
+          description: Specific permission error code
+          enum:
+            - INSUFFICIENT_PERMISSIONS
+            - RESOURCE_ACCESS_DENIED
+            - OPERATION_NOT_PERMITTED
+            - OWNERSHIP_REQUIRED
+          example: "RESOURCE_ACCESS_DENIED"
+        resourceId:
+          type: string
+          description: ID of the resource that access was denied for
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        resourceType:
+          type: string
+          description: Type of resource that access was denied for
+          example: "workout_plan" 

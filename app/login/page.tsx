@@ -1,41 +1,31 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/providers/auth-provider'
+import { useRedirectIfAuthenticated } from '@/hooks/use-auth-redirect'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
+  const { signIn, loading } = useAuth()
+
+  // Redirect if already authenticated
+  useRedirectIfAuthenticated('/dashboard')
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      router.push('/')
-      router.refresh()
+      await signIn(email, password, rememberMe)
+      // The AuthProvider will handle the redirect after successful login
     } catch (error) {
-      console.error('An unexpected error occurred:', error)
-      setError('An unexpected error occurred. Please try again.')
-    } finally {
-      setLoading(false)
+      console.error('Login failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      setError(errorMessage)
     }
   }
 
@@ -120,6 +110,8 @@ export default function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <label

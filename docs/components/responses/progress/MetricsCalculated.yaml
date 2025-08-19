@@ -11,7 +11,7 @@ headers:
 content:
   application/json:
     schema:
-      $ref: '../../schemas/progress/MetricsCalculationResponse.yaml'
+      $ref: '../../schemas/progress/MetricsCalculationsResponse.yaml'
     examples:
       comprehensive_metrics:
         summary: Complete metrics calculation with trends and projections

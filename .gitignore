@@ -45,6 +45,8 @@ yarn-error.log*
 .env.test
 .env.production
 .env.local
+.env.backup
+.env.e2e
 
 # Supabase
 /supabase/.temp
@@ -99,3 +101,4 @@ logs
 /temp
 
 *storybook.log
+playwright/.auth

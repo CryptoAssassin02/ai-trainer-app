@@ -1,0 +1,49 @@
+type: object
+description: Basic health status response for API availability check
+properties:
+  status:
+    type: string
+    enum: [ok]
+    description: Basic API health status
+    example: "ok"
+  
+  info:
+    type: object
+    description: Basic service information
+    properties:
+      version:
+        type: string
+        description: API version number
+        example: "1.0.0"
+      
+      environment:
+        type: string
+        description: Current deployment environment
+        enum: [development, staging, production]
+        example: "production"
+      
+      timestamp:
+        type: string
+        format: date-time
+        description: ISO timestamp when the health check was performed
+        example: "2024-01-15T10:30:45.123Z"
+    
+    required:
+      - version
+      - environment
+      - timestamp
+    
+    additionalProperties: false
+
+required:
+  - status
+  - info
+
+additionalProperties: false
+
+example:
+  status: "ok"
+  info:
+    version: "1.0.0"
+    environment: "production"
+    timestamp: "2024-01-15T10:30:45.123Z" 

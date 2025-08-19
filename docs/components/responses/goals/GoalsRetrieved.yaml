@@ -11,7 +11,7 @@ headers:
 content:
   application/json:
     schema:
-      $ref: '../../schemas/goals/GoalListResponse.yaml'
+      $ref: '../../schemas/goals/GoalsListResponse.yaml'
     examples:
       multiple_goals_active:
         summary: Multiple active goals with different priorities and progress

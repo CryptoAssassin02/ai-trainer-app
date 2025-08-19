@@ -136,22 +136,22 @@ get:
       $ref: '../../components/responses/mobile/MobileNotificationPreferencesRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/mobile/MobileValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/mobile/MobileAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '403':
-      $ref: '../../components/responses/mobile/MobileNotificationAccessDenied.yaml'
+      $ref: '../../components/responses/common/Forbidden.yaml'
     
     '404':
-      $ref: '../../components/responses/mobile/MobileNotificationPreferencesNotFound.yaml'
+      $ref: '../../components/responses/common/NotFound.yaml'
     
     '429':
-      $ref: '../../components/responses/mobile/MobileRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/mobile/MobileDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '503':
-      $ref: '../../components/responses/mobile/MobileNotificationServiceUnavailable.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

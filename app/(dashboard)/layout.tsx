@@ -1,10 +1,11 @@
-import dynamic from 'next/dynamic'
+// TEMPORARILY DISABLED: WorkoutProvider until Phase 3 implementation
+// import dynamic from 'next/dynamic'
+// const DynamicWorkoutProvider = dynamic(
+//   () => import('@/contexts/workout-context').then((mod) => mod.WorkoutProvider),
+//   { ssr: false }
+// );
 
-// Dynamically import WorkoutProvider with SSR disabled
-const DynamicWorkoutProvider = dynamic(
-  () => import('@/contexts/workout-context').then((mod) => mod.WorkoutProvider),
-  { ssr: false } // Ensure it only runs on the client
-);
+import { ProfileQueryProvider } from '@/components/profile/profile-query-provider';
 
 export default function DashboardLayout({
   children,
@@ -12,9 +13,8 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    // Use the dynamically imported provider
-    <DynamicWorkoutProvider>
+    <ProfileQueryProvider>
       {children}
-    </DynamicWorkoutProvider>
+    </ProfileQueryProvider>
   )
 } 

@@ -9,7 +9,6 @@ headers:
     $ref: '../../headers/X-Request-ID.yaml'
 content:
   application/json:
-    description: JSON format export response
     schema:
       $ref: '../../schemas/dataTransfer/DataExportJSONResponse.yaml'
     examples:
@@ -27,7 +26,6 @@ content:
                 weight: 75
                 experience_level: "intermediate"
   text/csv:
-    description: CSV format export response (streaming)
     schema:
       type: string
       format: binary
@@ -35,12 +33,10 @@ content:
         data_type,user_id,name,age,height,weight,experience_level
         profiles,123e4567-e89b-12d3-a456-426614174000,John Doe,30,180,75,intermediate
   application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-    description: Excel XLSX format export response (streaming)
     schema:
       type: string
       format: binary
   application/pdf:
-    description: PDF format export response (streaming)
     schema:
       type: string
       format: binary 

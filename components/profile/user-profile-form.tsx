@@ -4,21 +4,29 @@ import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { 
+  profileCreationSchema, 
+  profileUpdateSchema,
+  type ProfileCreationFormData,
+  type ProfileUpdateFormData,
+  VALIDATION_CONSTANTS,
+  createDynamicProfileSchema
+} from "@/lib/validation/profile-schemas"
 import { Loader2, Info, AlertCircle, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { NativeCheckbox } from "@/components/ui/native-checkbox"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { NativeRadioGroup } from "@/components/ui/native-radio-group"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useProfile } from "@/lib/profile-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSupabase } from "@/utils/supabase/context"
+import { useAuth } from "@/providers/auth-provider"
 
 // Define fitness goals options
 const fitnessGoals = [
@@ -47,58 +55,45 @@ const equipmentOptions = [
   { id: "gym-membership", label: "Gym Membership" },
 ]
 
-// Define form schema with validation
-const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  age: z.coerce
-    .number()
-    .int()
-    .min(13, { message: "You must be at least 13 years old." })
-    .max(120, { message: "Age must be less than 120." }),
-  gender: z.enum(["male", "female", "non-binary", "prefer-not-to-say"], {
-    required_error: "Please select a gender.",
-  }),
-  heightFeet: z.coerce.number().min(0).optional(),
-  heightInches: z.coerce.number().min(0).max(11).optional(),
-  heightCm: z.coerce.number().min(0).optional(),
-  weightLbs: z.coerce.number().min(0).optional(),
-  weightKg: z.coerce.number().min(0).optional(),
-  experienceLevel: z.enum(["beginner", "intermediate", "advanced"], {
-    required_error: "Please select your experience level.",
-  }),
-  fitnessGoals: z.array(z.string()).min(1, { message: "Please select at least one fitness goal." }),
-  medicalConditions: z.string().optional(),
-  equipment: z.array(z.string()).optional(),
-  unitPreference: z.enum(["metric", "imperial"], {
-    required_error: "Please select your preferred unit system."
-  })
-})
-
-type FormValues = z.infer<typeof formSchema>
+// Use comprehensive validation schema with dynamic height validation
+type FormValues = ProfileCreationFormData & {
+  medicalConditions: string;
+}
 
 export function UserProfileForm() {
   const { profile, updateProfile, isLoading: profileLoading, error: profileError } = useProfile()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isMetric, setIsMetric] = useState(profile.unit_preference === "metric")
+  const [isMetric, setIsMetric] = useState<boolean>(profile.unit_preference === "metric" || true)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const supabase = useSupabase()
+  const { isAuthenticated } = useAuth()
 
-  // Initialize form with values from profile context
+  // Create dynamic schema based on current unit preference
+  const currentSchema = createDynamicProfileSchema('update', isMetric ? 'metric' : 'imperial');
+  
+  // Initialize form with comprehensive validation
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(currentSchema),
+    mode: 'onChange', // Real-time validation
+
     defaultValues: {
       name: profile.name || "",
-      age: profile.age || 30,
-      gender: profile.gender as "male" | "female" | "non-binary" | "prefer-not-to-say" || "prefer-not-to-say",
-      heightFeet: !isMetric ? Math.floor(profile.height / 30.48) || 5 : undefined,
-      heightInches: !isMetric ? Math.round((profile.height % 30.48) / 2.54) || 10 : undefined,
-      heightCm: isMetric ? profile.height || 178 : undefined,
-      weightLbs: !isMetric ? Math.round(profile.weight * 2.20462) || 160 : undefined,
-      weightKg: isMetric ? profile.weight || 72.5 : undefined,
-      experienceLevel: profile.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
-      fitnessGoals: profile.fitnessGoals || [],
-      medicalConditions: profile.medicalConditions || "",
+      age: profile.age || undefined,
+      gender: profile.gender as any || undefined,
+      height: isMetric 
+        ? (profile.height || undefined)
+        : profile.height 
+          ? { 
+              feet: Math.floor(profile.height / 30.48) || 5, 
+              inches: Math.round((profile.height % 30.48) / 2.54) || 10 
+            }
+          : undefined,
+      weight: profile.weight || undefined,
+      experienceLevel: profile.experienceLevel as any || undefined,
+      goals: (profile as any).fitnessGoals || (profile as any).goals || [],
+      medicalConditions: Array.isArray(profile.medicalConditions) 
+        ? profile.medicalConditions.join(', ') 
+        : (profile.medicalConditions || ""),
       equipment: profile.equipment || [],
       unitPreference: profile.unit_preference || "metric"
     },
@@ -113,14 +108,18 @@ export function UserProfileForm() {
       form.reset({
         name: profile.name || "",
         age: profile.age || 30,
-        gender: profile.gender as "male" | "female" | "non-binary" | "prefer-not-to-say" || "prefer-not-to-say",
-        heightFeet: !isMetric ? Math.floor(profile.height / 30.48) || 5 : undefined,
-        heightInches: !isMetric ? Math.round((profile.height % 30.48) / 2.54) || 10 : undefined,
-        heightCm: isMetric ? profile.height || 178 : undefined,
-        weightLbs: !isMetric ? Math.round(profile.weight * 2.20462) || 160 : undefined,
-        weightKg: isMetric ? profile.weight || 72.5 : undefined,
+        gender: profile.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
+        height: isMetric 
+          ? (profile.height || 178)
+          : profile.height 
+            ? { 
+                feet: Math.floor(profile.height / 30.48) || 5, 
+                inches: Math.round((profile.height % 30.48) / 2.54) || 10 
+              }
+            : { feet: 5, inches: 10 },
+        weight: profile.weight || (isMetric ? 72.5 : 160),
         experienceLevel: profile.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
-        fitnessGoals: profile.fitnessGoals || [],
+        goals: (profile as any).fitnessGoals || (profile as any).goals || [],
         medicalConditions: profile.medicalConditions || "",
         equipment: profile.equipment || [],
         unitPreference: profile.unit_preference || "metric"
@@ -128,38 +127,44 @@ export function UserProfileForm() {
     }
   }, [profile, profileLoading, form, isMetric])
 
+
+
   // Handle unit preference change
   const handleUnitChange = (newUnitPreference: "metric" | "imperial") => {
     const isNewMetric = newUnitPreference === "metric"
     setIsMetric(isNewMetric)
     
     // Get current height and weight
-    let currentHeight, currentWeight
+    const currentHeight = form.getValues('height')
+    const currentWeight = form.getValues('weight')
     
     if (isNewMetric) {
       // Convert from imperial to metric
-      const feet = form.getValues('heightFeet') || 0
-      const inches = form.getValues('heightInches') || 0
-      const pounds = form.getValues('weightLbs') || 0
+      if (typeof currentHeight === 'object' && currentHeight) {
+        const { feet = 0, inches = 0 } = currentHeight
+        const heightInCm = Math.round((feet * 30.48) + (inches * 2.54))
+        form.setValue('height', heightInCm)
+      }
       
-      currentHeight = Math.round((feet * 30.48) + (inches * 2.54))
-      currentWeight = Math.round(pounds * 0.453592 * 10) / 10
-      
-      form.setValue('heightCm', currentHeight)
-      form.setValue('weightKg', currentWeight)
+      if (typeof currentWeight === 'number') {
+        // Assume it's in pounds, convert to kg
+        const weightInKg = Math.round(currentWeight * 0.453592 * 10) / 10
+        form.setValue('weight', weightInKg)
+      }
     } else {
       // Convert from metric to imperial
-      const cm = form.getValues('heightCm') || 0
-      const kg = form.getValues('weightKg') || 0
+      if (typeof currentHeight === 'number') {
+        const totalInches = currentHeight / 2.54
+        const feet = Math.floor(totalInches / 12)
+        const inches = Math.round(totalInches % 12)
+        form.setValue('height', { feet, inches })
+      }
       
-      const totalInches = cm / 2.54
-      const feet = Math.floor(totalInches / 12)
-      const inches = Math.round(totalInches % 12)
-      const pounds = Math.round(kg * 2.20462)
-      
-      form.setValue('heightFeet', feet)
-      form.setValue('heightInches', inches)
-      form.setValue('weightLbs', pounds)
+      if (typeof currentWeight === 'number') {
+        // Assume it's in kg, convert to pounds
+        const weightInLbs = Math.round(currentWeight * 2.20462)
+        form.setValue('weight', weightInLbs)
+      }
     }
     
     form.setValue('unitPreference', newUnitPreference)
@@ -176,18 +181,19 @@ export function UserProfileForm() {
       let heightInCm, weightInKg
 
       if (isMetric) {
-        heightInCm = data.heightCm
-        weightInKg = data.weightKg
+        heightInCm = typeof data.height === 'number' ? data.height : undefined
+        weightInKg = typeof data.weight === 'number' ? data.weight : undefined
       } else {
         // Convert imperial to metric
-        heightInCm = data.heightFeet && data.heightInches ? data.heightFeet * 30.48 + data.heightInches * 2.54 : undefined
-        weightInKg = data.weightLbs ? data.weightLbs * 0.453592 : undefined
+        if (typeof data.height === 'object' && data.height) {
+          const { feet = 0, inches = 0 } = data.height
+          heightInCm = feet * 30.48 + inches * 2.54
+        }
+        weightInKg = typeof data.weight === 'number' ? data.weight * 0.453592 : undefined
       }
 
       // Check for user authentication
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session?.user) {
+      if (!isAuthenticated) {
         // If no authenticated user, show message
         setFormError("You need to be signed in to save your profile. Your changes will only be saved locally.")
       }
@@ -200,10 +206,10 @@ export function UserProfileForm() {
         height: heightInCm || 0,
         weight: weightInKg || 0,
         experienceLevel: data.experienceLevel,
-        fitnessGoals: data.fitnessGoals,
+        goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
         medicalConditions: data.medicalConditions || "",
         equipment: data.equipment || [],
-        unit_preference: data.unitPreference
+        unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
       }
 
       // Update profile via the ProfileProvider
@@ -267,7 +273,7 @@ export function UserProfileForm() {
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{profileError}</AlertDescription>
+            <AlertDescription>{profileError || 'An error occurred loading your profile'}</AlertDescription>
           </Alert>
         )}
         
@@ -297,6 +303,7 @@ export function UserProfileForm() {
                 <Switch 
                   checked={isMetric} 
                   onCheckedChange={(checked) => handleUnitChange(checked ? "metric" : "imperial")}
+                  data-testid="unit-toggle"
                 />
                 <span className={`text-sm ${isMetric ? "font-medium" : "text-muted-foreground"}`}>Metric</span>
               </div>
@@ -306,7 +313,7 @@ export function UserProfileForm() {
             <div className="space-y-6">
               <h3 className="text-lg font-medium">Basic Information</h3>
 
-              {/* Name Field */}
+              {/* Name Field with Enhanced Validation */}
               <FormField
                 control={form.control}
                 name="name"
@@ -314,8 +321,16 @@ export function UserProfileForm() {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your name" {...field} />
+                      <Input 
+                        placeholder="Enter your name (2-100 characters)" 
+                        {...field}
+                        maxLength={VALIDATION_CONSTANTS.NAME_MAX_LENGTH}
+                        data-testid="name-input"
+                      />
                     </FormControl>
+                    <FormDescription className="text-xs text-muted-foreground">
+                      Character count: {field.value?.length || 0}/{VALIDATION_CONSTANTS.NAME_MAX_LENGTH}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -323,7 +338,7 @@ export function UserProfileForm() {
 
               {/* Age and Gender - Two columns on larger screens */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Age Field */}
+                {/* Age Field with Enhanced Validation */}
                 <FormField
                   control={form.control}
                   name="age"
@@ -333,63 +348,51 @@ export function UserProfileForm() {
                       <FormControl>
                         <Input
                           type="number"
-                          min={13}
-                          max={120}
-                          placeholder="Enter your age"
+                          min={VALIDATION_CONSTANTS.AGE_MIN}
+                          max={VALIDATION_CONSTANTS.AGE_MAX}
+                          placeholder={`Enter your age (${VALIDATION_CONSTANTS.AGE_MIN}-${VALIDATION_CONSTANTS.AGE_MAX})`}
                           value={value || ""}
                           onChange={(e) => {
                             const val = e.target.value
-                            onChange(val ? Number.parseInt(val, 10) : "")
+                            onChange(val ? Number.parseInt(val, 10) : undefined)
                           }}
                           {...fieldProps}
+                          data-testid="age-input"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        Must be between {VALIDATION_CONSTANTS.AGE_MIN} and {VALIDATION_CONSTANTS.AGE_MAX} years old
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Gender Field */}
+                {/* Gender Field with Inclusive Options */}
                 <FormField
                   control={form.control}
                   name="gender"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Gender</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="male" id="gender-male" />
-                              <FormLabel htmlFor="gender-male" className="font-normal">
-                                Male
-                              </FormLabel>
-                            </div>
-                            <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="female" id="gender-female" />
-                              <FormLabel htmlFor="gender-female" className="font-normal">
-                                Female
-                              </FormLabel>
-                            </div>
-                            <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="non-binary" id="gender-non-binary" />
-                              <FormLabel htmlFor="gender-non-binary" className="font-normal">
-                                Non-binary
-                              </FormLabel>
-                            </div>
-                            <div className="flex items-center space-x-3 space-y-0">
-                              <RadioGroupItem value="prefer-not-to-say" id="gender-prefer-not-to-say" />
-                              <FormLabel htmlFor="gender-prefer-not-to-say" className="font-normal">
-                                Prefer not to say
-                              </FormLabel>
-                            </div>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
+                      <FormLabel>Gender (Optional)</FormLabel>
+                                              <FormControl>
+                          <NativeRadioGroup
+                            name="gender"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            options={[
+                              { value: "male", label: "Male" },
+                              { value: "female", label: "Female" },
+                              { value: "non-binary", label: "Non-binary" },
+                              { value: "other", label: "Other" },
+                              { value: "prefer_not_to_say", label: "Prefer not to say" }
+                            ]}
+                            className="flex flex-col space-y-1"
+                          />
+                        </FormControl>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        This information helps us provide more personalized recommendations
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -409,7 +412,7 @@ export function UserProfileForm() {
                 {isMetric ? (
                   <FormField
                     control={form.control}
-                    name="heightCm"
+                    name="height"
                     render={({ field: { value, onChange, ...fieldProps } }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
@@ -418,7 +421,7 @@ export function UserProfileForm() {
                               type="number"
                               min={0}
                               placeholder="Height"
-                              value={value || ""}
+                              value={typeof value === 'number' ? value : ""}
                               onChange={(e) => {
                                 const val = e.target.value
                                 onChange(val ? Number.parseFloat(val) : "")
@@ -434,61 +437,55 @@ export function UserProfileForm() {
                     )}
                   />
                 ) : (
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="heightFeet"
-                      render={({ field: { value, onChange, ...fieldProps } }) => (
+                  <FormField
+                    control={form.control}
+                    name="height"
+                    render={({ field: { value, onChange, ...fieldProps } }) => {
+                      const heightObj = (typeof value === 'object' && value) ? value : { feet: 5, inches: 10 };
+                      return (
                         <FormItem>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min={0}
-                                placeholder="Feet"
-                                value={value || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  onChange(val ? Number.parseInt(val, 10) : "")
-                                }}
-                                {...fieldProps}
-                                className="w-full"
-                              />
-                            </FormControl>
-                            <span className="text-muted-foreground">ft</span>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center space-x-2">
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  placeholder="Feet"
+                                  value={heightObj.feet || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const newFeet = val ? Number.parseInt(val, 10) : 0;
+                                    onChange({ feet: newFeet, inches: heightObj.inches || 0 });
+                                  }}
+                                  className="w-full"
+                                />
+                              </FormControl>
+                              <span className="text-muted-foreground">ft</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={11}
+                                  placeholder="Inches"
+                                  value={heightObj.inches || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const newInches = val ? Number.parseInt(val, 10) : 0;
+                                    onChange({ feet: heightObj.feet || 0, inches: newInches });
+                                  }}
+                                  className="w-full"
+                                />
+                              </FormControl>
+                              <span className="text-muted-foreground">in</span>
+                            </div>
                           </div>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="heightInches"
-                      render={({ field: { value, onChange, ...fieldProps } }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-2">
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={11}
-                                placeholder="Inches"
-                                value={value || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  onChange(val ? Number.parseInt(val, 10) : "")
-                                }}
-                                {...fieldProps}
-                                className="w-full"
-                              />
-                            </FormControl>
-                            <span className="text-muted-foreground">in</span>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                      );
+                    }}
+                  />
                 )}
               </div>
 
@@ -498,7 +495,7 @@ export function UserProfileForm() {
                 {isMetric ? (
                   <FormField
                     control={form.control}
-                    name="weightKg"
+                    name="weight"
                     render={({ field: { value, onChange, ...fieldProps } }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
@@ -526,7 +523,7 @@ export function UserProfileForm() {
                 ) : (
                   <FormField
                     control={form.control}
-                    name="weightLbs"
+                    name="weight"
                     render={({ field: { value, onChange, ...fieldProps } }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
@@ -565,20 +562,19 @@ export function UserProfileForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Experience Level</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your experience level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="beginner">Beginner (0-6 months of consistent training)</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate (6 months - 2 years of consistent training)
-                        </SelectItem>
-                        <SelectItem value="advanced">Advanced (2+ years of consistent training)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <NativeSelect
+                        name="experienceLevel"
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select your experience level"
+                        options={[
+                          { value: "beginner", label: "Beginner (0-6 months of consistent training)" },
+                          { value: "intermediate", label: "Intermediate (6 months - 2 years of consistent training)" },
+                          { value: "advanced", label: "Advanced (2+ years of consistent training)" }
+                        ]}
+                      />
+                    </FormControl>
                     <FormDescription>
                       This helps us tailor workout intensity and progression to your level.
                     </FormDescription>
@@ -597,12 +593,14 @@ export function UserProfileForm() {
                   <FormField
                     key={goal.id}
                     control={form.control}
-                    name="fitnessGoals"
+                    name="goals"
                     render={({ field }) => {
                       return (
                         <FormItem key={goal.id} className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
-                            <Checkbox
+                            <NativeCheckbox
+                              name="goals"
+                              value={goal.id}
                               checked={field.value?.includes(goal.id)}
                               onCheckedChange={(checked) => {
                                 return checked
@@ -619,7 +617,7 @@ export function UserProfileForm() {
                 ))}
               </div>
 
-              {/* Medical Conditions Field */}
+              {/* Medical Conditions Field with Enhanced Validation */}
               <FormField
                 control={form.control}
                 name="medicalConditions"
@@ -628,13 +626,17 @@ export function UserProfileForm() {
                     <FormLabel>Medical Conditions or Movement Limitations</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Please list any medical conditions, injuries, or movement limitations that might affect your workouts."
+                        placeholder="Please list any medical conditions, injuries, or movement limitations that might affect your workouts. Maximum 10 conditions, 200 characters each."
                         className="min-h-[100px]"
                         {...field}
+                        maxLength={VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
                       />
                     </FormControl>
-                    <FormDescription>
-                      This information helps us provide safer workout recommendations. It will be kept confidential.
+                    <FormDescription className="space-y-1">
+                      <div>This information helps us provide safer workout recommendations. It will be kept confidential.</div>
+                      <div className="text-xs text-muted-foreground">
+                        Character count: {field.value?.length || 0}/{VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
+                      </div>
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -662,7 +664,9 @@ export function UserProfileForm() {
                       return (
                         <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
-                            <Checkbox
+                            <NativeCheckbox
+                              name="equipment"
+                              value={item.id}
                               checked={field.value?.includes(item.id)}
                               onCheckedChange={(checked) => {
                                 return checked
@@ -696,17 +700,36 @@ export function UserProfileForm() {
             <Button
               type="submit"
               className="w-full bg-[#3E9EFF] hover:bg-[#3E9EFF]/90"
-              disabled={isSubmitting || profileLoading}
+              disabled={isSubmitting || profileLoading || Object.keys(form.formState.errors).length > 0}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving Profile...
                 </>
+              ) : Object.keys(form.formState.errors).length > 0 ? (
+                "Please Complete Required Fields"
               ) : (
                 "Save Profile"
               )}
             </Button>
+            
+            {/* Validation Summary */}
+            {Object.keys(form.formState.errors).length > 0 && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Please fix the following errors:</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-4 mt-2 space-y-1">
+                    {Object.entries(form.formState.errors).map(([field, error]) => (
+                      <li key={field} className="text-sm">
+                        <strong>{field}:</strong> {error?.message}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
           </form>
         </Form>
       </CardContent>

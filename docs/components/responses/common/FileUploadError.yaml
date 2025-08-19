@@ -1,0 +1,53 @@
+description: File upload or processing failed
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: "error"
+        message:
+          type: string
+          description: File-related error message
+          example: "File upload failed"
+        errorCode:
+          type: string
+          description: Machine-readable file error code
+          enum:
+            - NO_FILE_UPLOADED
+            - FILE_SIZE_EXCEEDED
+            - UNSUPPORTED_FILE_TYPE
+            - INVALID_FILE_FORMAT
+            - FILE_CORRUPTED
+          example: "FILE_SIZE_EXCEEDED"
+        details:
+          type: object
+          description: Additional file error details
+          properties:
+            fileName:
+              type: string
+              description: Name of the problematic file
+              example: "data.xlsx"
+            fileSize:
+              type: integer
+              description: Size of uploaded file in bytes
+              example: 15728640
+            maxSize:
+              type: integer
+              description: Maximum allowed file size in bytes
+              example: 10485760
+            mimeType:
+              type: string
+              description: MIME type of uploaded file
+              example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            supportedTypes:
+              type: array
+              description: List of supported MIME types
+              items:
+                type: string
+              example: ["application/json", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] 

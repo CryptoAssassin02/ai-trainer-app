@@ -20,8 +20,8 @@ post:
     '400':
       $ref: '../../components/responses/notifications/NotificationChannelInvalid.yaml'
     '401':
-      $ref: '../../components/responses/auth/Unauthorized.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     '429':
-      $ref: '../../components/responses/notifications/NotificationRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     '500':
       $ref: '../../components/responses/common/InternalServerError.yaml' 

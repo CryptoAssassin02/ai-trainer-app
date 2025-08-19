@@ -35,14 +35,7 @@ get:
   security:
     - SupabaseJWT: []
   parameters:
-    - name: timeframe
-      in: query
-      description: Time period for comprehensive analysis
-      schema:
-        type: string
-        enum: ["12 weeks", "6 months", "1 year"]
-        default: "6 months"
-        example: "6 months"
+    - $ref: '../../components/parameters/TimeframeFilter.yaml'
     
     - name: reportDepth
       in: query
@@ -107,22 +100,22 @@ get:
       $ref: '../../components/responses/analytics/ComprehensiveAIAnalyticsRetrieved.yaml'
     
     '400':
-      $ref: '../../components/responses/analytics/AnalyticsValidationFailed.yaml'
+      $ref: '../../components/responses/common/ValidationError.yaml'
     
     '401':
-      $ref: '../../components/responses/analytics/AnalyticsAuthenticationRequired.yaml'
+      $ref: '../../components/responses/common/Unauthorized.yaml'
     
     '404':
       $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
     
     '429':
-      $ref: '../../components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
     
     '500':
-      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml'
+      $ref: '../../components/responses/common/InternalServerError.yaml'
     
     '502':
       $ref: '../../components/responses/analytics/AIAnalyticsFailed.yaml'
     
     '504':
-      $ref: '../../components/responses/analytics/AnalyticsProcessingTimeout.yaml' 
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

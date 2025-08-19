@@ -1,0 +1,22 @@
+description: Operation completed successfully
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: string
+          enum: [success]
+          example: "success"
+        data:
+          description: Response data - schema varies by endpoint
+          oneOf:
+            - type: object
+            - type: array
+        message:
+          type: string
+          description: Optional success message
+          example: "Operation completed successfully" 

@@ -66,7 +66,7 @@ components:
     SupabaseJWT:
       $ref: './components/securitySchemes/SupabaseJWT.yaml'
 
-  # Request Body Schemas
+  # Response & Request Body Schemas and Error & Success Response Schemas
   schemas:
     # Authentication & User Management Schemas
     LoginRequest:
@@ -147,91 +147,91 @@ components:
 
     # Analytics Request Body Schemas
     AnalyticsQueryRequest:
-      $ref: `./components/schemas/analytics/AnalyticsQueryRequest.yaml`
+      $ref: './components/schemas/analytics/AnalyticsQueryRequest.yaml'
 
     AIAnalyticsQueryRequest:
-      $ref: `./components/schemas/analytics/AIAnalyticsQueryRequest.yaml`
+      $ref: './components/schemas/analytics/AIAnalyticsQueryRequest.yaml'
     
     AnalyticsRefreshRequest:
-      $ref: `./components/schemas/analytics/AnalyticsRefreshRequest.yaml`
+      $ref: './components/schemas/analytics/AnalyticsRefreshRequest.yaml'
 
     AnalyticsValidationError:
-      $ref: `./components/schemas/analytics/AnalyticsValidationError.yaml`
+      $ref: './components/schemas/analytics/AnalyticsValidationError.yaml'
 
     AnalyticsNotFoundError:
-      $ref: `./components/schemas/analytics/AnalyticsNotFoundError.yaml`
+      $ref: './components/schemas/analytics/AnalyticsNotFoundError.yaml'
 
     AnalyticsRateLimitError:
-      $ref: `./components/schemas/analytics/AnalyticsRateLimitError.yaml`
+      $ref: './components/schemas/analytics/AnalyticsRateLimitError.yaml'
 
     AIAnalyticsError:
-      $ref: `./components/schemas/analytics/AIAnalyticsError.yaml`
+      $ref: './components/schemas/analytics/AIAnalyticsError.yaml'
 
     AnalyticsDatabaseError:
-      $ref: `./components/schemas/analytics/AnalyticsDatabaseError.yaml`
+      $ref: './components/schemas/analytics/AnalyticsDatabaseError.yaml'
 
     # Progress Request Body Schemas
     CheckInCreateRequest: 
-      $ref: `./components/schemas/progress/CheckInCreateRequest.yaml`
+      $ref: './components/schemas/progress/CheckInCreateRequest.yaml'
 
     CheckInListFilters:
-      $ref: `./components/schemas/progress/CheckInListFilters.yaml`
+      $ref: './components/schemas/progress/CheckInListFilters.yaml'
 
     MetricsCalculationRequest:
-      $ref: `./components/schemas/progress/MetricsCalculationRequest.yaml`
+      $ref: './components/schemas/progress/MetricsCalculationRequest.yaml'
 
     ProgressValidationError:
-      $ref: `./components/schemas/progress/ProgressValidationError.yaml`
+      $ref: './components/schemas/progress/ProgressValidationError.yaml'
 
     ProgressNotFoundError:
-      $ref: `./components/schemas/progress/ProgressNotFoundError.yaml`
+      $ref: './components/schemas/progress/ProgressNotFoundError.yaml'
 
     ProgressRateLimitError:
-      $ref: `./components/schemas/progress/ProgressRateLimitError.yaml`
+      $ref: './components/schemas/progress/ProgressRateLimitError.yaml'
 
     # Goals Request Body Schemas
     GoalDefinitionRequest:
-      $ref: `./components/schemas/goals/GoalDefinitionRequest.yaml`
+      $ref: './components/schemas/goals/GoalDefinitionRequest.yaml'
 
     GoalUpdateRequest:
-      $ref: `./components/schemas/goals/GoalUpdateRequest.yaml`
+      $ref: './components/schemas/goals/GoalUpdateRequest.yaml'
 
     GoalListFilters:
-      $ref: `./components/schemas/goals/GoalListFilters.yaml`
+      $ref: './components/schemas/goals/GoalListFilters.yaml'
 
     GoalPredictionRequest:
-      $ref: `./components/schemas/goals/GoalPredictionRequest.yaml`
+      $ref: './components/schemas/goals/GoalPredictionRequest.yaml'
 
     GoalValidationError:
-      $ref: `./components/schemas/goals/GoalValidationError.yaml`
+      $ref: './components/schemas/goals/GoalValidationError.yaml'
 
     GoalNotFoundError:
-      $ref: `./components/schemas/goals/GoalNotFoundError.yaml`
+      $ref: './components/schemas/goals/GoalNotFoundError.yaml'
 
     GoalConflictError:
-      $ref: `./components/schemas/goals/GoalConflictError.yaml`
+      $ref: './components/schemas/goals/GoalConflictError.yaml'
 
     GoalRateLimitError:
-      $ref: `./components/schemas/goals/GoalRateLimitError.yaml`
+      $ref: './components/schemas/goals/GoalRateLimitError.yaml'
 
     # Mobile Request Body Schemas
     MobileAnalyticsQuery:
-      $ref: `./components/schemas/mobile/MobileAnalyticsQuery.yaml`
+      $ref: './components/schemas/mobile/MobileAnalyticsQuery.yaml'
 
     MobileSyncRequest:
-      $ref: `./components/schemas/mobile/MobileSyncRequest.yaml`
+      $ref: './components/schemas/mobile/MobileSyncRequest.yaml'
 
     MobileValidationError:
-      $ref: `./components/schemas/mobile/MobileValidationError.yaml`
+      $ref: './components/schemas/mobile/MobileValidationError.yaml'
 
     MobileRateLimitError:
-      $ref: `./components/schemas/mobile/MobileRateLimitError.yaml`
+      $ref: './components/schemas/mobile/MobileRateLimitError.yaml'
 
     MobileSyncError:
-      $ref: `./components/schemas/mobile/MobileSyncError.yaml`
+      $ref: './components/schemas/mobile/MobileSyncError.yaml'
 
     MobilePayloadError:
-      $ref: `./components/schemas/mobile/MobilePayloadError.yaml`
+      $ref: './components/schemas/mobile/MobilePayloadError.yaml'
 
     # Data Transfer Request Body Schemas
     DataExportRequest:
@@ -247,8 +247,6 @@ components:
     TestNotificationRequest:
       $ref: './components/schemas/notifications/TestNotificationRequest.yaml'
 
-  # Response Body Schemas
-  schemas:
     # Authentication & User Profile Response Body Schemas
     AuthSuccessResponse:
       $ref: './components/schemas/auth/AuthSuccessResponse.yaml'
@@ -360,136 +358,136 @@ components:
 
     # Analytics Response Body Schemas
     AnalyticsOverviewResponse:
-      $ref: `./components/schemas/analytics/AnalyticsOverviewResponse.yaml`
+      $ref: './components/schemas/analytics/AnalyticsOverviewResponse.yaml'
 
     AnalyticsOverview:
-      $ref: `./components/schemas/analytics/AnalyticsOverview.yaml`
+      $ref: './components/schemas/analytics/AnalyticsOverview.yaml'
 
     ProgressTrendsResponse:
-      $ref: `./components/schemas/analytics/ProgressTrendsResponse.yaml`
+      $ref: './components/schemas/analytics/ProgressTrendsResponse.yaml'
     
     ProgressTrends:
-      $ref: `./components/schemas/analytics/ProgressTrends.yaml`
+      $ref: './components/schemas/analytics/ProgressTrends.yaml'
 
     StrengthProgressionResponse:
-      $ref: `./components/schemas/analytics/StrengthProgressionResponse.yaml`
+      $ref: './components/schemas/analytics/StrengthProgressionResponse.yaml'
 
     StrengthProgression:
-      $ref: `./components/schemas/analytics/StrengthProgression.yaml`
+      $ref: './components/schemas/analytics/StrengthProgression.yaml'
 
     AdherenceMetricsResponse:
-      $ref: `./components/schemas/analytics/AdherenceMetricsResponse.yaml`
+      $ref: './components/schemas/analytics/AdherenceMetricsResponse.yaml'
 
     AIInsightsResponse:
-      $ref: `./components/schemas/analytics/AIInsightsResponse.yaml`
+      $ref: './components/schemas/analytics/AIInsightsResponse.yaml'
 
     AIInsights:
-      $ref: `./components/schemas/analytics/AIInsights.yaml`
+      $ref: './components/schemas/analytics/AIInsights.yaml'
 
     PatternAnalysisResponse:
-      $ref: `./components/schemas/analytics/PatternAnalysisResponse.yaml`
+      $ref: './components/schemas/analytics/PatternAnalysisResponse.yaml'
 
     PatternAnalysis:
-      $ref: `./components/schemas/analytics/PatternAnalysis.yaml`
+      $ref: './components/schemas/analytics/PatternAnalysis.yaml'
 
     PersonalizedRecommendationsResponse:
-      $ref: `./components/schemas/analytics/PersonalizedRecommendationsResponse.yaml`
+      $ref: './components/schemas/analytics/PersonalizedRecommendationsResponse.yaml'
 
     PersonalizedRecommendations:
-      $ref: `./components/schemas/analytics/PersonalizedRecommendations.yaml`
+      $ref: './components/schemas/analytics/PersonalizedRecommendations.yaml'
 
     GoalPredictionsResponse:
-      $ref: `./components/schemas/analytics/GoalPredictionsResponse.yaml`
+      $ref: './components/schemas/analytics/GoalPredictionsResponse.yaml'
 
     GoalPredictions:
-      $ref: `./components/schemas/analytics/GoalPredictions.yaml`
+      $ref: './components/schemas/analytics/GoalPredictions.yaml'
 
     ComprehensiveAIAnalyticsResponse:
-      $ref: `./components/schemas/analytics/ComprehensiveAIAnalyticsResponse.yaml`
+      $ref: './components/schemas/analytics/ComprehensiveAIAnalyticsResponse.yaml'
 
     ComprehensiveAIAnalytics:
-      $ref: `./components/schemas/analytics/ComprehensiveAIAnalytics.yaml`
+      $ref: './components/schemas/analytics/ComprehensiveAIAnalytics.yaml'
 
     # Progress Response Body Schemas
     CheckInResponse:
-      $ref: `./components/schemas/progress/CheckInResponse.yaml`
+      $ref: './components/schemas/progress/CheckInResponse.yaml'
 
     CheckIn:
-      $ref: `./components/schemas/progress/CheckIn.yaml`
+      $ref: './components/schemas/progress/CheckIn.yaml'
 
     CheckInsListResponse:
-      $ref: `./components/schemas/progress/CheckInsListResponse.yaml`
+      $ref: './components/schemas/progress/CheckInsListResponse.yaml'
 
     MetricsCalculationsResponse:
-      $ref: `./components/schemas/progress/MetricsCalculationsResponse.yaml`
+      $ref: './components/schemas/progress/MetricsCalculationsResponse.yaml'
 
     ProgressMetrics:
-      $ref: `./components/schemas/progress/ProgressMetrics.yaml`
+      $ref: './components/schemas/progress/ProgressMetrics.yaml'
 
     WellnessMetrics:
-      $ref: `./components/schemas/progress/WellnessMetrics.yaml`
+      $ref: './components/schemas/progress/WellnessMetrics.yaml'
 
     BodyMeasurements:
-      $ref: `./components/schemas/progress/BodyMeasurements.yaml`
+      $ref: './components/schemas/progress/BodyMeasurements.yaml'
 
     # Goals Response Body Schemas
     GoalResponse:
-      $ref: `./components/schemas/goals/GoalResponse.yaml`
+      $ref: './components/schemas/goals/GoalResponse.yaml'
 
     Goal:
-      $ref: `./components/schemas/goals/Goal.yaml`
+      $ref: './components/schemas/goals/Goal.yaml'
 
     GoalListResponse:
-      $ref: `./components/schemas/goals/GoalListResponse.yaml`
+      $ref: './components/schemas/goals/GoalsListResponse.yaml'
 
     GoalProgressResponse:
-      $ref: `./components/schemas/goals/GoalProgressResponse.yaml`
+      $ref: './components/schemas/goals/GoalProgressResponse.yaml'
 
     GoalProgress:
-      $ref: `./components/schemas/goals/GoalProgress.yaml`
+      $ref: './components/schemas/goals/GoalProgress.yaml'
 
     GoalPredictionResponse:
-      $ref: `./components/schemas/goals/GoalPredictionResponse.yaml`
+      $ref: './components/schemas/goals/GoalPredictionResponse.yaml'
 
     GoalPrediction:
-      $ref: `./components/schemas/goals/GoalPrediction.yaml`
+      $ref: './components/schemas/goals/GoalPrediction.yaml'
 
     GoalMilestone:
-      $ref: `./components/schemas/goals/GoalMilestone.yaml`
+      $ref: './components/schemas/goals/GoalMilestone.yaml'
 
     GoalTarget:
-      $ref: `./components/schemas/goals/GoalTarget.yaml`
+      $ref: './components/schemas/goals/GoalTarget.yaml'
 
     # Mobile Response Body Schemas
     MobileOverviewResponse: 
-      $ref: `./components/schemas/mobile/MobileOverviewResponse.yaml`
+      $ref: './components/schemas/mobile/MobileOverviewResponse.yaml'
 
     MobileOverview:
-      $ref: `./components/schemas/mobile/MobileOverview.yaml`
+      $ref: './components/schemas/mobile/MobileOverview.yaml'
 
     MobileSyncResponse:
-      $ref: `./components/schemas/mobile/MobileSyncResponse.yaml`
+      $ref: './components/schemas/mobile/MobileSyncResponse.yaml'
 
     MobileSyncResult:
-      $ref: `./components/schemas/mobile/MobileSyncResult.yaml`
+      $ref: './components/schemas/mobile/MobileSyncResult.yaml'
 
     MobileGoalProgressResponse:
-      $ref: `./components/schemas/mobile/MobileGoalProgressResponse.yaml`
+      $ref: './components/schemas/mobile/MobileGoalProgressResponse.yaml'
 
     MobilePeerComparisonResponse:
-      $ref: `./components/schemas/mobile/MobilePeerComparisonResponse.yaml`
+      $ref: './components/schemas/mobile/MobilePeerComparisonResponse.yaml'
 
     MobilePeerComparison:
-      $ref: `./components/schemas/mobile/MobilePeerComparison.yaml`
+      $ref: './components/schemas/mobile/MobilePeerComparison.yaml'
 
     MobileNotificationPreferencesResponse:
-      $ref: `./components/schemas/mobile/MobileNotificationPreferencesResponse.yaml`
+      $ref: './components/schemas/mobile/MobileNotificationPreferencesResponse.yaml'
 
     MobileNotificationPreferences:
-      $ref: `./components/schemas/mobile/MobileNotificationPreferences.yaml`
+      $ref: './components/schemas/mobile/MobileNotificationPreferences.yaml'
 
     MobileOptimizedAnalyticsResponse:
-      $ref: `./components/schemas/mobile/MobileOptimizedAnalyticsResponse.yaml`
+      $ref: './components/schemas/mobile/MobileOptimizedAnalyticsResponse.yaml'
 
     # Data Transfer Response Body Schemas
     DataExportJSONResponse:
@@ -519,6 +517,16 @@ components:
 
     TestNotificationResponse: 
       $ref: './components/schemas/notifications/TestNotificationResponse.yaml'
+
+    # Health System Response Body Schemas
+    SystemHealthResponse: 
+      $ref: './components/schemas/healthSystem/SystemHealthResponse.yaml'
+    
+    BasicHealthResponse: 
+      $ref: './components/schemas/healthSystem/BasicHealthResponse.yaml'
+    
+    SupabaseHealthResponse:  
+      $ref: './components/schemas/healthSystem/SupabaseHealthResponse.yaml'
 
     # Workout Management Error Response Schemas
     WorkoutValidationError:
@@ -615,6 +623,13 @@ components:
     NotificationRateLimitError:
       $ref: './components/schemas/notifications/NotificationRateLimitError.yaml'
 
+    # Health System Error Response Schemas
+    HealthCheckError: 
+      $ref: './components/schemas/healthSystem/HealthCheckError.yaml'
+    
+    DatabaseConnectionError:  
+      $ref: './components/schemas/healthSystem/DatabaseConnectionError.yaml'
+
     # Error Response Schemas
     ValidationError:
       $ref: './components/schemas/common/ValidationError.yaml'
@@ -640,6 +655,16 @@ components:
     RateLimitError:
       $ref: './components/schemas/common/RateLimitError.yaml'
 
+    # Health System Nested Object Schemas
+    ServerMetrics: 
+      $ref: './components/schemas/healthSystem/ServerMetrics.yaml'
+
+    UptimeMetrics: 
+      $ref: './components/schemas/healthSystem/UptimeMetrics.yaml'
+
+    DatabaseConnectionInfo: 
+      $ref: './components/schemas/healthSystem/DatabaseConnectionInfo.yaml'
+
   # Reusable Response Definitions
   responses:
     # Authentication Success Responses
@@ -662,7 +687,7 @@ components:
       $ref: './components/responses/auth/EmailVerified.yaml'
 
     GenericSuccess:
-      $ref: './components/responses/auth/GenericSuccess.yaml'
+      $ref: './components/responses/common/GenericSuccess.yaml'
 
     # User Profiles Success Responses
     ProfileCreated:
@@ -760,17 +785,11 @@ components:
     WorkoutLogValidationFailed:
       $ref: './components/responses/workoutLogs/WorkoutLogValidationFailed.yaml'
 
-    WorkoutLogAuthenticationRequired:
-      $ref: './components/responses/workoutLogs/WorkoutLogAuthenticationRequired.yaml'
-
     WorkoutLogNotFound:
       $ref: './components/responses/workoutLogs/WorkoutLogNotFound.yaml'
 
     WorkoutLogRateLimitExceeded:
       $ref: './components/responses/workoutLogs/WorkoutLogRateLimitExceeded.yaml'
-
-    WorkoutLogDatabaseFailed:
-      $ref: './components/responses/workoutLogs/WorkoutLogDatabaseFailed.yaml'
 
     # Nutrition & Macro Management Success Responses
     NutritionPlanGenerated:
@@ -816,14 +835,8 @@ components:
     NutritionNotFound:
       $ref: './components/responses/nutritionMacros/NutritionNotFound.yaml'
 
-    NutritionAuthenticationRequired:
-      $ref: './components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
-
     NutritionRateLimitExceeded:
       $ref: './components/responses/nutritionMacros/NutritionRateLimitExceeded.yaml'
-
-    NutritionDatabaseFailed:
-      $ref: './components/responses/nutritionMacros/NutritionDatabaseFailed.yaml'
 
     MacroValidationFailed:
       $ref: './components/responses/nutritionMacros/MacroValidationFailed.yaml'
@@ -834,14 +847,8 @@ components:
     MacroNotFound:
       $ref: './components/responses/nutritionMacros/MacroNotFound.yaml'
 
-    MacroAuthenticationRequired:
-      $ref: './components/responses/nutritionMacros/MacroAuthenticationRequired.yaml'
-
     MacroRateLimitExceeded:
       $ref: './components/responses/nutritionMacros/MacroRateLimitExceeded.yaml'
-
-    MacroDatabaseFailed:
-      $ref: './components/responses/nutritionMacros/MacroDatabaseFailed.yaml'
 
     # Analytics Success Responses
     AnalyticsOverviewRetrieved:
@@ -887,9 +894,6 @@ components:
     AnalyticsRateLimitExceeded:
       $ref: './components/responses/analytics/AnalyticsRateLimitExceeded.yaml'
 
-    AnalyticsDatabaseFailed:
-      $ref: './components/responses/analytics/AnalyticsDatabaseFailed.yaml'
-
     AIAnalyticsFailed:
       $ref: './components/responses/analytics/AIAnalyticsFailed.yaml'
 
@@ -921,7 +925,7 @@ components:
       $ref: './components/responses/goals/GoalCreated.yaml'
 
     GoalsListed:
-      $ref: './components/responses/goals/GoalsListed.yaml'
+      $ref: './components/responses/goals/GoalsRetrieved.yaml'
 
     GoalProgressRetrieved:
       $ref: './components/responses/goals/GoalProgressRetrieved.yaml'
@@ -997,9 +1001,6 @@ components:
     DataTransferRateLimitExceeded:
       $ref: './components/responses/dataTransfer/DataTransferRateLimitExceeded.yaml'
 
-    DataTransferDatabaseFailed:
-      $ref: './components/responses/dataTransfer/DataTransferDatabaseFailed.yaml'
-
     # Notifications Success Responses 
     NotificationPreferencesRetrieved:
       $ref: './components/responses/notifications/NotificationPreferencesRetrieved.yaml'
@@ -1020,6 +1021,23 @@ components:
     NotificationRateLimitExceeded:
       $ref: './components/responses/notifications/NotificationRateLimitExceeded.yaml'
 
+    # Health System Success Responses
+    SystemHealthOK: 
+      $ref: './components/responses/healthSystem/SystemHealthOK.yaml'
+
+    BasicHealthOK: 
+      $ref: './components/responses/healthSystem/BasicHealthOK.yaml'
+
+    SupabaseHealthOK: 
+      $ref: './components/responses/healthSystem/SupabaseHealthOK.yaml'
+
+    # Health System Error Responses
+    HealthCheckFailed: 
+      $ref: './components/responses/healthSystem/HealthCheckFailed.yaml'
+    
+    DatabaseConnectionFailed:  
+      $ref: './components/responses/healthSystem/DatabaseConnectionFailed.yaml'
+
   # Common Response Headers
   headers:
     X-RateLimit-Limit:
@@ -1030,6 +1048,28 @@ components:
       $ref: './components/headers/X-RateLimit-Reset.yaml'
     X-Request-ID:
       $ref: './components/headers/X-Request-ID.yaml'
+
+  # Common Parameters
+  parameters:
+    # Pagination Parameters
+    PaginationLimit:
+      $ref: './components/parameters/PaginationLimit.yaml'
+    PaginationOffset:
+      $ref: './components/parameters/PaginationOffset.yaml'
+    PaginationPage:
+      $ref: './components/parameters/PaginationPage.yaml'
+    PaginationPageSize:
+      $ref: './components/parameters/PaginationPageSize.yaml'
+
+    # Sorting Parameters
+    SortBy:
+      $ref: './components/parameters/SortBy.yaml'
+    SortOrder:
+      $ref: './components/parameters/SortOrder.yaml'
+
+    # Filter Parameters
+    TimeframeFilter:
+      $ref: './components/parameters/TimeframeFilter.yaml'
 
 # 5. Global Security Requirements
 security:
@@ -1136,7 +1176,7 @@ tags:
   - name: Health Checks
     description: |
       System health monitoring and service status endpoints.
-      Handles 2 health check endpoints for basic system health and Supabase connectivity status.
+      Handles 3 health check endpoints for basic system health, Supabase connectivity status, and database connection status.
     externalDocs:
       description: Health Monitoring Guide
       url: https://trainer.app/docs/health
@@ -1145,7 +1185,7 @@ tags:
 # - paths: {} (Phase 2 - Core Endpoints)
 # - components/schemas: {} (Phase 3 - Data Models)  
 # - components/responses: {} (Phase 4 - Response Definitions)
-# - components/parameters: {} (Phase 5 - Reusable Parameters)
+# - components/parameters: {} (✅ COMPLETED in Phase 3 - Reusable Parameters)
 # - components/examples: {} (Phase 6 - Request/Response Examples)
 
 
@@ -1261,6 +1301,9 @@ paths:
   /macros/{planId}:
     $ref: './paths/nutritionMacros/macros_planId.yaml'
 
+  /macros/latest: 
+    $ref: './paths/nutritionMacros/macros_latest.yaml'
+
   # Analytics Endpoints
   /analytics/adherence:
     $ref: './paths/analytics/analytics_adherence.yaml'
@@ -1357,26 +1400,22 @@ paths:
   /notifications/test:
     $ref: './paths/notifications/notifications_test.yaml'
 
+  # Health System Endpoints
+  /health: 
+    $ref: './paths/healthSystem/health.yaml'
+
+  /v1/health: 
+    $ref: './paths/healthSystem/v1_health.yaml'
+  
+  /v1/health/supabase: 
+    $ref: './paths/healthSystem/v1_health_supabase.yaml'
+
 # Additional OpenAPI elements will be added in subsequent phases:
 # - Additional paths for other categories (Phase 3)
 # - More component schemas (Phase 3)
 # - Component responses (Phase 4)
 # - Component parameters (Phase 5)
 # - Component examples (Phase 6)
-
-# Additional root-level extensions for API governance
-x-api-governance:
-  data-classification: public
-  compliance:
-    - GDPR
-    - CCPA
-    - HIPAA-partial
-  sla:
-    availability: 99.9
-    response-time: 
-      p50: 100ms
-      p95: 500ms
-      p99: 1000ms
 
 # Rate limiting specifications by endpoint category
 x-rate-limits:
