@@ -661,7 +661,19 @@ test.describe('📊 Phase 2: Enhanced User Journey Testing', () => {
         console.log('✅ Profile navigation maintains editing context');
         
         // Verify data persists across navigation
-        const finalName = await nameInput.inputValue();
+        // Wait for loading skeleton to disappear and form to be fully loaded
+        await page.waitForSelector('.animate-pulse', { state: 'detached', timeout: 15000 }).catch(() => {
+          console.log('⚠️ No loading skeleton found - form may already be loaded');
+        });
+        
+        // Re-create locator to avoid stale element reference after navigation
+        const finalNameInput = page.locator('input[data-testid="name-input"]').or(
+          page.locator('input[name="name"]')
+        );
+        
+        // Wait for the form to be fully loaded before accessing input value
+        await finalNameInput.waitFor({ state: 'visible', timeout: 15000 });
+        const finalName = await finalNameInput.inputValue();
         expect(finalName).toBe(updatedName);
         console.log('✅ Profile data persists across navigation');
         

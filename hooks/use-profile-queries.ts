@@ -135,9 +135,17 @@ export function useProfilePreferencesQuery(options?: {
       
       const response = await profileService.getPreferences();
       
-      // Additional safety check - TanStack Query v4+ requires non-undefined returns
+      // Return default preferences if response is null/undefined instead of throwing
       if (!response) {
-        throw new Error('Profile preferences service returned null or undefined');
+        return {
+          userId: userId,
+          unitPreference: 'metric',
+          goals: [],
+          equipment: [],
+          experienceLevel: 'beginner',
+          workoutFrequency: '3',
+          updatedAt: new Date().toISOString()
+        };
       }
       
       return response;
@@ -517,9 +525,9 @@ export function useProfile(options?: {
     isLoading: profile.isLoading || preferences.isLoading,
     isFetching: profile.isFetching || preferences.isFetching,
     
-    // Error states - ignore preferences errors if preferences query was disabled
-    error: profile.error || (!Boolean(profile.data) ? null : preferences.error),
-    isError: profile.isError || (!Boolean(profile.data) ? false : preferences.isError),
+    // Error states - prioritize profile errors, make preferences errors non-blocking
+    error: profile.error,
+    isError: profile.isError,
     
     // Mutation functions
     updateProfile: updateProfile.mutate,

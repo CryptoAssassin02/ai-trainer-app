@@ -19,7 +19,7 @@ import {
   useProfileCompletion,
   useProfileValidation
 } from '@/hooks/use-profile-advanced';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/components/auth/supabase-auth-provider';
 import type { UserProfile, ProfilePreferences, UpdateProfileRequest, UpdatePreferencesRequest } from '@/lib/api/types';
 
 // ==========================================
@@ -79,7 +79,7 @@ interface ProfileQueryProviderProps {
 export function ProfileQueryProvider({
   children,
   enableOptimistic = true,
-  enableBackgroundSync = true,
+  enableBackgroundSync = process.env.NODE_ENV === 'production', // Disable in development to prevent auto-refresh
   completionThreshold = 80,
   autoSetupDefaults = true,
 }: ProfileQueryProviderProps) {

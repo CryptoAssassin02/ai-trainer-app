@@ -144,19 +144,20 @@ export class APIClient {
         console.log('🔑 API CLIENT INTERCEPTOR CALLED!!! 🔑');
         console.log('🔑 Config skipAuth:', config.skipAuth);
 
-        // Add authentication token from localStorage
+        // Add authentication token from storage (check both sessionStorage and localStorage)
         if (!config.skipAuth) {
           console.log('🔑 Proceeding with auth token attachment...');
           try {
-            console.log('🔑 Getting JWT token from localStorage for API request...');
-            const authToken = localStorage.getItem('auth_token');
-            console.log('🔑 Token retrieved from localStorage:', authToken ? 'Found' : 'Missing');
+            console.log('🔑 Getting JWT token from storage for API request...');
+            // Check sessionStorage first (session-only tokens), then localStorage (persistent tokens)
+            let authToken = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+            console.log('🔑 Token retrieved from storage:', authToken ? 'Found' : 'Missing');
             
             if (authToken) {
               config.headers.Authorization = `Bearer ${authToken}`;
               console.log('✅ Authorization header added:', `Bearer ${authToken.substring(0, 50)}...`);
             } else {
-              console.warn('⚠️ No auth token found in localStorage');
+              console.warn('⚠️ No auth token found in storage');
             }
           } catch (error) {
             console.error('❌ Failed to get auth token for API request:', error);
@@ -264,8 +265,8 @@ export class APIClient {
 
     this.refreshing = (async () => {
       try {
-        // Use backend refresh endpoint instead of Supabase
-        const refreshToken = localStorage.getItem('refresh_token');
+        // Check both storage types for refresh token
+        const refreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
@@ -281,10 +282,18 @@ export class APIClient {
           throw new Error('Failed to refresh session');
         }
 
-        // Update stored token
-        localStorage.setItem('auth_token', newToken);
-        if (response.data.refreshToken) {
-          localStorage.setItem('refresh_token', response.data.refreshToken);
+        // Update stored token in the same storage type where it was found
+        const isRemembered = localStorage.getItem('remember_me') === 'true';
+        if (isRemembered) {
+          localStorage.setItem('auth_token', newToken);
+          if (response.data.refreshToken) {
+            localStorage.setItem('refresh_token', response.data.refreshToken);
+          }
+        } else {
+          sessionStorage.setItem('auth_token', newToken);
+          if (response.data.refreshToken) {
+            sessionStorage.setItem('refresh_token', response.data.refreshToken);
+          }
         }
 
         return newToken;

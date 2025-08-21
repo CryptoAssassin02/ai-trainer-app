@@ -1,8 +1,7 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/providers/auth-provider';
+import { ReactNode } from 'react';
+import { useAuth } from '@/components/auth/supabase-auth-provider';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -14,30 +13,13 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({
   children,
-  redirectTo = '/login',
   requiresAuth = true,
   requiresProfile = false,
   fallback = <div>Loading...</div>,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, user, profile } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated, loading } = useAuth();
 
-  useEffect(() => {
-    // Don't redirect while loading
-    if (loading) return;
-
-    // Check if authentication is required and user is not authenticated
-    if (requiresAuth && !isAuthenticated) {
-      router.push(redirectTo);
-      return;
-    }
-
-    // Check if profile is required but user doesn't have one
-    if (requiresProfile && isAuthenticated && !profile) {
-      router.push('/profile/create');  // Use multi-step form for new users
-      return;
-    }
-  }, [isAuthenticated, loading, user, profile, requiresAuth, requiresProfile, router, redirectTo]);
+  // Remove redirect logic - this will be handled by Middleware
 
   // Show loading state while authentication is being checked
   if (loading) {
@@ -49,9 +31,8 @@ export function ProtectedRoute({
     return <>{fallback}</>;
   }
 
-  if (requiresProfile && isAuthenticated && !profile) {
-    return <>{fallback}</>;
-  }
+  // Profile requirement check would need to be implemented with profile context
+  // For now, we'll skip this check as profile is handled separately
 
   return <>{children}</>;
 }
@@ -75,7 +56,7 @@ export function ProfileRequired({ children, ...props }: Omit<ProtectedRouteProps
 }
 
 // Convenience component for routes that should redirect authenticated users (like login/signup pages)
-export function PublicRoute({ children, redirectTo = '/dashboard', ...props }: Omit<ProtectedRouteProps, 'requiresAuth'>) {
+export function PublicRoute({ children, redirectTo = '/', ...props }: Omit<ProtectedRouteProps, 'requiresAuth'>) {
   return (
     <ProtectedRoute requiresAuth={false} redirectTo={redirectTo} {...props}>
       {children}

@@ -21,7 +21,7 @@ const {
 const dns = require('dns').promises;
 
 // Migration directory relative to project root
-const MIGRATIONS_DIR = env.migrations?.directory || path.join(__dirname, '../migrations');
+const MIGRATIONS_DIR = env.migrations?.directory || path.join(__dirname, '../supabase/migrations');
 
 /**
  * Create a connection pool with fallback options

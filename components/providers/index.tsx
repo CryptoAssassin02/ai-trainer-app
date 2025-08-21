@@ -1,8 +1,8 @@
 'use client'
 
 import { ThemeProvider } from "@/components/ui/theme-provider"
-// import { ProfileProvider } from "@/lib/profile-context" // DISABLED: Using ProfileQueryProvider in dashboard layout instead
-import { AuthContextProvider } from "@/providers/auth-provider"
+import { SupabaseAuthProvider } from "@/components/auth/supabase-auth-provider"
+import { ProfileQueryProvider } from "@/components/profile/profile-query-provider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState, useEffect, ReactNode } from "react"
 import dynamic from 'next/dynamic'
@@ -61,8 +61,6 @@ export function Providers({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ALL PROVIDERS WORKING EXCEPT DynamicWorkoutProvider
-  // DynamicWorkoutProvider is causing SSR issues and preventing rendering
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider
@@ -72,11 +70,13 @@ export function Providers({ children }: { children: ReactNode }) {
         disableTransitionOnChange
       >
         <ToastProvider />
-        <AuthContextProvider>
-          {/* ProfileProvider DISABLED: Using ProfileQueryProvider in dashboard layout instead */}
-          {/* TODO: Fix WorkoutProvider SSR issues */}
-          {children}
-        </AuthContextProvider>
+        <ErrorProvider>
+          <SupabaseAuthProvider>
+            <ProfileQueryProvider>
+              {children}
+            </ProfileQueryProvider>
+          </SupabaseAuthProvider>
+        </ErrorProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

@@ -213,31 +213,13 @@ export function PhysicalMeasurementsStep({
           const weightInKg = unitPreference === 'imperial' ? weight * 0.453592 : weight;
           const bmi = weightInKg / (heightInMeters * heightInMeters);
           
-          let bmiCategory = '';
-          let bmiColor = '';
-          
-          if (bmi < 18.5) {
-            bmiCategory = 'Underweight';
-            bmiColor = 'text-blue-600';
-          } else if (bmi < 25) {
-            bmiCategory = 'Normal weight';
-            bmiColor = 'text-green-600';
-          } else if (bmi < 30) {
-            bmiCategory = 'Overweight';
-            bmiColor = 'text-orange-600';
-          } else {
-            bmiCategory = 'Obese';
-            bmiColor = 'text-red-600';
-          }
-          
           return (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
                   <h4 className="font-semibold mb-2">📊 Body Mass Index (BMI)</h4>
-                  <div className="text-2xl font-bold mb-1">{bmi.toFixed(1)}</div>
-                  <div className={`text-sm font-medium ${bmiColor}`}>{bmiCategory}</div>
-                  <div className="text-xs text-muted-foreground mt-2">
+                  <div className="text-2xl font-bold mb-3">{bmi.toFixed(1)}</div>
+                  <div className="text-xs text-muted-foreground">
                     BMI is a general health indicator. Consult a healthcare professional for personalized advice.
                   </div>
                 </div>

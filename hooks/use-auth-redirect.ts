@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStatus } from './use-auth-status';
 
@@ -27,6 +27,7 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
   } = options;
 
   const router = useRouter();
+  const [hasRedirected, setHasRedirected] = useState(false);
   const {
     isAuthenticated,
     isLoading,
@@ -35,48 +36,69 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
     needsEmailVerification,
     needsProfileCompletion,
   } = useAuthStatus();
+  
+  // Reset hasRedirected when authentication state changes
+  useEffect(() => {
+    setHasRedirected(false);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    // Don't redirect if disabled
-    if (!enabled) return;
+    // Don't redirect if disabled, still loading, or already redirected
+    if (!enabled || isLoading || hasRedirected) return;
 
-    // Force a small delay to ensure all state updates are complete
-    // This follows Next.js best practice: "Always do navigations after the first render"
-    const timer = setTimeout(() => {
-      // Skip if still loading (but don't block indefinitely)
-      if (isLoading) return;
+    // CRITICAL FIX: Use window.location.replace instead of router.push to avoid NEXT_REDIRECT errors
+    // This performs a proper browser redirect without going through Next.js client-side routing
+    const handleRedirect = (url: string) => {
+      console.log('🔄 [AUTH REDIRECT] Performing browser redirect to:', url);
+      setHasRedirected(true);
+      window.location.replace(url);
+    };
 
-      // Redirect authenticated users away from public pages (like login/signup)
-      if (redirectIfAuthenticated && isAuthenticated) {
-        console.log('🔄 [AUTH REDIRECT] Redirecting authenticated user:', { needsProfileCompletion });
-        if (needsProfileCompletion) {
-          router.push('/profile/create');  // Use multi-step form for new users
-        } else {
-          router.push('/dashboard');
-        }
+    // Get current path
+    const currentPath = window.location.pathname;
+    
+    // Redirect authenticated users away from public pages (like login/signup)
+    if (redirectIfAuthenticated && isAuthenticated) {
+      console.log('🔄 [AUTH REDIRECT] Redirecting authenticated user:', { 
+        needsProfileCompletion, 
+        currentPath,
+        hasProfile 
+      });
+      
+      // Prevent redirect loop: don't redirect if already on target page
+      if (needsProfileCompletion && currentPath !== '/profile/create') {
+        handleRedirect('/profile/create');
+        return;
+      } else if (!needsProfileCompletion && currentPath !== '/' && !currentPath.startsWith('/profile') && !currentPath.startsWith('/progress') && !currentPath.startsWith('/workouts')) {
+        handleRedirect('/');
         return;
       }
+    }
 
-      // Redirect unauthenticated users from protected pages
-      if (requiresAuth && !isAuthenticated) {
-        router.push(redirectTo);
+    // Redirect unauthenticated users from protected pages
+    if (requiresAuth && !isAuthenticated) {
+      // Prevent redirect loop: don't redirect if already on login page
+      if (currentPath !== redirectTo) {
+        handleRedirect(redirectTo);
         return;
       }
+    }
 
-      // Redirect to email verification if required
-      if (requiresEmailVerification && isAuthenticated && needsEmailVerification) {
-        router.push('/auth/verify-email');
+    // Redirect to email verification if required
+    if (requiresEmailVerification && isAuthenticated && needsEmailVerification) {
+      if (currentPath !== '/auth/verify-email') {
+        handleRedirect('/auth/verify-email');
         return;
       }
+    }
 
-      // Redirect to profile completion if required
-      if (requiresProfile && isAuthenticated && !hasProfile) {
-        router.push('/profile/create');  // Use multi-step form for new users
+    // Redirect to profile completion if required
+    if (requiresProfile && isAuthenticated && !hasProfile) {
+      if (currentPath !== '/profile/create') {
+        handleRedirect('/profile/create');
         return;
       }
-    }, 100); // 100ms delay ensures state is stable
-
-    return () => clearTimeout(timer);
+    }
   }, [
     enabled,
     isLoading,
@@ -90,7 +112,7 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
     requiresEmailVerification,
     redirectIfAuthenticated,
     redirectTo,
-    router,
+    hasRedirected,
   ]);
 
   return {
@@ -128,7 +150,7 @@ export function useRequireProfile(redirectTo = '/login') {
 /**
  * Convenience hook for public pages that should redirect authenticated users
  */
-export function useRedirectIfAuthenticated(redirectTo = '/dashboard') {
+export function useRedirectIfAuthenticated(redirectTo = '/') {
   return useAuthRedirect({
     redirectIfAuthenticated: true,
     redirectTo,

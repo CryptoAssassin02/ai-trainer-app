@@ -219,7 +219,7 @@ const DefaultProfileErrorFallback: React.FC<ProfileErrorFallbackProps> = ({
   const classification = classifyProfileError(error, errorInfo);
   
   const handleGoHome = () => {
-    window.location.href = '/dashboard';
+    window.location.href = '/';
   };
 
   const handleReportBug = () => {

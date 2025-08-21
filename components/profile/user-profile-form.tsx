@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -23,36 +23,60 @@ import { NativeRadioGroup } from "@/components/ui/native-radio-group"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { useProfile } from "@/lib/profile-context"
+import { useProfile } from "@/hooks/use-profile-queries"
+import { useProfileFormLogic } from "@/hooks/use-profile-form-logic"
+import type { UserProfile } from "@/lib/api/types"
+import type { UserProfileFormProps } from "@/lib/validation/profile-form-types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuth } from "@/providers/auth-provider"
+import { useAuth } from "@/components/auth/supabase-auth-provider"
 
 // Define fitness goals options
 const fitnessGoals = [
-  { id: "weight-loss", label: "Weight Loss" },
-  { id: "muscle-gain", label: "Muscle Gain" },
+  { id: "weight_loss", label: "Weight Loss" },
+  { id: "muscle_gain", label: "Muscle Gain" },
   { id: "strength", label: "Strength" },
   { id: "endurance", label: "Endurance" },
   { id: "flexibility", label: "Flexibility" },
-  { id: "general-fitness", label: "General Fitness" },
-  { id: "sports-performance", label: "Sports Performance" },
-  { id: "body-recomposition", label: "Body Recomposition" },
+  { id: "general_fitness", label: "General Fitness" },
+  { id: "sports_performance", label: "Sports Performance" },
+  { id: "body_recomposition", label: "Body Recomposition" },
 ]
 
-// Define equipment options
+// Define equipment options - MUST match MultiStepProfileForm equipment IDs
 const equipmentOptions = [
+  // Free Weights
   { id: "dumbbells", label: "Dumbbells" },
-  { id: "barbell", label: "Barbell" },
-  { id: "kettlebell", label: "Kettlebell" },
-  { id: "resistance-bands", label: "Resistance Bands" },
-  { id: "pull-up-bar", label: "Pull-up Bar" },
-  { id: "bench", label: "Bench" },
-  { id: "squat-rack", label: "Squat Rack" },
-  { id: "cardio-equipment", label: "Cardio Equipment" },
-  { id: "cable-machine", label: "Cable Machine" },
-  { id: "smith-machine", label: "Smith Machine" },
-  { id: "gym-membership", label: "Gym Membership" },
+  { id: "barbells", label: "Barbells" },
+  { id: "kettlebells", label: "Kettlebells" },
+  { id: "medicine_balls", label: "Medicine Balls" },
+  
+  // Machines & Stations
+  { id: "cable_machine", label: "Cable Machine" },
+  { id: "smith_machine", label: "Smith Machine" },
+  { id: "power_rack", label: "Power Rack/Squat Rack" },
+  { id: "leg_press", label: "Leg Press Machine" },
+  { id: "lat_pulldown", label: "Lat Pulldown" },
+  
+  // Cardio Equipment
+  { id: "treadmill", label: "Treadmill" },
+  { id: "stationary_bike", label: "Stationary Bike" },
+  { id: "elliptical", label: "Elliptical Machine" },
+  { id: "rowing_machine", label: "Rowing Machine" },
+  { id: "stair_climber", label: "Stair Climber" },
+  
+  // Bodyweight & Accessories
+  { id: "pull_up_bar", label: "Pull-up Bar" },
+  { id: "resistance_bands", label: "Resistance Bands" },
+  { id: "suspension_trainer", label: "Suspension Trainer" },
+  { id: "yoga_mat", label: "Yoga/Exercise Mat" },
+  { id: "foam_roller", label: "Foam Roller" },
+  
+  // Specialized Equipment
+  { id: "battle_ropes", label: "Battle Ropes" },
+  { id: "plyometric_box", label: "Plyometric Box" },
+  { id: "agility_ladder", label: "Agility Ladder" },
+  { id: "parallette_bars", label: "Parallette Bars" },
 ]
 
 // Use comprehensive validation schema with dynamic height validation
@@ -60,72 +84,104 @@ type FormValues = ProfileCreationFormData & {
   medicalConditions: string;
 }
 
-export function UserProfileForm() {
-  const { profile, updateProfile, isLoading: profileLoading, error: profileError } = useProfile()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isMetric, setIsMetric] = useState<boolean>(profile.unit_preference === "metric" || true)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+export function UserProfileForm({
+  mode = 'edit',
+  enableAutoSave = true,
+  onSuccess,
+  onCancel,
+  redirectOnSuccess,
+  redirectOnCancel,
+  showAdvancedOptions = true,
+  enableRealTimeValidation = true,
+  showCompletionIndicator = true,
+  title = "Your trAIner Profile",
+  description = "Update your profile to keep your workout recommendations personalized and effective."
+}: UserProfileFormProps = {}) {
+  const { profile, updateProfileAsync, isLoading: profileLoading, error: profileError } = useProfile()
+  const [isMetric, setIsMetric] = useState<boolean>(true)
+  const prevUnitPreferenceRef = useRef<string | null>(null)
   const { isAuthenticated } = useAuth()
+  
+  // Use shared business logic
+  const {
+    formState,
+    handleSuccess,
+    handleCancel,
+    handleFormSubmit,
+    setFormError,
+    setSuccessMessage,
+    resetFormState,
+    isEditMode
+  } = useProfileFormLogic({
+    mode,
+    onSuccess,
+    onCancel,
+    redirectOnSuccess,
+    redirectOnCancel,
+    enableAutoSave,
+  })
 
   // Create dynamic schema based on current unit preference
-  const currentSchema = createDynamicProfileSchema('update', isMetric ? 'metric' : 'imperial');
+  const schemaMode = mode === 'edit' ? 'update' : mode;
+  const currentSchema = createDynamicProfileSchema(schemaMode, isMetric ? 'metric' : 'imperial');
   
   // Initialize form with comprehensive validation
   const form = useForm<FormValues>({
     resolver: zodResolver(currentSchema),
-    mode: 'onChange', // Real-time validation
+    mode: enableRealTimeValidation ? 'onChange' : 'onSubmit', // Real-time validation
 
     defaultValues: {
-      name: profile.name || "",
-      age: profile.age || undefined,
-      gender: profile.gender as any || undefined,
-      height: isMetric 
-        ? (profile.height || undefined)
-        : profile.height 
-          ? { 
-              feet: Math.floor(profile.height / 30.48) || 5, 
-              inches: Math.round((profile.height % 30.48) / 2.54) || 10 
-            }
-          : undefined,
-      weight: profile.weight || undefined,
-      experienceLevel: profile.experienceLevel as any || undefined,
-      goals: (profile as any).fitnessGoals || (profile as any).goals || [],
-      medicalConditions: Array.isArray(profile.medicalConditions) 
-        ? profile.medicalConditions.join(', ') 
-        : (profile.medicalConditions || ""),
-      equipment: profile.equipment || [],
-      unitPreference: profile.unit_preference || "metric"
+      name: "",
+      age: undefined,
+      gender: undefined,
+      height: undefined,
+      weight: undefined,
+      experienceLevel: undefined,
+      goals: [],
+      medicalConditions: "",
+      equipment: [],
+      unitPreference: "metric"
     },
   })
 
-  // Update form when profile changes
-  useEffect(() => {
-    if (!profileLoading && profile) {
-      // Update isMetric based on the profile preference
-      setIsMetric(profile.unit_preference === "metric")
+  // Destructure reset method for proper useEffect dependencies (React Hook Form best practice)
+  const { reset } = form;
 
-      form.reset({
-        name: profile.name || "",
-        age: profile.age || 30,
-        gender: profile.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
-        height: isMetric 
-          ? (profile.height || 178)
-          : profile.height 
-            ? { 
-                feet: Math.floor(profile.height / 30.48) || 5, 
-                inches: Math.round((profile.height % 30.48) / 2.54) || 10 
-              }
-            : { feet: 5, inches: 10 },
-        weight: profile.weight || (isMetric ? 72.5 : 160),
-        experienceLevel: profile.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
-        goals: (profile as any).fitnessGoals || (profile as any).goals || [],
-        medicalConditions: profile.medicalConditions || "",
-        equipment: profile.equipment || [],
-        unitPreference: profile.unit_preference || "metric"
+  // Update form when profile changes - following React Hook Form best practices
+  useEffect(() => {
+    if (!profileLoading && profile.data) {
+      const profileData = profile.data as UserProfile;
+      
+      // Determine unit preference from profile data
+      const profileIsMetric = profileData.unitPreference === "metric";
+      
+      // Only update if unit preference actually changed (prevent infinite loop)
+      if (prevUnitPreferenceRef.current !== profileData.unitPreference) {
+        prevUnitPreferenceRef.current = profileData.unitPreference || "metric";
+        setIsMetric(profileIsMetric);
+      }
+
+      // Use destructured reset method (React Hook Form best practice)
+      reset({
+        name: profileData.name || "",
+        age: profileData.age || 30,
+        gender: profileData.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
+        height: profileIsMetric 
+          ? (typeof profileData.height === 'number' ? profileData.height : 178)
+          : (typeof profileData.height === 'object' && profileData.height?.feet && profileData.height?.inches !== undefined)
+            ? profileData.height  // Use the object directly if it's already in imperial format
+            : { feet: 5, inches: 10 }, // Default fallback
+        weight: profileData.weight || (profileIsMetric ? 72.5 : 160),
+        experienceLevel: profileData.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
+        goals: profileData.goals || [],
+        medicalConditions: Array.isArray(profileData.medicalConditions) 
+          ? profileData.medicalConditions.join(', ') 
+          : (profileData.medicalConditions || ""),
+        equipment: profileData.equipment || [],
+        unitPreference: profileData.unitPreference || "metric"
       })
     }
-  }, [profile, profileLoading, form, isMetric])
+  }, [(profile.data as UserProfile)?.id, (profile.data as UserProfile)?.updatedAt, profileLoading, reset]) // Use stable identifiers instead of entire object
 
 
 
@@ -134,25 +190,30 @@ export function UserProfileForm() {
     const isNewMetric = newUnitPreference === "metric"
     setIsMetric(isNewMetric)
     
+    // CRITICAL FIX: Do NOT convert weight values in frontend
+    // The backend handles all unit conversions based on unitPreference
+    // Frontend should only change the unit preference and clear values to avoid double conversion
+    
     // Get current height and weight
     const currentHeight = form.getValues('height')
     const currentWeight = form.getValues('weight')
     
+    // Only handle height conversion since height has different input formats (object vs number)
     if (isNewMetric) {
-      // Convert from imperial to metric
+      // Convert from imperial to metric for height only
       if (typeof currentHeight === 'object' && currentHeight) {
         const { feet = 0, inches = 0 } = currentHeight
         const heightInCm = Math.round((feet * 30.48) + (inches * 2.54))
         form.setValue('height', heightInCm)
       }
       
-      if (typeof currentWeight === 'number') {
-        // Assume it's in pounds, convert to kg
-        const weightInKg = Math.round(currentWeight * 0.453592 * 10) / 10
-        form.setValue('weight', weightInKg)
+      // REMOVED: Weight conversion - let backend handle this
+      // Clear weight to force user to re-enter in new units
+      if (currentWeight) {
+        form.setValue('weight', undefined)
       }
     } else {
-      // Convert from metric to imperial
+      // Convert from metric to imperial for height only
       if (typeof currentHeight === 'number') {
         const totalInches = currentHeight / 2.54
         const feet = Math.floor(totalInches / 12)
@@ -160,10 +221,10 @@ export function UserProfileForm() {
         form.setValue('height', { feet, inches })
       }
       
-      if (typeof currentWeight === 'number') {
-        // Assume it's in kg, convert to pounds
-        const weightInLbs = Math.round(currentWeight * 2.20462)
-        form.setValue('weight', weightInLbs)
+      // REMOVED: Weight conversion - let backend handle this
+      // Clear weight to force user to re-enter in new units
+      if (currentWeight) {
+        form.setValue('weight', undefined)
       }
     }
     
@@ -172,60 +233,51 @@ export function UserProfileForm() {
 
   // Handle form submission
   async function onSubmit(data: FormValues) {
-    setIsSubmitting(true)
-    setFormError(null)
-    setSuccessMessage(null)
-
     try {
-      // Convert height and weight to a single unit for storage
-      let heightInCm, weightInKg
-
-      if (isMetric) {
-        heightInCm = typeof data.height === 'number' ? data.height : undefined
-        weightInKg = typeof data.weight === 'number' ? data.weight : undefined
-      } else {
-        // Convert imperial to metric
-        if (typeof data.height === 'object' && data.height) {
-          const { feet = 0, inches = 0 } = data.height
-          heightInCm = feet * 30.48 + inches * 2.54
+      await handleFormSubmit(      async () => {
+        // CRITICAL FIX: Do NOT convert units in frontend - backend handles all conversions
+        // Send data in the format the user entered it, with unitPreference for backend conversion
+        
+        // Check for user authentication
+        if (!isAuthenticated) {
+          throw new Error("You need to be signed in to save your profile.")
         }
-        weightInKg = typeof data.weight === 'number' ? data.weight * 0.453592 : undefined
-      }
 
-      // Check for user authentication
-      if (!isAuthenticated) {
-        // If no authenticated user, show message
-        setFormError("You need to be signed in to save your profile. Your changes will only be saved locally.")
-      }
+        // Prepare final data object - send raw values with unitPreference
+        const finalData = {
+          name: data.name,
+          age: data.age,
+          gender: data.gender,
+          height: data.height, // Send as-is (number for metric, object for imperial)
+          weight: data.weight, // Send as-is (backend will convert based on unitPreference)
+          experienceLevel: data.experienceLevel,
+          goals: data.goals,
+          medicalConditions: data.medicalConditions 
+            ? data.medicalConditions.split(',').map(s => s.trim()).filter(s => s.length > 0)
+            : [],
+          equipment: data.equipment || [],
+          unitPreference: data.unitPreference // Backend uses this for proper conversion
+        }
 
-      // Prepare final data object
-      const finalData = {
-        name: data.name,
-        age: data.age,
-        gender: data.gender,
-        height: heightInCm || 0,
-        weight: weightInKg || 0,
-        experienceLevel: data.experienceLevel,
-        goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
-        medicalConditions: data.medicalConditions || "",
-        equipment: data.equipment || [],
-        unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
-      }
-
-      // Update profile via the ProfileProvider
-      await updateProfile(finalData)
-      setSuccessMessage("Your profile has been updated successfully.")
+        // Update profile via the modern profile hooks
+        const updatedProfile = await updateProfileAsync(finalData)
+        
+        // Handle success with the updated profile
+        await handleSuccess(updatedProfile)
+        
+        return updatedProfile
+      })
     } catch (error) {
       console.error("Error saving profile:", error)
-      setFormError("Failed to save your profile. Please try again.")
-    } finally {
-      setIsSubmitting(false)
+      // Error handling is done by handleFormSubmit
     }
   }
 
-  if (profileLoading) {
+  // Show loading skeleton only if we're in edit mode and have no profile data yet
+  // This prevents the "flash" of empty form while still showing loading for slow connections
+  if (profileLoading && isEditMode && !profile?.data) {
     return (
-      <Card className="w-full max-w-4xl mx-auto">
+      <Card className="w-full max-w-4xl mx-auto bg-card/50 backdrop-blur-sm border border-border/50">
         <CardHeader>
           <Skeleton className="h-8 w-2/3" />
           <Skeleton className="h-4 w-full mt-2" />
@@ -254,11 +306,11 @@ export function UserProfileForm() {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto bg-card/50 backdrop-blur-sm border border-border/50 hover:border-cornflower-blue/30 transition-all duration-300 hover:shadow-lg hover:shadow-cornflower-blue/10">
       <CardHeader>
-        <CardTitle className="text-2xl">Your Fitness Profile</CardTitle>
-        <CardDescription>
-          Complete your profile to get personalized workout and nutrition recommendations.
+        <CardTitle className="text-2xl text-center">{title}</CardTitle>
+        <CardDescription className="text-center">
+          {description}
         </CardDescription>
         <div className="mt-2 rounded-md bg-primary/10 p-3 text-sm">
           <p className="flex items-center gap-2">
@@ -273,38 +325,48 @@ export function UserProfileForm() {
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{profileError || 'An error occurred loading your profile'}</AlertDescription>
+            <AlertDescription>{profileError?.message || 'An error occurred loading your profile'}</AlertDescription>
           </Alert>
         )}
         
-        {formError && (
+        {formState.error && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{formError}</AlertDescription>
+            <AlertDescription>{formState.error}</AlertDescription>
           </Alert>
         )}
         
-        {successMessage && (
+        {formState.successMessage && (
           <Alert className="mt-4 bg-green-50 border-green-200 text-green-800">
             <Check className="h-4 w-4 text-green-600" />
             <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{successMessage}</AlertDescription>
+            <AlertDescription>{formState.successMessage}</AlertDescription>
           </Alert>
         )}
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Unit Preference Toggle */}
+              <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8"
+        >
+            {/* Unit Preference Toggle - TEMPORARILY DISABLED TO ISOLATE INFINITE LOOP */}
             <div className="flex justify-end">
               <div className="flex space-x-2 items-center bg-muted rounded-lg p-2">
                 <span className={`text-sm ${!isMetric ? "font-medium" : "text-muted-foreground"}`}>Imperial</span>
-                <Switch 
+                {/* TEMPORARILY DISABLED: Switch causing infinite update loop */}
+                {/* <Switch 
                   checked={isMetric} 
                   onCheckedChange={(checked) => handleUnitChange(checked ? "metric" : "imperial")}
                   data-testid="unit-toggle"
-                />
+                /> */}
+                <button
+                  type="button"
+                  onClick={() => handleUnitChange(isMetric ? "imperial" : "metric")}
+                  className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded"
+                  data-testid="unit-toggle"
+                >
+                  {isMetric ? "Switch to Imperial" : "Switch to Metric"}
+                </button>
                 <span className={`text-sm ${isMetric ? "font-medium" : "text-muted-foreground"}`}>Metric</span>
               </div>
             </div>
@@ -324,7 +386,7 @@ export function UserProfileForm() {
                       <Input 
                         placeholder="Enter your name (2-100 characters)" 
                         {...field}
-                        maxLength={VALIDATION_CONSTANTS.NAME_MAX_LENGTH}
+
                         data-testid="name-input"
                       />
                     </FormControl>
@@ -348,8 +410,6 @@ export function UserProfileForm() {
                       <FormControl>
                         <Input
                           type="number"
-                          min={VALIDATION_CONSTANTS.AGE_MIN}
-                          max={VALIDATION_CONSTANTS.AGE_MAX}
                           placeholder={`Enter your age (${VALIDATION_CONSTANTS.AGE_MIN}-${VALIDATION_CONSTANTS.AGE_MAX})`}
                           value={value || ""}
                           onChange={(e) => {
@@ -419,7 +479,7 @@ export function UserProfileForm() {
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               placeholder="Height"
                               value={typeof value === 'number' ? value : ""}
                               onChange={(e) => {
@@ -449,7 +509,7 @@ export function UserProfileForm() {
                               <FormControl>
                                 <Input
                                   type="number"
-                                  min={0}
+    
                                   placeholder="Feet"
                                   value={heightObj.feet || ""}
                                   onChange={(e) => {
@@ -466,8 +526,8 @@ export function UserProfileForm() {
                               <FormControl>
                                 <Input
                                   type="number"
-                                  min={0}
-                                  max={11}
+    
+
                                   placeholder="Inches"
                                   value={heightObj.inches || ""}
                                   onChange={(e) => {
@@ -502,7 +562,7 @@ export function UserProfileForm() {
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               step={0.1}
                               placeholder="Weight"
                               value={value || ""}
@@ -530,7 +590,7 @@ export function UserProfileForm() {
                           <FormControl>
                             <Input
                               type="number"
-                              min={0}
+
                               placeholder="Weight"
                               value={value || ""}
                               onChange={(e) => {
@@ -629,14 +689,15 @@ export function UserProfileForm() {
                         placeholder="Please list any medical conditions, injuries, or movement limitations that might affect your workouts. Maximum 10 conditions, 200 characters each."
                         className="min-h-[100px]"
                         {...field}
-                        maxLength={VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
+
                       />
                     </FormControl>
-                    <FormDescription className="space-y-1">
-                      <div>This information helps us provide safer workout recommendations. It will be kept confidential.</div>
-                      <div className="text-xs text-muted-foreground">
+                    <FormDescription>
+                      This information helps us provide safer workout recommendations. It will be kept confidential.
+                      <br />
+                      <span className="text-xs text-muted-foreground">
                         Character count: {field.value?.length || 0}/{VALIDATION_CONSTANTS.MEDICAL_CONDITION_MAX_LENGTH * VALIDATION_CONSTANTS.MEDICAL_CONDITIONS_MAX}
-                      </div>
+                      </span>
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -697,22 +758,35 @@ export function UserProfileForm() {
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full bg-[#3E9EFF] hover:bg-[#3E9EFF]/90"
-              disabled={isSubmitting || profileLoading || Object.keys(form.formState.errors).length > 0}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving Profile...
-                </>
-              ) : Object.keys(form.formState.errors).length > 0 ? (
-                "Please Complete Required Fields"
-              ) : (
-                "Save Profile"
+            <div className="flex gap-4">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={formState.isSubmitting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               )}
-            </Button>
+              <Button
+                type="submit"
+                className={`bg-[#3E9EFF] hover:bg-[#3E9EFF]/90 ${onCancel ? 'flex-1' : 'w-full'}`}
+                disabled={formState.isSubmitting || profileLoading || Object.keys(form.formState.errors).length > 0}
+              >
+                {formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Profile...
+                  </>
+                ) : Object.keys(form.formState.errors).length > 0 ? (
+                  "Please Complete Required Fields"
+                ) : (
+                  "Save Profile"
+                )}
+              </Button>
+            </div>
             
             {/* Validation Summary */}
             {Object.keys(form.formState.errors).length > 0 && (

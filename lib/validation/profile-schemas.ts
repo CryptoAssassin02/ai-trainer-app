@@ -11,7 +11,7 @@ export const unitSystemSchema = z.enum(['metric', 'imperial'], {
   invalid_type_error: 'Unit preference must be either metric or imperial'
 });
 
-// Gender validation with inclusive options
+// Gender validation with inclusive options - Required for personalized recommendations
 export const genderSchema = z.enum([
   'male', 
   'female', 
@@ -19,9 +19,9 @@ export const genderSchema = z.enum([
   'prefer_not_to_say', 
   'non-binary'
 ], {
-  required_error: 'Please select your gender',
+  required_error: 'Gender is required for personalized fitness recommendations',
   invalid_type_error: 'Invalid gender selection'
-}).optional();
+});
 
 // Experience level validation
 export const experienceLevelSchema = z.enum([
@@ -37,7 +37,7 @@ export const experienceLevelSchema = z.enum([
 export const nameSchema = z.string()
   .min(2, 'Name must be at least 2 characters long')
   .max(100, 'Name must be 100 characters or less')
-  .regex(/^[\p{L}\s\-'\.]+$/u, 'Name can only contain letters, spaces, hyphens, apostrophes, and periods')
+  .regex(/^[a-zA-ZÀ-ÿ\s\-'\.]+$/, 'Name can only contain letters, spaces, hyphens, apostrophes, and periods')
   .transform(val => val.trim())
   .refine(val => val.trim().length > 0, 'Name cannot be empty or only whitespace')
   .optional();
@@ -109,7 +109,7 @@ export const goalsSchema = z.array(z.string().min(1))
 
 // Equipment validation
 export const equipmentSchema = z.array(z.string().min(1))
-  .max(10, 'Maximum 10 equipment items allowed')
+  .max(20, 'Maximum 20 equipment items allowed')
   .optional()
   .default([]);
 

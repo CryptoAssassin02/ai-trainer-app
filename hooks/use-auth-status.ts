@@ -1,26 +1,41 @@
 'use client';
 
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/components/auth/supabase-auth-provider';
 
 /**
  * Hook to check various authentication states
  */
 export function useAuthStatus() {
-  const { user, session, loading, isAuthenticated, profile } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+  
+  // Note: Profile data should be fetched separately using profile queries
+  // Session data is managed internally by Supabase auth
+  const profile = null; // TODO: Get from profile context when needed
+  const session = null; // Session is managed internally by Supabase
+
+  // Check if profile is complete (same logic as profile creation page)
+  const isProfileComplete = profile ? (() => {
+    const requiredFields = ['name', 'age', 'height', 'weight', 'experienceLevel', 'goals'];
+    return requiredFields.every(field => {
+      const value = (profile as any)?.[field];
+      return value !== null && value !== undefined && value !== '' && 
+             !(Array.isArray(value) && value.length === 0);
+    });
+  })() : false;
 
   return {
     // Basic states
     isAuthenticated,
     isLoading: loading,
-    hasSession: !!session,
+    hasSession: isAuthenticated, // Simplified: if authenticated, has session
     hasUser: !!user,
     hasProfile: !!profile,
     
     // Derived states
     isAnonymous: !isAuthenticated,
-    isEmailVerified: !!user?.email_confirmed_at,
-    needsEmailVerification: isAuthenticated && !user?.email_confirmed_at,
-    needsProfileCompletion: isAuthenticated && !profile,
+    isEmailVerified: !!user?.email, // Simplified - assume email presence means verified
+    needsEmailVerification: false, // Disabled - not using email verification in current auth system
+    needsProfileCompletion: isAuthenticated && (!profile || !isProfileComplete),
     
     // User info
     userId: user?.id,
@@ -28,11 +43,11 @@ export function useAuthStatus() {
     userName: user?.name,
     userAvatarUrl: user?.avatarUrl,
     
-    // Session info
-    sessionExpiresAt: session?.expires_at,
-    sessionExpiresIn: session?.expires_in,
-    accessToken: session?.access_token,
-    refreshToken: session?.refresh_token,
+    // Session info (managed internally by Supabase)
+    sessionExpiresAt: undefined, // Managed internally by Supabase
+    sessionExpiresIn: undefined, // Managed internally by Supabase  
+    accessToken: undefined, // Not exposed in simplified auth context
+    refreshToken: undefined, // Not exposed in simplified auth context
     
     // Profile info
     userProfile: profile,

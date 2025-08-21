@@ -5,7 +5,10 @@
 //   { ssr: false }
 // );
 
-import { ProfileQueryProvider } from '@/components/profile/profile-query-provider';
+import React from 'react';
+import { DashboardNavigation } from '@/components/ui/DashboardNavigation';
+// REMOVED: ProfileQueryProvider - now handled at app level
+// REMOVED: ProtectedRoute - middleware handles authentication now
 
 export default function DashboardLayout({
   children,
@@ -13,8 +16,12 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <ProfileQueryProvider>
-      {children}
-    </ProfileQueryProvider>
+    // Simplified layout - auth and profile context provided at app level
+    <div className="min-h-screen bg-background">
+      <DashboardNavigation />
+      <main>
+        {children}
+      </main>
+    </div>
   )
 } 

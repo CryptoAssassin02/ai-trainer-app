@@ -5,7 +5,7 @@ const { Client } = require('pg');
 const { env } = require('../config');
 
 // Configuration
-const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
+const MIGRATIONS_DIR = path.resolve(__dirname, '../supabase/migrations');
 const DRY_RUN = process.argv.includes('--dry-run');
 const VERBOSE = process.argv.includes('--verbose');
 

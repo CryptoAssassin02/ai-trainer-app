@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useAuth } from '../../providers/auth-provider'
+import React, { useState } from 'react'
+import { useAuth } from '@/components/auth/supabase-auth-provider'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')

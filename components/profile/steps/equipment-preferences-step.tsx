@@ -149,14 +149,16 @@ export function EquipmentPreferencesStep({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">🏋️ Available Equipment</CardTitle>
-          <FormDescription>
-            Select all equipment you have access to (gym, home, etc.)
+          <div className="space-y-2">
+            <FormDescription>
+              Select all equipment you have access to (gym, home, etc.)
+            </FormDescription>
             {selectedEquipment.length > 0 && (
-              <Badge variant="outline" className="ml-2">
+              <Badge variant="outline" className="inline-flex">
                 {selectedEquipment.length} items selected
               </Badge>
             )}
-          </FormDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -169,26 +171,45 @@ export function EquipmentPreferencesStep({
                 
                 <div className="grid grid-cols-1 gap-3 pl-3 sm:pl-6 sm:grid-cols-2">
                   {category.equipment.map((item) => (
-                    <label key={item.id} className={`flex items-start space-x-3 p-3 rounded-lg border transition-all hover:shadow-sm cursor-pointer touch-manipulation ${
-                      selectedEquipment.includes(item.id) ? 'bg-[#3E9EFF]/5 border-[#3E9EFF]' : 'border-border hover:bg-muted/30'
-                    }`}>
-                      <input
-                        {...form.register('equipment')}
-                        type="checkbox"
-                        value={item.id}
-                        disabled={isLoading}
-                        className="sr-only"
-                        data-testid={`equipment-${item.id}`}
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium cursor-pointer">
-                          {item.label}
-                        </span>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {item.description}
-                        </div>
-                      </div>
-                    </label>
+                    <FormField
+                      key={item.id}
+                      control={form.control}
+                      name="equipment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <label className={`flex items-start space-x-3 p-3 rounded-lg border transition-all hover:shadow-sm cursor-pointer touch-manipulation ${
+                              selectedEquipment.includes(item.id) ? 'bg-[#3E9EFF]/5 border-[#3E9EFF]' : 'border-border hover:bg-muted/30'
+                            }`}>
+                              <input
+                                type="checkbox"
+                                value={item.id}
+                                checked={selectedEquipment.includes(item.id)}
+                                onChange={(e) => {
+                                  const currentEquipment = field.value || [];
+                                  if (e.target.checked) {
+                                    field.onChange([...currentEquipment, item.id]);
+                                  } else {
+                                    field.onChange(currentEquipment.filter((eq: string) => eq !== item.id));
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className="sr-only"
+                                data-testid={`equipment-${item.id}`}
+                              />
+                              <div className="flex-1">
+                                <span className="text-sm font-medium cursor-pointer">
+                                  {item.label}
+                                </span>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {item.description}
+                                </div>
+                              </div>
+                            </label>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   ))}
                 </div>
               </div>

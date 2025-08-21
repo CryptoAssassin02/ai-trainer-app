@@ -98,14 +98,16 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">🎯 Fitness Goals</CardTitle>
-          <FormDescription>
-            Select up to {VALIDATION_CONSTANTS.GOALS_MAX} goals that are most important to you
+          <div className="space-y-2">
+            <FormDescription>
+              Select up to {VALIDATION_CONSTANTS.GOALS_MAX} goals that are most important to you
+            </FormDescription>
             {selectedGoals.length > 0 && (
-              <Badge variant="outline" className="ml-2">
+              <Badge variant="outline" className="inline-flex">
                 {selectedGoals.length}/{VALIDATION_CONSTANTS.GOALS_MAX} selected
               </Badge>
             )}
-          </FormDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -114,32 +116,52 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
                 selectedGoals.includes(goal.id) ? 'ring-2 ring-[#3E9EFF] bg-[#3E9EFF]/5' : 'hover:bg-muted/30'
               }`}>
                 <CardContent className="p-4 sm:p-5">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      {...form.register('goals')}
-                      type="checkbox"
-                      value={goal.id}
-                      disabled={isLoading || (!selectedGoals.includes(goal.id) && selectedGoals.length >= VALIDATION_CONSTANTS.GOALS_MAX)}
-                      className="sr-only"
-                      data-testid={`goal-${goal.id}`}
-                    />
-                    <span className="text-2xl">{goal.icon}</span>
-                    <div className="flex-1">
-                      <span className="text-base font-semibold cursor-pointer">
-                        {goal.label}
-                      </span>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {goal.description}
-                      </div>
-                    </div>
-                  </label>
+                  <FormField
+                    control={form.control}
+                    name="goals"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={goal.id}
+                              checked={selectedGoals.includes(goal.id)}
+                              onChange={(e) => {
+                                const currentGoals = field.value || [];
+                                if (e.target.checked) {
+                                  if (currentGoals.length < VALIDATION_CONSTANTS.GOALS_MAX) {
+                                    field.onChange([...currentGoals, goal.id]);
+                                  }
+                                } else {
+                                  field.onChange(currentGoals.filter((g: string) => g !== goal.id));
+                                }
+                              }}
+                              disabled={isLoading || (!selectedGoals.includes(goal.id) && selectedGoals.length >= VALIDATION_CONSTANTS.GOALS_MAX)}
+                              className="sr-only"
+                              data-testid={`goal-${goal.id}`}
+                            />
+                            <span className="text-2xl">{goal.icon}</span>
+                            <div className="flex-1">
+                              <span className="text-base font-semibold cursor-pointer">
+                                {goal.label}
+                              </span>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {goal.description}
+                              </div>
+                            </div>
+                          </label>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             ))}
           </div>
 
           {selectedGoals.length >= VALIDATION_CONSTANTS.GOALS_MAX && (
-            <Alert>
+            <Alert className="mt-3 sm:mt-4">
               <Info className="h-4 w-4" />
               <AlertDescription>
                 You've selected the maximum number of goals. Deselect one to choose a different goal.

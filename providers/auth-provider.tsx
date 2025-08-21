@@ -37,7 +37,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ message: string }>;
   updatePassword: (newPassword: string) => Promise<{ message: string }>;
   refreshSession: () => Promise<void>;
-  checkAuthStatus: () => Promise<void>;
+  checkAuthStatus: (showLoading?: boolean) => Promise<void>;
 }
 
 // Create the context with a default value
@@ -47,7 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const isAuthenticated = !!user && !!session;
@@ -98,7 +98,19 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
       setProfile(null);
     } catch (error) {
       console.error('Sign out failed:', error);
-      throw error;
+      // Clear local state even if backend logout fails
+      // This ensures the user can still log out when tokens are expired
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
+      // Also clear localStorage as backup (in case authService.signOut() failed before clearing)
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('user_email');
+      
+      // Don't re-throw the error - logout should always succeed locally
     } finally {
       setLoading(false);
     }
@@ -165,9 +177,11 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   };
 
   // Check authentication status - FIXED: useCallback to prevent infinite loops
-  const checkAuthStatus = useCallback(async () => {
+  const checkAuthStatus = useCallback(async (showLoading = false) => {
     console.log('🔍 [AUTH PROVIDER] checkAuthStatus called');
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       console.log('📞 [AUTH PROVIDER] Calling authService.checkAuthStatus...');
       const authStatus = await authService.checkAuthStatus();
@@ -175,9 +189,33 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
       
       if (authStatus.isAuthenticated && authStatus.user && authStatus.session) {
         console.log('👤 [AUTH PROVIDER] User is authenticated, setting state');
+        
+        // CRITICAL FIX: Verify token actually exists in storage before setting authenticated state
+        const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+        if (!token) {
+          console.warn('⚠️ [AUTH PROVIDER] Auth status says authenticated but no token found - clearing state');
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+          return;
+        }
+        
         const mappedUser = mapBackendUser(authStatus.user, authStatus.user.email || '');
         setUser(mappedUser);
         setSession(authStatus.session as Session);
+        
+        // Load user profile if authenticated - keep loading until profile is loaded
+        try {
+          console.log('📞 [AUTH PROVIDER] Loading user profile...');
+          const profileService = await import('@/lib/api/services/profile-service');
+          const userProfile = await profileService.profileService.getProfile();
+          console.log('✅ [AUTH PROVIDER] Profile loaded successfully:', userProfile);
+          setProfile(userProfile);
+        } catch (profileError) {
+          console.log('ℹ️ [AUTH PROVIDER] No profile found (user may need to create one):', profileError);
+          setProfile(null);
+        }
+        // Note: loading will be set to false in the finally block after profile loading completes
       } else {
         console.log('👤 [AUTH PROVIDER] User not authenticated, clearing state');
         setUser(null);
@@ -186,20 +224,33 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('❌ [AUTH PROVIDER] Auth status check failed:', error);
+      // CRITICAL FIX: Clear potentially corrupted tokens on auth check failure
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user_id');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('remember_me');
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user_id');
+      sessionStorage.removeItem('user_email');
+      
       setUser(null);
       setSession(null);
       setProfile(null);
     } finally {
-      console.log('🏁 [AUTH PROVIDER] checkAuthStatus setting loading to false');
-      setLoading(false);
+      if (showLoading) {
+        console.log('🏁 [AUTH PROVIDER] checkAuthStatus setting loading to false');
+        setLoading(false);
+      }
     }
   }, []); // Empty dependency array since it doesn't depend on any props or state
 
   // Initial auth check on mount
   useEffect(() => {
-    // Check initial auth status
+    // Check initial auth status with loading state
     console.log('🔍 [AUTH PROVIDER] Starting initial checkAuthStatus...');
-    checkAuthStatus();
+    checkAuthStatus(true); // Show loading during initial check
   }, []);
 
   // Value object with state and methods
