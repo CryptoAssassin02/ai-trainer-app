@@ -116,7 +116,9 @@ export function FieldStatusBadge({
   if (hasError) {
     status = 'error';
     statusText = 'Error';
-  } else if (hasValue && isDirty) {
+  } else if (hasValue) {
+    // Consider field completed if it has a value, regardless of dirty state
+    // This handles cases where fields are pre-populated (like name from auth context)
     status = 'completed';
     statusText = 'Completed';
   } else if (isRequired) {
@@ -268,7 +270,9 @@ export function StepValidationSummary({
     const isDirty = dirtyFields[field];
     const hasValue = value !== undefined && value !== null && value !== '' && 
                     !(Array.isArray(value) && value.length === 0);
-    return isDirty && hasValue && !errors[field];
+    // Consider field completed if it has a value and no errors, regardless of dirty state
+    // This handles cases where fields are pre-populated (like name from auth context)
+    return hasValue && !errors[field];
   });
   
   const requiredStepFields = stepFields.filter(field => requiredFields.includes(field));

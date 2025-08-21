@@ -245,7 +245,7 @@ export function ErrorProvider({ children, fallback }: ErrorProviderProps) {
   // Reset to safe state
   const resetToSafeState = useCallback(() => {
     clearAllErrors();
-    router.push('/dashboard');
+    router.push('/');
     toast.info('Redirected to dashboard', {
       description: 'The application has been reset to a safe state.',
     });

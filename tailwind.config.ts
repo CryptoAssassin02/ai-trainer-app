@@ -44,6 +44,7 @@ const config: Config = {
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				'electric-blue': 'hsl(var(--electric-blue))',
+				'cornflower-blue': '#6495ED',
 				'near-black': '#121212',
 				'off-white': '#F5F5F5',
 				chart: {

@@ -159,9 +159,19 @@ export function PersonalInfoStep({ form, unitPreference, isLoading }: PersonalIn
         name="gender"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-base font-semibold">⚧️ Gender Identity</FormLabel>
+            <div className="flex items-center justify-between">
+              <FormLabel className="text-base font-semibold flex items-center gap-2">
+                ⚧️ Gender Identity *
+                <ValidationIndicator fieldName="gender" form={form} />
+              </FormLabel>
+              <FieldStatusBadge 
+                fieldName="gender" 
+                form={form} 
+                requiredFields={['gender']}
+              />
+            </div>
             <FormDescription>
-              This helps us provide more personalized recommendations (optional)
+              This helps us provide more personalized recommendations
             </FormDescription>
             <FormControl>
               <NativeSelect 
@@ -169,7 +179,7 @@ export function PersonalInfoStep({ form, unitPreference, isLoading }: PersonalIn
                 value={field.value || ''}
                 disabled={isLoading}
                 data-testid="gender-select"
-                placeholder="Select gender (optional)"
+                placeholder="Select gender"
                 options={[
                   { value: 'male', label: 'Male' },
                   { value: 'female', label: 'Female' },
@@ -179,6 +189,16 @@ export function PersonalInfoStep({ form, unitPreference, isLoading }: PersonalIn
                 ]}
               />
             </FormControl>
+            <ValidationFeedback
+              fieldName="gender"
+              form={form}
+              helpText="Gender helps us tailor fitness recommendations to your physiology"
+              validationRules={[
+                'Required for personalized workout planning',
+                'Helps optimize exercise selection and intensity',
+                'Improves nutritional recommendations accuracy'
+              ]}
+            />
             <FormMessage />
           </FormItem>
         )}
@@ -188,7 +208,7 @@ export function PersonalInfoStep({ form, unitPreference, isLoading }: PersonalIn
       <StepValidationSummary
         form={form}
         stepFields={['name', 'age', 'gender', 'unitPreference']}
-        requiredFields={['name', 'age']}
+        requiredFields={['name', 'age', 'gender']}
       />
 
       {/* Step Summary */}
@@ -197,7 +217,7 @@ export function PersonalInfoStep({ form, unitPreference, isLoading }: PersonalIn
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>• <strong>Name:</strong> Personalize your experience</li>
           <li>• <strong>Age:</strong> Adjust exercise recommendations for your life stage</li>
-          <li>• <strong>Gender:</strong> Tailor fitness and nutrition guidance (optional)</li>
+          <li>• <strong>Gender:</strong> Tailor fitness and nutrition guidance to your physiology</li>
           <li>• <strong>Units:</strong> Display measurements in your preferred system</li>
         </ul>
       </div>

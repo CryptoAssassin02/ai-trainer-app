@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -29,33 +29,54 @@ import type { UserProfile } from "@/lib/api/types"
 import type { UserProfileFormProps } from "@/lib/validation/profile-form-types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuth } from "@/providers/auth-provider"
+import { useAuth } from "@/components/auth/supabase-auth-provider"
 
 // Define fitness goals options
 const fitnessGoals = [
-  { id: "weight-loss", label: "Weight Loss" },
-  { id: "muscle-gain", label: "Muscle Gain" },
+  { id: "weight_loss", label: "Weight Loss" },
+  { id: "muscle_gain", label: "Muscle Gain" },
   { id: "strength", label: "Strength" },
   { id: "endurance", label: "Endurance" },
   { id: "flexibility", label: "Flexibility" },
-  { id: "general-fitness", label: "General Fitness" },
-  { id: "sports-performance", label: "Sports Performance" },
-  { id: "body-recomposition", label: "Body Recomposition" },
+  { id: "general_fitness", label: "General Fitness" },
+  { id: "sports_performance", label: "Sports Performance" },
+  { id: "body_recomposition", label: "Body Recomposition" },
 ]
 
-// Define equipment options
+// Define equipment options - MUST match MultiStepProfileForm equipment IDs
 const equipmentOptions = [
+  // Free Weights
   { id: "dumbbells", label: "Dumbbells" },
-  { id: "barbell", label: "Barbell" },
-  { id: "kettlebell", label: "Kettlebell" },
-  { id: "resistance-bands", label: "Resistance Bands" },
-  { id: "pull-up-bar", label: "Pull-up Bar" },
-  { id: "bench", label: "Bench" },
-  { id: "squat-rack", label: "Squat Rack" },
-  { id: "cardio-equipment", label: "Cardio Equipment" },
-  { id: "cable-machine", label: "Cable Machine" },
-  { id: "smith-machine", label: "Smith Machine" },
-  { id: "gym-membership", label: "Gym Membership" },
+  { id: "barbells", label: "Barbells" },
+  { id: "kettlebells", label: "Kettlebells" },
+  { id: "medicine_balls", label: "Medicine Balls" },
+  
+  // Machines & Stations
+  { id: "cable_machine", label: "Cable Machine" },
+  { id: "smith_machine", label: "Smith Machine" },
+  { id: "power_rack", label: "Power Rack/Squat Rack" },
+  { id: "leg_press", label: "Leg Press Machine" },
+  { id: "lat_pulldown", label: "Lat Pulldown" },
+  
+  // Cardio Equipment
+  { id: "treadmill", label: "Treadmill" },
+  { id: "stationary_bike", label: "Stationary Bike" },
+  { id: "elliptical", label: "Elliptical Machine" },
+  { id: "rowing_machine", label: "Rowing Machine" },
+  { id: "stair_climber", label: "Stair Climber" },
+  
+  // Bodyweight & Accessories
+  { id: "pull_up_bar", label: "Pull-up Bar" },
+  { id: "resistance_bands", label: "Resistance Bands" },
+  { id: "suspension_trainer", label: "Suspension Trainer" },
+  { id: "yoga_mat", label: "Yoga/Exercise Mat" },
+  { id: "foam_roller", label: "Foam Roller" },
+  
+  // Specialized Equipment
+  { id: "battle_ropes", label: "Battle Ropes" },
+  { id: "plyometric_box", label: "Plyometric Box" },
+  { id: "agility_ladder", label: "Agility Ladder" },
+  { id: "parallette_bars", label: "Parallette Bars" },
 ]
 
 // Use comprehensive validation schema with dynamic height validation
@@ -73,11 +94,12 @@ export function UserProfileForm({
   showAdvancedOptions = true,
   enableRealTimeValidation = true,
   showCompletionIndicator = true,
-  title = "Your Fitness Profile",
+  title = "Your trAIner Profile",
   description = "Update your profile to keep your workout recommendations personalized and effective."
 }: UserProfileFormProps = {}) {
   const { profile, updateProfileAsync, isLoading: profileLoading, error: profileError } = useProfile()
   const [isMetric, setIsMetric] = useState<boolean>(true)
+  const prevUnitPreferenceRef = useRef<string | null>(null)
   const { isAuthenticated } = useAuth()
   
   // Use shared business logic
@@ -133,8 +155,9 @@ export function UserProfileForm({
       // Determine unit preference from profile data
       const profileIsMetric = profileData.unitPreference === "metric";
       
-      // Update isMetric state only if it's different (prevent infinite loop)
-      if (profileIsMetric !== isMetric) {
+      // Only update if unit preference actually changed (prevent infinite loop)
+      if (prevUnitPreferenceRef.current !== profileData.unitPreference) {
+        prevUnitPreferenceRef.current = profileData.unitPreference || "metric";
         setIsMetric(profileIsMetric);
       }
 
@@ -144,13 +167,10 @@ export function UserProfileForm({
         age: profileData.age || 30,
         gender: profileData.gender as "male" | "female" | "non-binary" | "prefer_not_to_say" || "prefer_not_to_say",
         height: profileIsMetric 
-          ? (profileData.height || 178)
-          : profileData.height 
-            ? { 
-                feet: Math.floor(profileData.height as number / 30.48) || 5, 
-                inches: Math.round((profileData.height as number % 30.48) / 2.54) || 10 
-              }
-            : { feet: 5, inches: 10 },
+          ? (typeof profileData.height === 'number' ? profileData.height : 178)
+          : (typeof profileData.height === 'object' && profileData.height?.feet && profileData.height?.inches !== undefined)
+            ? profileData.height  // Use the object directly if it's already in imperial format
+            : { feet: 5, inches: 10 }, // Default fallback
         weight: profileData.weight || (profileIsMetric ? 72.5 : 160),
         experienceLevel: profileData.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
         goals: profileData.goals || [],
@@ -161,7 +181,7 @@ export function UserProfileForm({
         unitPreference: profileData.unitPreference || "metric"
       })
     }
-  }, [profile.data, profileLoading, reset, isMetric]) // Proper dependencies following React Hook Form best practices
+  }, [(profile.data as UserProfile)?.id, (profile.data as UserProfile)?.updatedAt, profileLoading, reset]) // Use stable identifiers instead of entire object
 
 
 
@@ -170,25 +190,30 @@ export function UserProfileForm({
     const isNewMetric = newUnitPreference === "metric"
     setIsMetric(isNewMetric)
     
+    // CRITICAL FIX: Do NOT convert weight values in frontend
+    // The backend handles all unit conversions based on unitPreference
+    // Frontend should only change the unit preference and clear values to avoid double conversion
+    
     // Get current height and weight
     const currentHeight = form.getValues('height')
     const currentWeight = form.getValues('weight')
     
+    // Only handle height conversion since height has different input formats (object vs number)
     if (isNewMetric) {
-      // Convert from imperial to metric
+      // Convert from imperial to metric for height only
       if (typeof currentHeight === 'object' && currentHeight) {
         const { feet = 0, inches = 0 } = currentHeight
         const heightInCm = Math.round((feet * 30.48) + (inches * 2.54))
         form.setValue('height', heightInCm)
       }
       
-      if (typeof currentWeight === 'number') {
-        // Assume it's in pounds, convert to kg
-        const weightInKg = Math.round(currentWeight * 0.453592 * 10) / 10
-        form.setValue('weight', weightInKg)
+      // REMOVED: Weight conversion - let backend handle this
+      // Clear weight to force user to re-enter in new units
+      if (currentWeight) {
+        form.setValue('weight', undefined)
       }
     } else {
-      // Convert from metric to imperial
+      // Convert from metric to imperial for height only
       if (typeof currentHeight === 'number') {
         const totalInches = currentHeight / 2.54
         const feet = Math.floor(totalInches / 12)
@@ -196,10 +221,10 @@ export function UserProfileForm({
         form.setValue('height', { feet, inches })
       }
       
-      if (typeof currentWeight === 'number') {
-        // Assume it's in kg, convert to pounds
-        const weightInLbs = Math.round(currentWeight * 2.20462)
-        form.setValue('weight', weightInLbs)
+      // REMOVED: Weight conversion - let backend handle this
+      // Clear weight to force user to re-enter in new units
+      if (currentWeight) {
+        form.setValue('weight', undefined)
       }
     }
     
@@ -209,41 +234,29 @@ export function UserProfileForm({
   // Handle form submission
   async function onSubmit(data: FormValues) {
     try {
-      await handleFormSubmit(async () => {
-        // Convert height and weight to a single unit for storage
-        let heightInCm, weightInKg
-
-        if (isMetric) {
-          heightInCm = typeof data.height === 'number' ? data.height : undefined
-          weightInKg = typeof data.weight === 'number' ? data.weight : undefined
-        } else {
-          // Convert imperial to metric
-          if (typeof data.height === 'object' && data.height) {
-            const { feet = 0, inches = 0 } = data.height
-            heightInCm = feet * 30.48 + inches * 2.54
-          }
-          weightInKg = typeof data.weight === 'number' ? data.weight * 0.453592 : undefined
-        }
-
+      await handleFormSubmit(      async () => {
+        // CRITICAL FIX: Do NOT convert units in frontend - backend handles all conversions
+        // Send data in the format the user entered it, with unitPreference for backend conversion
+        
         // Check for user authentication
         if (!isAuthenticated) {
           throw new Error("You need to be signed in to save your profile.")
         }
 
-        // Prepare final data object
+        // Prepare final data object - send raw values with unitPreference
         const finalData = {
           name: data.name,
           age: data.age,
           gender: data.gender,
-          height: heightInCm || 0,
-          weight: weightInKg || 0,
+          height: data.height, // Send as-is (number for metric, object for imperial)
+          weight: data.weight, // Send as-is (backend will convert based on unitPreference)
           experienceLevel: data.experienceLevel,
-          goals: data.goals, // FIXED: Use 'goals' not 'fitnessGoals'
+          goals: data.goals,
           medicalConditions: data.medicalConditions 
             ? data.medicalConditions.split(',').map(s => s.trim()).filter(s => s.length > 0)
             : [],
           equipment: data.equipment || [],
-          unitPreference: data.unitPreference // FIXED: Use camelCase not snake_case
+          unitPreference: data.unitPreference // Backend uses this for proper conversion
         }
 
         // Update profile via the modern profile hooks
@@ -260,9 +273,11 @@ export function UserProfileForm({
     }
   }
 
-  if (profileLoading) {
+  // Show loading skeleton only if we're in edit mode and have no profile data yet
+  // This prevents the "flash" of empty form while still showing loading for slow connections
+  if (profileLoading && isEditMode && !profile?.data) {
     return (
-      <Card className="w-full max-w-4xl mx-auto">
+      <Card className="w-full max-w-4xl mx-auto bg-card/50 backdrop-blur-sm border border-border/50">
         <CardHeader>
           <Skeleton className="h-8 w-2/3" />
           <Skeleton className="h-4 w-full mt-2" />
@@ -291,10 +306,10 @@ export function UserProfileForm({
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto bg-card/50 backdrop-blur-sm border border-border/50 hover:border-cornflower-blue/30 transition-all duration-300 hover:shadow-lg hover:shadow-cornflower-blue/10">
       <CardHeader>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-2xl text-center">{title}</CardTitle>
+        <CardDescription className="text-center">
           {description}
         </CardDescription>
         <div className="mt-2 rounded-md bg-primary/10 p-3 text-sm">

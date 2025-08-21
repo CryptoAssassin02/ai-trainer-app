@@ -141,12 +141,26 @@ export class AuthService {
         message: response.message 
       });
 
-      // Store tokens in localStorage
-      localStorage.setItem('auth_token', response.jwtToken);
-      localStorage.setItem('user_id', response.userId);
-      localStorage.setItem('user_email', credentials.email);
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
+      // Store tokens based on rememberMe preference
+      if (credentials.rememberMe) {
+        console.log('🔒 [AUTH SERVICE] Storing tokens persistently (Remember Me enabled)');
+        // Persistent storage - survives browser restart
+        localStorage.setItem('auth_token', response.jwtToken);
+        localStorage.setItem('user_id', response.userId);
+        localStorage.setItem('user_email', credentials.email);
+        localStorage.setItem('remember_me', 'true');
+        if (response.refreshToken) {
+          localStorage.setItem('refresh_token', response.refreshToken);
+        }
+      } else {
+        console.log('🔒 [AUTH SERVICE] Storing tokens in session only (Remember Me disabled)');
+        // Session-only storage - cleared when browser closes
+        sessionStorage.setItem('auth_token', response.jwtToken);
+        sessionStorage.setItem('user_id', response.userId);
+        sessionStorage.setItem('user_email', credentials.email);
+        if (response.refreshToken) {
+          sessionStorage.setItem('refresh_token', response.refreshToken);
+        }
       }
 
       // Transform backend response to match expected interface
@@ -195,11 +209,17 @@ export class AuthService {
         }
       );
       
-      // Clear stored tokens
+      // Clear stored tokens from both storage types
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_id');
       localStorage.removeItem('user_email');
+      localStorage.removeItem('remember_me');
+      
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user_id');
+      sessionStorage.removeItem('user_email');
       
       console.log('✅ [AUTH SERVICE] Backend signOut completed successfully');
     } catch (error) {
@@ -209,6 +229,12 @@ export class AuthService {
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_id');
       localStorage.removeItem('user_email');
+      localStorage.removeItem('remember_me');
+      
+      sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user_id');
+      sessionStorage.removeItem('user_email');
       throw error;
     }
   }
@@ -267,16 +293,24 @@ export class AuthService {
   }
 
   /**
-   * Get current session from local storage (JWT-based)
+   * Get current session from storage (checks both localStorage and sessionStorage)
    */
   async getCurrentSession(): Promise<{
     session: any;
     user: any;
   } | null> {
     try {
-      const token = localStorage.getItem('auth_token');
-      const userId = localStorage.getItem('user_id');
-      const userEmail = localStorage.getItem('user_email');
+      // First check sessionStorage (session-only tokens)
+      let token = sessionStorage.getItem('auth_token');
+      let userId = sessionStorage.getItem('user_id');
+      let userEmail = sessionStorage.getItem('user_email');
+      
+      // If not found in sessionStorage, check localStorage (persistent tokens)
+      if (!token || !userId) {
+        token = localStorage.getItem('auth_token');
+        userId = localStorage.getItem('user_id');
+        userEmail = localStorage.getItem('user_email');
+      }
       
       if (!token || !userId) {
         return null;
@@ -311,7 +345,8 @@ export class AuthService {
     try {
       console.log('🚀 [AUTH SERVICE] Starting backend session refresh');
       
-      const refreshToken = localStorage.getItem('refresh_token');
+      // Check both storage types for refresh token
+      let refreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
@@ -327,10 +362,18 @@ export class AuthService {
         }
       );
       
-      // Update stored tokens
-      localStorage.setItem('auth_token', response.jwtToken);
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
+      // Update stored tokens in the same storage type where they were found
+      const isRemembered = localStorage.getItem('remember_me') === 'true';
+      if (isRemembered) {
+        localStorage.setItem('auth_token', response.jwtToken);
+        if (response.refreshToken) {
+          localStorage.setItem('refresh_token', response.refreshToken);
+        }
+      } else {
+        sessionStorage.setItem('auth_token', response.jwtToken);
+        if (response.refreshToken) {
+          sessionStorage.setItem('refresh_token', response.refreshToken);
+        }
       }
       
       const result = {
@@ -354,6 +397,23 @@ export class AuthService {
   }
 
   /**
+   * Clear expired tokens from storage
+   */
+  private clearExpiredTokens(): void {
+    console.log('🧹 [AUTH SERVICE] Clearing expired tokens from storage');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('remember_me');
+    
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('user_id');
+    sessionStorage.removeItem('user_email');
+  }
+
+  /**
    * Check authentication status (simplified for backend auth)
    */
   async checkAuthStatus(): Promise<{
@@ -363,13 +423,26 @@ export class AuthService {
   }> {
     try {
       const session = await this.getCurrentSession();
+      
+      // If we have a session, try to validate it's not expired
+      if (session) {
+        // You could add JWT expiration checking here if needed
+        return {
+          isAuthenticated: true,
+          user: session.user,
+          session: session.session,
+        };
+      }
+      
       return {
-        isAuthenticated: !!session,
-        user: session?.user || null,
-        session: session?.session || null,
+        isAuthenticated: false,
+        user: null,
+        session: null,
       };
     } catch (error) {
       console.error('Auth status check failed:', error);
+      // Clear potentially corrupted tokens
+      this.clearExpiredTokens();
       return {
         isAuthenticated: false,
         user: null,

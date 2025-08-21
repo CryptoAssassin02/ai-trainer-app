@@ -161,7 +161,7 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
           </div>
 
           {selectedGoals.length >= VALIDATION_CONSTANTS.GOALS_MAX && (
-            <Alert>
+            <Alert className="mt-3 sm:mt-4">
               <Info className="h-4 w-4" />
               <AlertDescription>
                 You've selected the maximum number of goals. Deselect one to choose a different goal.

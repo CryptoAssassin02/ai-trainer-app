@@ -111,6 +111,9 @@ export interface FormStep {
   /** Form fields included in this step */
   fields: string[];
   
+  /** Optional fields in this step (not required for completion) */
+  optionalFields?: string[];
+  
   /** Whether this step is optional */
   optional?: boolean;
   

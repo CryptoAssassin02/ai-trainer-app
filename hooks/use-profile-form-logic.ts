@@ -226,14 +226,14 @@ export function useProfileFormLogic({
  * Get default success redirect based on mode
  */
 export function getDefaultSuccessRedirect(mode: 'create' | 'edit'): string {
-  return mode === 'create' ? '/profile' : '/dashboard';
+  return mode === 'create' ? '/profile' : '/';
 }
 
 /**
  * Get default cancel redirect based on mode
  */
 export function getDefaultCancelRedirect(mode: 'create' | 'edit'): string {
-  return '/dashboard';
+  return '/';
 }
 
 /**
