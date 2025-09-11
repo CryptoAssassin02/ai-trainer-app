@@ -153,9 +153,9 @@ export function ProfileQueryProvider({
     isFetching: profileHooks.isFetching,
     isUpdating: profileHooks.isUpdating,
     
-    // Error states  
-    error: profileHooks.error,
-    isError: profileHooks.isError,
+    // Error states - suppress errors in create mode for new users
+    error: isCreateMode ? null : profileHooks.error,
+    isError: isCreateMode ? false : profileHooks.isError,
     updateError: profileHooks.updateError,
     
     // Actions
@@ -236,8 +236,10 @@ export function useProfileForm(options?: {
       weight: profile?.weight || (profile?.unitPreference === 'imperial' ? 160 : 72.5),
       experienceLevel: profile?.experienceLevel || 'beginner',
       goals: profile?.goals || [],
-      equipment: profile?.equipment || [],
-      medicalConditions: profile?.medicalConditions || [],
+      gymCategory: profile?.gymCategory || 'minimal_home',
+      medicalConditions: Array.isArray(profile?.medicalConditions) 
+        ? profile.medicalConditions.join(', ') 
+        : profile?.medicalConditions || '',
       workoutFrequency: profile?.workoutFrequency || '',
     };
   }, [profile, preferences, options?.mode]);
@@ -245,13 +247,21 @@ export function useProfileForm(options?: {
   // Submit handler with optimistic updates
   const handleSubmit = React.useCallback(async (data: UpdateProfileRequest) => {
     try {
+      // Convert medicalConditions from string back to array for backend
+      const processedData = {
+        ...data,
+        medicalConditions: typeof data.medicalConditions === 'string' 
+          ? (data.medicalConditions as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0)
+          : data.medicalConditions
+      };
+
       if (options?.enableOptimistic !== false) {
         // Use optimistic update
-        updateProfile(data);
-        options?.onSuccess?.(data as any); // Type assertion for callback
+        updateProfile(processedData);
+        options?.onSuccess?.(processedData as any); // Type assertion for callback
       } else {
         // Wait for server response
-        const result = await updateProfileAsync(data);
+        const result = await updateProfileAsync(processedData);
         options?.onSuccess?.(result);
       }
     } catch (err) {

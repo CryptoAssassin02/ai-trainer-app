@@ -45,13 +45,13 @@ router.get('/health', (req, res) => {
 const authRoutes = require('./auth');
 const healthRoutes = require('./v1/health');
 const profileRoutes = require('./profile');
-const nutritionRoutes = require('./nutrition');
+// const nutritionRoutes = require('./nutrition');
 const workoutRoutes = require('./workout');
 const workoutLogRoutes = require('./workout-log');
 const checkInRoutes = require('./check-in');
-const macroRoutes = require('./macros');
-const notificationRoutes = require('./notifications');
-const dataTransferRoutes = require('./data-transfer');
+// const macroRoutes = require('./macros');
+// const notificationRoutes = require('./notifications');
+//const dataTransferRoutes = require('./data-transfer');
 const analyticsRoutes = require('./analytics');
 const goalsRoutes = require('./goals');
 const mobileAnalyticsRoutes = require('./mobile-analytics');
@@ -76,13 +76,13 @@ function registerRoutes(app) {
   apiRouter.use('/auth', authRoutes);
   apiRouter.use('/health', healthRoutes);
   apiRouter.use('/profile', profileRoutes);
-  apiRouter.use('/nutrition', nutritionRoutes); // Updated: use /nutrition prefix to match API structure
-  apiRouter.use('/macros', macroRoutes); // New: mount macro routes under /macros prefix
+  // apiRouter.use('/nutrition', nutritionRoutes); // Updated: use /nutrition prefix to match API structure
+  // apiRouter.use('/macros', macroRoutes); // New: mount macro routes under /macros prefix
   apiRouter.use('/', workoutLogRoutes); // CRITICAL: Mount workout log routes BEFORE workout routes to avoid /:planId conflict
   apiRouter.use('/workouts', workoutRoutes);
   apiRouter.use('/progress', checkInRoutes); // Mount check-in routes under /progress to match the intended API structure
-  apiRouter.use('/notifications', notificationRoutes);
-  apiRouter.use('/', dataTransferRoutes); // Mount data transfer routes at root level since they have full paths
+  // apiRouter.use('/notifications', notificationRoutes);
+  // apiRouter.use('/', dataTransferRoutes); // Mount data transfer routes at root level since they have full paths
   apiRouter.use('/analytics', analyticsRoutes); // Mount analytics routes under /analytics prefix
   apiRouter.use('/goals', goalsRoutes); // Mount goal routes under /goals prefix
   apiRouter.use('/mobile', mobileAnalyticsRoutes); // Mount mobile analytics routes under /mobile prefix

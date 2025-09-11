@@ -8,11 +8,11 @@
  * - logger: Logging utilities
  * - supabase: Supabase client configuration
  * - openai: OpenAI client configuration
- * - perplexity: Perplexity client configuration
+
  * - serverConfig: Determined server configuration (uses config.server or defaults)
  */
 
-let env, config, logger, supabase, openai, perplexity;
+let env, config, logger, supabase, openai;
 
 // Try to load each configuration module
 // Tests should mock these modules as needed
@@ -63,13 +63,7 @@ try {
   openai = {}; 
 }
 
-try {
-  perplexity = require('./perplexity');
-} catch (error) {
-  console.warn('Warning: Failed to load Perplexity configuration (./perplexity).', error);
-  // Fallback if Perplexity is optional or handled elsewhere
-  perplexity = {}; 
-}
+
 
 // Default Server Configuration (used if config.server is not provided)
 const defaultServerConfig = {
@@ -89,6 +83,5 @@ module.exports = {
   logger,
   supabase,
   openai,
-  perplexity,
   serverConfig // Use the determined serverConfig
 }; 

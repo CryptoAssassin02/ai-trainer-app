@@ -273,12 +273,7 @@ const sanitizeWorkoutPlan = (workoutPlan) => {
     });
   }
   
-  // Sanitize research insights
-  if (Array.isArray(sanitizedPlan.researchInsights)) {
-    sanitizedPlan.researchInsights = sanitizedPlan.researchInsights.map(insight => {
-      return typeof insight === 'string' ? sanitizeUserHtml(insight, { relaxed: true }) : '';
-    });
-  }
+
   
   return sanitizedPlan;
 };

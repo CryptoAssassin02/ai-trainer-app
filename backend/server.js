@@ -1,6 +1,6 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const { env, logger } = require('./config');
+const { env, logger, supabase } = require('./config');
 const routes = require('./routes');
 const { notFoundHandler, globalErrorHandler, handleFatalError } = require('./middleware/error-middleware');
 const { setupSecurityMiddleware } = require('./middleware/security');
@@ -76,10 +76,66 @@ const performCleanupTasks = async () => {
     //   logger.info(`Cleaned up ${removedTokens} expired blacklisted tokens`);
     // }
     
-    // Run other cleanup tasks here if needed
-    logger.debug('Cleanup tasks completed (no active cleanup functions)');
+    // ADD: Chunked generation cleanup to existing function
+    await cleanupAbandonedChunkedGenerations();
+    logger.debug('Cleanup tasks completed including chunked generations');
   } catch (error) {
     logger.error('Error during cleanup tasks:', error);
+  }
+};
+
+// ADD: New cleanup function for chunked generations
+const cleanupAbandonedChunkedGenerations = async () => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  try {
+    // Find plans stuck in generating states for > 1 hour
+    const { data: abandonedPlans, error: fetchError } = await supabase
+      .from('workout_plans')
+      .select('id, generation_state, mesocycles_generated')
+      .in('generation_state', [
+        'mesocycle_1_generating',
+        'mesocycle_2_generating', 
+        'mesocycle_3_generating',
+        'mesocycle_4_generating'
+      ])
+      .lt('generation_started_at', oneHourAgo);
+
+    if (fetchError) {
+      logger.error('[Cleanup] Error fetching abandoned plans:', fetchError);
+      return;
+    }
+
+    if (!abandonedPlans || abandonedPlans.length === 0) {
+      logger.debug('[Cleanup] No abandoned chunked generations found');
+      return;
+    }
+
+    logger.info(`[Cleanup] Found ${abandonedPlans.length} abandoned chunked generations`);
+
+    // Reset each abandoned plan
+    for (const plan of abandonedPlans) {
+      const resetState = plan.mesocycles_generated > 0 
+        ? `mesocycle_${plan.mesocycles_generated}_complete`
+        : 'structure_generated';
+
+      const { error: updateError } = await supabase
+        .from('workout_plans')
+        .update({
+          generation_state: resetState,
+          generation_errors: supabase.raw(`generation_errors || '[{"type": "timeout", "message": "Generation timed out and was reset", "timestamp": "${new Date().toISOString()}"}]'::jsonb`)
+        })
+        .eq('id', plan.id);
+
+      if (updateError) {
+        logger.error(`[Cleanup] Error resetting plan ${plan.id}:`, updateError);
+      } else {
+        logger.info(`[Cleanup] Reset plan ${plan.id} to state: ${resetState}`);
+      }
+    }
+
+  } catch (error) {
+    logger.error('[Cleanup] Unexpected error in chunked generation cleanup:', error);
   }
 };
 

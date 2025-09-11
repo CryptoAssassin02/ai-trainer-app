@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useMemo } from 'react';
 import { useProfile } from '@/hooks/use-profile-queries';
-import { useProfileAdvanced } from '@/hooks/use-profile-advanced';
+import { useProfileCompletion, useProfileValidation, useProfileOverview } from '@/hooks/use-profile-advanced';
 import type { UserProfile } from '@/lib/api/types';
 
 // Profile completeness calculation interface
@@ -268,7 +268,9 @@ const calculateProfileCompleteness = (profile: UserProfile | null): ProfileCompl
 // Provider component
 export function EnhancedProfileProvider({ children }: { children: React.ReactNode }) {
   const profileQuery = useProfile({ enableOptimistic: true });
-  const profileAdvanced = useProfileAdvanced();
+  const profileCompletion = useProfileCompletion();
+  const profileValidation = useProfileValidation();
+  const profileOverview = useProfileOverview();
 
   // Unit converters
   const converters = useMemo(() => createUnitConverters(), []);

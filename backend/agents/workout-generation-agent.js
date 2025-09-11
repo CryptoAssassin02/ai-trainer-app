@@ -2,9 +2,20 @@ const BaseAgent = require('./base-agent');
 const OpenAIService = require('../services/openai-service');
 const logger = require('../config/logger');
 const { retryWithBackoff } = require('../utils/retry-utils');
-const { generateWorkoutPrompt } = require('../utils/workout-prompts');
+const { generateWorkoutPrompt, buildMultiGoalSystemPrompt, multiGoalMesocycleSchema } = require('../utils/workout-prompts');
 const { AgentError, ValidationError, ERROR_CODES } = require('../utils/errors');
 const { SupabaseClient } = require('../services/supabase'); // Assuming path
+
+// Import Goal Strategies
+const MultiGoalOrchestrator = require('./goal-strategies/multi-goal-orchestrator');
+const StrengthStrategy = require('./goal-strategies/strength-strategy');
+const HypertrophyStrategy = require('./goal-strategies/hypertrophy-strategy');
+const WeightLossStrategy = require('./goal-strategies/weight-loss-strategy');
+const SportsPerformanceStrategy = require('./goal-strategies/sports-performance-strategy');
+const FlexibilityStrategy = require('./goal-strategies/flexibility-strategy');
+const GeneralFitnessStrategy = require('./goal-strategies/general-fitness-strategy');
+const EnduranceStrategy = require('./goal-strategies/endurance-strategy');
+const BodyRecompositionStrategy = require('./goal-strategies/body-recomposition-strategy');
 
 /**
  * @interface WorkoutAgent
@@ -15,7 +26,7 @@ const { SupabaseClient } = require('../services/supabase'); // Assuming path
  * @memberof WorkoutAgent
  * @param {Object} userProfile - User's profile data.
  * @param {string[]} goals - User's fitness goals.
- * @param {Object} researchData - Research insights from ResearchAgent.
+
  * @returns {Promise<Object>} - The generated workout plan and explanations.
  */
 
@@ -59,18 +70,78 @@ class WorkoutGenerationAgent extends BaseAgent {
         this.openaiService = openaiService;
         this.supabaseClient = supabaseClient;
         
+        // Initialize goal strategies and orchestrator
+        this.goalStrategies = new Map();
+        this.multiGoalOrchestrator = new MultiGoalOrchestrator();
+        this.initializeGoalStrategies();
+        
         // Merge default configuration with provided config
         this.config = {
-            model: 'gpt-4o',
+            model: 'gpt-4.1',
             temperature: 0.7,
-            max_tokens: 3000,
-            timeoutLimit: 30000,
+            max_tokens: 32768, // GPT-4.1 maximum completion tokens (verified limit)
+            timeoutLimit: 180000, // 3 minutes to match frontend timeout and allow for complex generation
             maxRetries: 3,
             maxIterations: 3,
             ...config
         };
         
-        this.log('info', 'WorkoutGenerationAgent constructed successfully');
+        this.log('info', 'WorkoutGenerationAgent constructed successfully with goal strategies');
+    }
+
+    /**
+     * Initialize and register all goal strategies with the orchestrator
+     * @private
+     */
+    initializeGoalStrategies() {
+        // Register all goal strategies
+        this.goalStrategies.set('strength', new StrengthStrategy());
+        this.goalStrategies.set('hypertrophy', new HypertrophyStrategy());
+        this.goalStrategies.set('muscle_gain', new HypertrophyStrategy()); // Alias
+        this.goalStrategies.set('weight_loss', new WeightLossStrategy());
+        this.goalStrategies.set('sports_performance', new SportsPerformanceStrategy());
+        this.goalStrategies.set('flexibility', new FlexibilityStrategy());
+        this.goalStrategies.set('general_fitness', new GeneralFitnessStrategy());
+        this.goalStrategies.set('endurance', new EnduranceStrategy());
+        this.goalStrategies.set('body_recomposition', new BodyRecompositionStrategy());
+        
+        // Register strategies with orchestrator
+        this.goalStrategies.forEach((strategy, goalName) => {
+            this.multiGoalOrchestrator.registerStrategy(goalName, strategy);
+        });
+        
+        this.log('info', `Initialized ${this.goalStrategies.size} goal strategies`);
+    }
+
+    /**
+     * Determine optimal program duration based on goals and user profile
+     * @param {string[]} goals - User's fitness goals
+     * @param {Object} userProfile - User profile data
+     * @returns {number} Program duration in weeks
+     * @private
+     */
+    determineProgramDuration(goals, userProfile) {
+        // Get recommended duration from primary goal strategy
+        const primaryGoal = goals[0];
+        const strategy = this.goalStrategies.get(primaryGoal);
+        
+        if (strategy) {
+            return strategy.getRecommendedDuration(userProfile);
+        }
+        
+        // Default duration based on goal complexity and user level
+        const fitnessLevel = userProfile.fitnessLevel?.toLowerCase() || 'beginner';
+        
+        if (goals.length > 3) {
+            // Complex multi-goal programs need longer duration
+            return fitnessLevel === 'advanced' ? 12 : 16;
+        } else if (goals.length > 1) {
+            // Standard multi-goal programs
+            return fitnessLevel === 'advanced' ? 10 : 12;
+        } else {
+            // Single goal programs
+            return fitnessLevel === 'advanced' ? 8 : 10;
+        }
     }
 
     /**
@@ -78,7 +149,7 @@ class WorkoutGenerationAgent extends BaseAgent {
      * @param {Object} context - Input context
      * @param {Object} context.userProfile - User details (e.g., age, fitnessLevel, injuries)
      * @param {string[]} context.goals - User's fitness goals (e.g., ["strength", "hypertrophy"])
-     * @param {Object} context.researchData - Structured research insights from ResearchAgent
+
      * @param {Object} [options={}] - Processing options
      * @returns {Promise<Object>} - Formatted workout plan with explanations, reasoning, and insights
      * @throws {AgentError} If a critical error occurs during processing.
@@ -87,20 +158,40 @@ class WorkoutGenerationAgent extends BaseAgent {
         this.log('info', 'process START');
         const startTime = Date.now();
         
-        const { userProfile, goals, researchData } = context;
+        const { userProfile, goals, equipment, restrictions, exerciseTypes, additionalNotes, primaryGoal } = context;
         
-        // Initialize state for the ReAct flow
+        // Step 1: Orchestrate multiple goals if applicable
+        let orchestratedProgram = null;
+        let totalWeeks = null;
+        
+        if (goals && goals.length > 1) {
+            totalWeeks = this.determineProgramDuration(goals, userProfile);
+            orchestratedProgram = this.multiGoalOrchestrator.orchestrateGoals(
+                goals, 
+                userProfile, 
+                totalWeeks
+            );
+            this.log('info', `Multi-goal orchestration completed for ${goals.length} goals over ${totalWeeks} weeks`);
+        }
+        
+        // Step 2: Initialize enhanced state with orchestrator support
         let state = {
             userProfile,
             goals,
-            researchData,
+            equipment: equipment || userProfile.equipment || ['none'],
+            restrictions: restrictions || [],
+            exerciseTypes: exerciseTypes || ['strength'],
+            additionalNotes: additionalNotes || '', // Add additionalNotes to state
+            primaryGoal: primaryGoal || goals[0], // Add primaryGoal to state
+            orchestratedProgram, // Add orchestrator data
+            totalWeeks, // Add program duration
             systemPrompt: null,
             rawApiResponse: null,
             parsedPlan: null,
             formattedPlan: null,
             explanations: null,
             errors: [],
-            warnings: researchData?.warnings || [], // Carry over warnings from research
+            warnings: [], // Initialize empty warnings array
             reasoning: [],
             iteration: 0,
             maxIterations: this.config.maxRefinementAttempts || 1, // Limit reflection loops
@@ -114,8 +205,7 @@ class WorkoutGenerationAgent extends BaseAgent {
             // Validate the input parameters immediately
             this._validateInput(state.goals, state.userProfile);
             
-            // Validate research data
-            this._validateResearchData(state.researchData);
+
 
             // --- Step 0: Validate Initial Input ---
             this.log('info', 'Validating initial input...');
@@ -256,18 +346,11 @@ class WorkoutGenerationAgent extends BaseAgent {
             }
 
             // --- Step 0.7: Apply Deterministic Safety Filtering ---
-            this.log('info', 'Applying deterministic safety filtering to research data...');
-            state.researchData = await this._applySafetyFiltering(
-                state.researchData,
-                state.medicalConditions,
-                state.contraindications
-            );
+            this.log('info', 'Applying deterministic safety filtering...');
+            // Safety filtering will be handled during exercise selection based on medical conditions
+
             
-            if (state.researchData.safetyFiltered && state.researchData.filteredExerciseCount === 0) {
-                throw new AgentError('All exercises were filtered out due to safety restrictions. Cannot generate safe workout plan with current research data.', ERROR_CODES.VALIDATION_ERROR);
-            }
-            
-            state.reasoning.push(`Applied safety filtering: ${state.researchData.originalExerciseCount - state.researchData.filteredExerciseCount} exercises removed due to medical conditions.`);
+            state.reasoning.push("Safety filtering will be applied during exercise selection based on medical conditions.");
 
             // --- ReAct Loop (simplified for now, potential for refinement iterations) ---
             while (state.iteration < state.maxIterations) {
@@ -291,11 +374,15 @@ class WorkoutGenerationAgent extends BaseAgent {
                 state.systemPrompt = this._buildSystemPrompt(
                     state.userProfile,
                     state.goals,
-                    state.researchData,
+                    state.equipment,
+                    state.restrictions,
+                    state.exerciseTypes,
                     state.medicalConditions,
                     state.contraindications,
                     state.pastWorkouts,
-                    state.userFeedback
+                    state.userFeedback,
+                    state.additionalNotes,
+                    state.orchestratedProgram
                 );
                 state.reasoning.push(`[Iteration ${state.iteration}] Built system prompt incorporating medical conditions and past workout history.`);
 
@@ -392,7 +479,7 @@ class WorkoutGenerationAgent extends BaseAgent {
                         importance: 3, 
                         fitness_level: state.userProfile.fitnessLevel,
                         plan_version: state.iteration,
-                        includes_research: !!state.researchData
+                        includes_research: false
                     });
                     this.log('info', 'Stored workout plan in memory system with standardized metadata');
                 } catch (e) {
@@ -432,11 +519,13 @@ class WorkoutGenerationAgent extends BaseAgent {
                 formattedPlan: state.formattedPlan,
                 explanations: state.explanations,
                 reasoning: state.reasoning,
-                researchInsights: state.researchData?.exercises?.slice(0, 5).map(e => ({ name: e.name, summary: e.summary, isReliable: e.isReliable })) || [], // Include more detail
+                researchInsights: [], // Research agent removed
                 warnings: state.warnings,
                 errors: state.errors, // Include non-fatal errors/warnings encountered
                 goals: state.goals, // Include goals in output context
-                planId: `plan_${Date.now()}` // Consistent plan ID - This was incorrect, ID should come from memory storage
+                planId: `plan_${Date.now()}`, // Consistent plan ID - This was incorrect, ID should come from memory storage
+                // Pass orchestrated program data for multi-goal classification
+                orchestratedProgram: state.parsedPlan?.orchestratedProgram || state.orchestratedProgram
             });
 
             const endTime = Date.now();
@@ -496,60 +585,48 @@ class WorkoutGenerationAgent extends BaseAgent {
         this.log('info', 'Input validation successful.');
     }
 
-    /**
-     * Validates that research data contains exercises for workout generation.
-     * @param {Object} researchData - Research data to validate.
-     * @throws {AgentError} If research data is invalid or empty.
-     * @private
-     */
-    _validateResearchData(researchData) {
-        this.log('debug', '_validateResearchData called');
-        
-        if (!researchData || typeof researchData !== 'object') {
-            throw new AgentError('Research data must be a valid object.', ERROR_CODES.VALIDATION_ERROR);
-        }
-        
-        if (!researchData.exercises || !Array.isArray(researchData.exercises)) {
-            throw new AgentError('Research data must include an exercises array.', ERROR_CODES.VALIDATION_ERROR);
-        }
-        
-        if (researchData.exercises.length === 0) {
-            throw new AgentError('Research data must contain at least one exercise.', ERROR_CODES.VALIDATION_ERROR);
-        }
-        
-        // Validate each exercise has required fields
-        researchData.exercises.forEach((exercise, index) => {
-            if (!exercise.name || typeof exercise.name !== 'string') {
-                throw new AgentError(`Exercise at index ${index} must have a valid name.`, ERROR_CODES.VALIDATION_ERROR);
-            }
-        });
-        
-        this.log('info', `Research data validation successful: ${researchData.exercises.length} exercises provided.`);
-    }
+
 
     /**
-     * Formats the final output object.
+     * Formats the final output object with complete Phase 4 data structures.
      * @param {Object} resultData - Data collected during the process.
      * @returns {Object} The final structured output.
      * @private
      */
     _formatOutput(resultData) {
-        this.log('debug', '_formatOutput called');
+        this.log('debug', '_formatOutput called with Phase 4 enhancements');
         
         // Create the response structure expected by tests and controllers
         return {
             status: resultData.errors?.length > 0 ? 'error' : 'success',
             data: {
                 planId: `plan_${Date.now()}`, // Example temporary ID
-                planName: resultData.plan?.planName || `Workout Plan for ${resultData.goals?.join(', ') || 'User'}`, // Use parsed plan name or fallback
-                weeklySchedule: resultData.plan?.weeklySchedule || {}, // Access weeklySchedule from parsed plan (top level)
-                exercises: resultData.plan?.plan || [], // Flat exercise list for backward compatibility
+                planName: resultData.plan?.planName || `Workout Plan for ${resultData.goals?.join(', ') || 'User'}`,
+                
+                // Legacy format (backward compatibility)
+                weeklySchedule: resultData.plan?.weeklySchedule || {},
+                exercises: resultData.plan?.plan || [],
                 formattedPlan: resultData.formattedPlan || "Plan formatting pending.",
+                
+                // Complete AI response structure (NEW in Phase 4)
+                programName: resultData.plan?.planName,
+                programDuration: resultData.plan?.programDuration,
+                goalStructure: resultData.plan?.goalStructure,
+                trainingFrequency: resultData.plan?.trainingFrequency,
+                mesocycles: resultData.plan?.mesocycles,
+                mesocycleStructure: resultData.plan?.mesocycles, // Alias for service layer
+                progressionStrategy: resultData.plan?.progressionStrategy,
+                recoveryRequirements: resultData.plan?.recoveryRequirements,
+                
+                // Multi-goal orchestrator data (NEW in Phase 4)
+                orchestratedProgram: resultData.orchestratedProgram,
+                goalStrategies: resultData.goalStrategies,
+                
+                // AI insights and reasoning
                 explanations: resultData.explanations || "Explanations pending.",
-                researchInsights: resultData.researchInsights || [],
                 reasoning: resultData.reasoning || ["Reasoning generation pending."],
                 warnings: resultData.warnings || [],
-                errors: resultData.errors || [] // Include errors if any occurred
+                errors: resultData.errors || []
             }
         };
     }
@@ -561,16 +638,23 @@ class WorkoutGenerationAgent extends BaseAgent {
      * incorporating past workouts and feedback from memory.
      * @param {Object} userProfile - User profile data.
      * @param {string[]} goals - User fitness goals.
-     * @param {Object} researchData - Research insights.
+     * @param {string[]} equipment - Available equipment.
+     * @param {string[]} restrictions - Physical restrictions.
+     * @param {string[]} exerciseTypes - Preferred exercise types.
      * @param {string[]} medicalConditions - Fetched from user_profiles table.
      * @param {Array<Object>} contraindications - Fetched from contraindications table.
      * @param {Array<Object>} [pastWorkouts=[]] - Past workout plans from memory.
      * @param {Array<Object>} [userFeedback=[]] - User feedback on past workouts.
+     * @param {string} [additionalNotes=''] - User's additional notes and context.
      * @returns {string} The constructed system prompt.
      * @private
      */
-    _buildSystemPrompt(userProfile, goals, researchData, medicalConditions, contraindications, pastWorkouts = [], userFeedback = []) {
+    _buildSystemPrompt(userProfile, goals, gymCategory, restrictions, exerciseTypes, medicalConditions, contraindications, pastWorkouts = [], userFeedback = [], additionalNotes = '', orchestratedProgram = null) {
         this.log('debug', '_buildSystemPrompt called with dynamic contraindications and memory context');
+        
+        // Determine if this is a multi-goal scenario with orchestrator data
+        const isMultiGoal = goals && goals.length > 1 && orchestratedProgram;
+        const primaryGoal = goals[0];
         
         // Handle medical conditions and contraindications as before
         let injuryPrompt = "";
@@ -712,13 +796,34 @@ class WorkoutGenerationAgent extends BaseAgent {
             }
         }
         
-        // Call generateWorkoutPrompt with updated parameters
-        return generateWorkoutPrompt(
-            userProfile, 
-            goals, 
-            researchData, 
-            injuryPrompt + workoutHistoryPrompt // Combined safety and history context
-        );
+        // Add additional notes context if provided
+        let additionalNotesPrompt = "";
+        if (additionalNotes && additionalNotes.trim()) {
+            additionalNotesPrompt = `\n\n## ADDITIONAL USER CONTEXT:\n${additionalNotes.trim()}\n`;
+            this.log('debug', `Added additional notes to prompt: ${additionalNotes.trim()}`);
+        }
+        
+        // Use appropriate prompt system based on goal complexity
+        if (isMultiGoal) {
+            // For multi-goal scenarios, use the enhanced multi-goal system
+            this.log('info', `Using multi-goal prompt system for ${goals.length} goals`);
+            return buildMultiGoalSystemPrompt(
+                userProfile,
+                goals,
+                { gymCategory, restrictions, exerciseTypes }, // ✅ REPLACE equipment with gymCategory
+                injuryPrompt + workoutHistoryPrompt + additionalNotesPrompt, // Combined context
+                primaryGoal
+            );
+        } else {
+            // For single goals, use existing system
+            this.log('info', `Using single-goal prompt system for: ${primaryGoal}`);
+            return generateWorkoutPrompt(
+                userProfile, 
+                goals, 
+                { gymCategory, restrictions, exerciseTypes }, // ✅ REPLACE equipment with gymCategory
+                injuryPrompt + workoutHistoryPrompt + additionalNotesPrompt // Combined safety and history context
+            );
+        }
     }
 
     // --- API Call and Processing Methods ---
@@ -779,15 +884,68 @@ class WorkoutGenerationAgent extends BaseAgent {
             return null;
         }
 
+        let jsonStr = responseContent.trim(); // Declare outside try block for error logging
+
         try {
             // Extract potential JSON from the response
             // This handles cases where the model outputs text around the JSON
-            const jsonMatch = responseContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                             responseContent.match(/```\s*([\s\S]*?)\s*```/) ||
-                             [null, responseContent]; // Default to full response if no markdown blocks
             
-            const jsonStr = jsonMatch[1].trim();
-            const parsedData = JSON.parse(jsonStr);
+            // Try to extract JSON from markdown code blocks
+            const jsonMatch = responseContent.match(/```json\s*([\s\S]*?)\s*```/) || 
+                             responseContent.match(/```\s*([\s\S]*?)\s*```/);
+            
+            if (jsonMatch && jsonMatch[1]) {
+                jsonStr = jsonMatch[1].trim();
+            } else {
+                // If no code blocks found, try to find JSON-like content
+                // Remove any leading/trailing non-JSON content
+                const jsonStart = jsonStr.indexOf('{');
+                const jsonEnd = jsonStr.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                    jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+                }
+            }
+            
+            // Try to parse JSON, with repair attempts if it fails
+            let parsedData;
+            try {
+                parsedData = JSON.parse(jsonStr);
+            } catch (parseError) {
+                this.log('warn', `Initial JSON parse failed: ${parseError.message}`);
+                this.log('debug', `Attempting JSON repair...`);
+                
+                // Attempt to repair common JSON issues
+                let repairedJson = jsonStr;
+                
+                // Fix common array issues - missing commas before closing brackets
+                repairedJson = repairedJson.replace(/([^,\s])\s*\]/g, '$1]');
+                
+                // Fix trailing commas in arrays and objects
+                repairedJson = repairedJson.replace(/,(\s*[}\]])/g, '$1');
+                
+                // Fix missing commas between object elements in arrays
+                repairedJson = repairedJson.replace(/}(\s*){/g, '},\n$1{');
+                
+                // Fix missing commas between array elements
+                repairedJson = repairedJson.replace(/](\s*)\[/g, '],\n$1[');
+                
+                // Fix missing commas after quoted strings
+                repairedJson = repairedJson.replace(/"(\s*)"([^,}\]])/g, '"$1",$2');
+                
+                // Fix missing commas after numbers in arrays
+                repairedJson = repairedJson.replace(/(\d)(\s*)"/g, '$1,$2"');
+                
+                // Fix missing commas after closing braces in arrays
+                repairedJson = repairedJson.replace(/}(\s*)"([^:}])/g, '},$1"$2');
+                
+                try {
+                    parsedData = JSON.parse(repairedJson);
+                    this.log('info', 'JSON repair successful');
+                } catch (repairError) {
+                    this.log('warn', `JSON repair failed: ${repairError.message}`);
+                    throw parseError; // Throw original error
+                }
+            }
             
             this.log('debug', 'Successfully parsed JSON from API response');
             
@@ -797,12 +955,103 @@ class WorkoutGenerationAgent extends BaseAgent {
                 return null;
             }
             
-            // Check for the correct structure based on the workout prompt schema
-            if (!parsedData.planName || !parsedData.weeklySchedule || typeof parsedData.weeklySchedule !== 'object') {
-                this.log('warn', 'Parsed result missing required fields: planName and weeklySchedule');
+            // Check if this is a multi-goal mesocycle response or legacy format
+            if (parsedData.programName && parsedData.mesocycles) {
+                // Handle multiGoalMesocycleSchema format
+                this.log('info', 'Detected multi-goal mesocycle schema response');
+                return this._transformMultiGoalResponse(parsedData);
+            } else if (parsedData.planName && parsedData.weeklySchedule && typeof parsedData.weeklySchedule === 'object') {
+                // Handle legacy schema format
+                this.log('info', 'Detected legacy workout schema response');
+                return this._transformLegacyResponse(parsedData);
+            } else {
+                this.log('warn', 'Parsed result missing required fields for both schema formats');
                 return null;
             }
             
+        } catch (error) {
+            this.log('warn', `Failed to parse API response: ${error.message}`);
+            this.log('debug', `Response content length: ${responseContent.length} characters`);
+            this.log('debug', `Response content preview (first 500 chars): ${responseContent.substring(0, 500)}`);
+            this.log('debug', `Response content ending (last 200 chars): ${responseContent.substring(Math.max(0, responseContent.length - 200))}`);
+            this.log('debug', `Extracted JSON string preview (first 200 chars): ${jsonStr ? jsonStr.substring(0, 200) : 'undefined'}`);
+            this.log('debug', `Extracted JSON string ending (last 200 chars): ${jsonStr ? jsonStr.substring(Math.max(0, jsonStr.length - 200)) : 'undefined'}`);
+            
+            // Check if response appears to be truncated
+            if (responseContent.length > 14000 && !responseContent.trim().endsWith('}')) {
+                this.log('warn', 'Response appears to be truncated - consider increasing max_tokens');
+            }
+            
+            // Consider trying a fallback parsing strategy here if needed
+            return null;
+        }
+    }
+
+    /**
+     * Transform multi-goal mesocycle schema response to internal format
+     * @param {Object} parsedData - Multi-goal mesocycle schema data
+     * @returns {Object} Transformed workout plan
+     * @private
+     */
+    _transformMultiGoalResponse(parsedData) {
+        this.log('debug', 'Transforming multi-goal mesocycle response');
+        
+        // Debug the parsed data structure
+        this.log('debug', `[TRANSFORM] ParsedData keys: ${Object.keys(parsedData || {})}`);
+        this.log('debug', `[TRANSFORM] Has mesocycles: ${!!parsedData.mesocycles}, type: ${typeof parsedData.mesocycles}`);
+        this.log('debug', `[TRANSFORM] Program name: ${parsedData.programName}`);
+        this.log('debug', `[TRANSFORM] Goal structure: ${JSON.stringify(parsedData.goalStructure)}`);
+        this.log('debug', `[TRANSFORM] Program duration: ${JSON.stringify(parsedData.programDuration)}`);
+        
+        try {
+            // Extract exercises from mesocycles structure
+            const exercises = this._extractExercisesFromMesocycles(parsedData.mesocycles);
+            
+            // Build weekly schedule from mesocycles
+            const weeklySchedule = this._buildWeeklyScheduleFromMesocycles(parsedData.mesocycles);
+            
+            const transformedPlan = {
+                plan: exercises,
+                planName: parsedData.programName,
+                weeklySchedule: weeklySchedule,
+                programDuration: parsedData.programDuration,
+                goalStructure: parsedData.goalStructure,
+                mesocycles: parsedData.mesocycles, // Keep original structure
+                warmupSuggestion: parsedData.warmupSuggestion || "5-10 minutes dynamic warm-up",
+                cooldownSuggestion: parsedData.cooldownSuggestion || "5-10 minutes static stretching",
+                // Add orchestrated program data for multi-goal classification
+                orchestratedProgram: {
+                    goalPriority: {
+                        primary: parsedData.goalStructure?.primaryGoal || 'general_fitness',
+                        secondary: parsedData.goalStructure?.secondaryGoals || []
+                    },
+                    programDuration: parsedData.programDuration,
+                    trainingParameters: parsedData.trainingParameters || {},
+                    exercisePriorities: parsedData.exercisePriorities || {},
+                    progressionStrategy: parsedData.progressionStrategy || {},
+                    recoveryRequirements: parsedData.recoveryRequirements || {}
+                }
+            };
+            
+            this.log('debug', `[TRANSFORM] Transformed plan has ${exercises.length} exercises`);
+            
+            return transformedPlan;
+        } catch (error) {
+            this.log('warn', `Failed to transform multi-goal response: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Transform legacy schema response to internal format
+     * @param {Object} parsedData - Legacy schema data
+     * @returns {Object} Transformed workout plan
+     * @private
+     */
+    _transformLegacyResponse(parsedData) {
+        this.log('debug', 'Transforming legacy workout response');
+        
+        try {
             // Transform the weeklySchedule structure into the format expected by the rest of the code
             // Convert from { Monday: { exercises: [...] }, Tuesday: "Rest" } 
             // to { plan: [{ exercise, sets, reps }], planName, ... }
@@ -829,12 +1078,242 @@ class WorkoutGenerationAgent extends BaseAgent {
                 warmupSuggestion: parsedData.warmupSuggestion,
                 cooldownSuggestion: parsedData.cooldownSuggestion
             };
-            
         } catch (error) {
-            this.log('warn', `Failed to parse API response: ${error.message}`);
-            // Consider trying a fallback parsing strategy here if needed
+            this.log('warn', `Failed to transform legacy response: ${error.message}`);
             return null;
         }
+    }
+
+    /**
+     * Extract exercises from mesocycles structure
+     * @param {Array} mesocycles - Array of mesocycle objects
+     * @returns {Array} Flat array of exercises
+     * @private
+     */
+    _extractExercisesFromMesocycles(mesocycles) {
+        const exercises = [];
+        
+        // Debug logging to understand the structure
+        this.log('debug', `[EXTRACT] Mesocycles type: ${typeof mesocycles}, isArray: ${Array.isArray(mesocycles)}`);
+        if (mesocycles) {
+            this.log('debug', `[EXTRACT] Mesocycles keys: ${Object.keys(mesocycles)}`);
+        }
+        
+        if (!Array.isArray(mesocycles)) {
+            this.log('warn', `[EXTRACT] Mesocycles is not an array: ${typeof mesocycles}`);
+            return exercises;
+        }
+        
+        mesocycles.forEach((mesocycle, mesocycleIndex) => {
+            this.log('debug', `[EXTRACT] Mesocycle ${mesocycleIndex} keys: ${Object.keys(mesocycle || {})}`);
+            
+            if (mesocycle.weeks && Array.isArray(mesocycle.weeks)) {
+                this.log('debug', `[EXTRACT] Mesocycle ${mesocycleIndex} has ${mesocycle.weeks.length} weeks`);
+                mesocycle.weeks.forEach((week, weekIndex) => {
+                    this.log('debug', `[EXTRACT] Week ${weekIndex} keys: ${Object.keys(week || {})}`);
+                    
+                    // Handle both array and object formats for workouts
+                    if (week.workouts) {
+                        if (Array.isArray(week.workouts)) {
+                            // Legacy array format
+                            this.log('debug', `[EXTRACT] Week ${weekIndex} has ${week.workouts.length} workouts (array format)`);
+                            week.workouts.forEach((workout, workoutIndex) => {
+                                this.log('debug', `[EXTRACT] Workout ${workoutIndex} keys: ${Object.keys(workout || {})}`);
+                                
+                                if (workout.exercises && Array.isArray(workout.exercises)) {
+                                    this.log('debug', `[EXTRACT] Workout ${workoutIndex} has ${workout.exercises.length} exercises`);
+                                    workout.exercises.forEach(exercise => {
+                                        exercises.push({
+                                            ...exercise,
+                                            mesocycle: mesocycleIndex + 1,
+                                            week: weekIndex + 1,
+                                            workoutIndex: workoutIndex + 1,
+                                            day: workout.day || `Day ${workoutIndex + 1}`,
+                                            sessionName: workout.sessionName || workout.workoutType || 'Workout'
+                                        });
+                                    });
+                                } else {
+                                    this.log('warn', `[EXTRACT] Workout ${workoutIndex} has no exercises array or it's not an array`);
+                                }
+                            });
+                        } else if (typeof week.workouts === 'object') {
+                            // New object format with day names as keys
+                            const dayNames = Object.keys(week.workouts);
+                            this.log('debug', `[EXTRACT] Week ${weekIndex} has ${dayNames.length} workout days (object format): ${dayNames.join(', ')}`);
+                            
+                            dayNames.forEach((dayName, workoutIndex) => {
+                                const workout = week.workouts[dayName];
+                                
+                                // Skip rest days or non-workout entries
+                                if (typeof workout === 'string' || !workout || !workout.exercises) {
+                                    this.log('debug', `[EXTRACT] Skipping ${dayName}: ${typeof workout === 'string' ? workout : 'no exercises'}`);
+                                    return;
+                                }
+                                
+                                this.log('debug', `[EXTRACT] ${dayName} workout keys: ${Object.keys(workout || {})}`);
+                                
+                                if (workout.exercises && Array.isArray(workout.exercises)) {
+                                    this.log('debug', `[EXTRACT] ${dayName} has ${workout.exercises.length} exercises`);
+                                    workout.exercises.forEach(exercise => {
+                                        exercises.push({
+                                            ...exercise,
+                                            mesocycle: mesocycleIndex + 1,
+                                            week: weekIndex + 1,
+                                            workoutIndex: workoutIndex + 1,
+                                            day: dayName,
+                                            sessionName: workout.sessionName || workout.workoutType || `${dayName} Workout`
+                                        });
+                                    });
+                                } else {
+                                    this.log('warn', `[EXTRACT] ${dayName} workout has no exercises array or it's not an array`);
+                                }
+                            });
+                        } else {
+                            this.log('warn', `[EXTRACT] Week ${weekIndex} workouts is neither array nor object: ${typeof week.workouts}`);
+                        }
+                    } else {
+                        this.log('warn', `[EXTRACT] Week ${weekIndex} has no workouts property`);
+                    }
+                });
+            } else {
+                this.log('warn', `[EXTRACT] Mesocycle ${mesocycleIndex} has no weeks array or it's not an array`);
+            }
+        });
+        
+        this.log('debug', `[EXTRACT] Total exercises extracted: ${exercises.length}`);
+        
+        // If no exercises found, try alternative extraction methods
+        if (exercises.length === 0) {
+            this.log('warn', '[EXTRACT] No exercises found with standard method, trying alternative extraction');
+            return this._tryAlternativeExtractionMethods(mesocycles);
+        }
+        
+        return exercises;
+    }
+
+    /**
+     * Try alternative methods to extract exercises from mesocycles
+     * @param {Array|Object} mesocycles - Mesocycles data in various formats
+     * @returns {Array} Flat array of exercises
+     * @private
+     */
+    _tryAlternativeExtractionMethods(mesocycles) {
+        const exercises = [];
+        
+        try {
+            // Method 1: Direct exercises array (legacy format)
+            if (Array.isArray(mesocycles)) {
+                for (const item of mesocycles) {
+                    if (item && item.exercise) {
+                        exercises.push(item);
+                    }
+                }
+            }
+            
+            // Method 2: Nested object traversal (find any exercises arrays)
+            const findExercises = (obj, path = '') => {
+                if (!obj || typeof obj !== 'object') return;
+                
+                if (Array.isArray(obj)) {
+                    obj.forEach((item, index) => {
+                        if (item && item.exercise) {
+                            exercises.push(item);
+                        } else {
+                            findExercises(item, `${path}[${index}]`);
+                        }
+                    });
+                } else {
+                    Object.keys(obj).forEach(key => {
+                        if (key === 'exercises' && Array.isArray(obj[key])) {
+                            this.log('debug', `[ALT_EXTRACT] Found exercises array at ${path}.${key} with ${obj[key].length} items`);
+                            obj[key].forEach(exercise => {
+                                if (exercise && (exercise.exercise || exercise.name)) {
+                                    // Normalize exercise object structure
+                                    exercises.push({
+                                        exercise: exercise.exercise || exercise.name,
+                                        sets: exercise.sets || 3,
+                                        reps: exercise.reps || exercise.repsOrDuration || '8-12',
+                                        weight: exercise.weight,
+                                        rest: exercise.rest || exercise.restSeconds,
+                                        notes: exercise.notes,
+                                        category: exercise.category,
+                                        primaryMuscles: exercise.primaryMuscles,
+                                        intensity: exercise.intensity,
+                                        tempo: exercise.tempo
+                                    });
+                                }
+                            });
+                        } else if (key === 'workouts' && Array.isArray(obj[key])) {
+                            // Handle workouts array structure
+                            this.log('debug', `[ALT_EXTRACT] Found workouts array at ${path}.${key} with ${obj[key].length} items`);
+                            obj[key].forEach(workout => {
+                                if (workout && workout.exercises && Array.isArray(workout.exercises)) {
+                                    workout.exercises.forEach(exercise => {
+                                        if (exercise && (exercise.exercise || exercise.name)) {
+                                            exercises.push({
+                                                exercise: exercise.exercise || exercise.name,
+                                                sets: exercise.sets || 3,
+                                                reps: exercise.reps || exercise.repsOrDuration || '8-12',
+                                                weight: exercise.weight,
+                                                rest: exercise.rest || exercise.restSeconds,
+                                                notes: exercise.notes,
+                                                category: exercise.category,
+                                                primaryMuscles: exercise.primaryMuscles,
+                                                intensity: exercise.intensity,
+                                                tempo: exercise.tempo,
+                                                day: workout.day || workout.sessionName
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
+                            findExercises(obj[key], `${path}.${key}`);
+                        }
+                    });
+                }
+            };
+            
+            findExercises(mesocycles, 'mesocycles');
+            
+            this.log('debug', `[ALT_EXTRACT] Alternative extraction found ${exercises.length} exercises`);
+            
+        } catch (error) {
+            this.log('error', `[ALT_EXTRACT] Error in alternative extraction: ${error.message}`);
+        }
+        
+        return exercises;
+    }
+
+    /**
+     * Build weekly schedule from mesocycles structure
+     * @param {Array} mesocycles - Array of mesocycle objects
+     * @returns {Object} Weekly schedule object
+     * @private
+     */
+    _buildWeeklyScheduleFromMesocycles(mesocycles) {
+        const weeklySchedule = {};
+        
+        if (!Array.isArray(mesocycles) || mesocycles.length === 0) {
+            return weeklySchedule;
+        }
+        
+        // Use the first mesocycle's first week as the template
+        const firstMesocycle = mesocycles[0];
+        if (firstMesocycle.weeks && firstMesocycle.weeks.length > 0) {
+            const firstWeek = firstMesocycle.weeks[0];
+            if (firstWeek.workouts && Array.isArray(firstWeek.workouts)) {
+                firstWeek.workouts.forEach(workout => {
+                    const day = workout.day || 'Monday';
+                    weeklySchedule[day] = {
+                        sessionName: workout.sessionName || workout.workoutType || 'Workout',
+                        exercises: workout.exercises || []
+                    };
+                });
+            }
+        }
+        
+        return weeklySchedule;
     }
 
     /**

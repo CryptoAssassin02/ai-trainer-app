@@ -19,7 +19,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { NativeCheckbox } from "@/components/ui/native-checkbox"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { NativeRadioGroup } from "@/components/ui/native-radio-group"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -43,41 +44,19 @@ const fitnessGoals = [
   { id: "body_recomposition", label: "Body Recomposition" },
 ]
 
-// Define equipment options - MUST match MultiStepProfileForm equipment IDs
-const equipmentOptions = [
-  // Free Weights
-  { id: "dumbbells", label: "Dumbbells" },
-  { id: "barbells", label: "Barbells" },
-  { id: "kettlebells", label: "Kettlebells" },
-  { id: "medicine_balls", label: "Medicine Balls" },
-  
-  // Machines & Stations
-  { id: "cable_machine", label: "Cable Machine" },
-  { id: "smith_machine", label: "Smith Machine" },
-  { id: "power_rack", label: "Power Rack/Squat Rack" },
-  { id: "leg_press", label: "Leg Press Machine" },
-  { id: "lat_pulldown", label: "Lat Pulldown" },
-  
-  // Cardio Equipment
-  { id: "treadmill", label: "Treadmill" },
-  { id: "stationary_bike", label: "Stationary Bike" },
-  { id: "elliptical", label: "Elliptical Machine" },
-  { id: "rowing_machine", label: "Rowing Machine" },
-  { id: "stair_climber", label: "Stair Climber" },
-  
-  // Bodyweight & Accessories
-  { id: "pull_up_bar", label: "Pull-up Bar" },
-  { id: "resistance_bands", label: "Resistance Bands" },
-  { id: "suspension_trainer", label: "Suspension Trainer" },
-  { id: "yoga_mat", label: "Yoga/Exercise Mat" },
-  { id: "foam_roller", label: "Foam Roller" },
-  
-  // Specialized Equipment
-  { id: "battle_ropes", label: "Battle Ropes" },
-  { id: "plyometric_box", label: "Plyometric Box" },
-  { id: "agility_ladder", label: "Agility Ladder" },
-  { id: "parallette_bars", label: "Parallette Bars" },
-]
+  // Define gym category options - MUST match validation schema
+  const gymCategoryOptions = [
+    { id: "full_service_commercial", label: "Full-Service Commercial Gym", description: "LA Fitness, Genesis, etc." },
+    { id: "budget_friendly", label: "Budget-Friendly Gym", description: "Planet Fitness, etc." },
+    { id: "hardcore_strength", label: "Hardcore Strength/Powerlifting Gym", description: "Iron Heaven, etc." },
+    { id: "luxury_athletic_club", label: "Luxury Athletic Club", description: "Lifetime Fitness, etc." },
+    { id: "franchise_24_7", label: "24/7 Franchise Gym", description: "Anytime Fitness, etc." },
+    { id: "community_recreation", label: "Community Recreation Center", description: "YMCA, etc." },
+    { id: "crossfit_functional", label: "CrossFit/Functional Fitness Gym", description: "CrossFit affiliates" },
+    { id: "limited_residential", label: "Limited Residential Gym", description: "Apartment fitness centers" },
+    { id: "personal_home_setup", label: "Personal Home Setup", description: "Home/garage gym" },
+    { id: "minimal_home", label: "Minimal/No-Equipment Home Workout", description: "Bodyweight only" },
+  ]
 
 // Use comprehensive validation schema with dynamic height validation
 type FormValues = ProfileCreationFormData & {
@@ -139,7 +118,8 @@ export function UserProfileForm({
       experienceLevel: undefined,
       goals: [],
       medicalConditions: "",
-      equipment: [],
+      gymCategory: 'minimal_home',
+      workoutFrequency: '',
       unitPreference: "metric"
     },
   })
@@ -177,7 +157,8 @@ export function UserProfileForm({
         medicalConditions: Array.isArray(profileData.medicalConditions) 
           ? profileData.medicalConditions.join(', ') 
           : (profileData.medicalConditions || ""),
-        equipment: profileData.equipment || [],
+        gymCategory: (profileData.gymCategory as any) || 'minimal_home',
+        workoutFrequency: profileData.workoutFrequency || '',
         unitPreference: profileData.unitPreference || "metric"
       })
     }
@@ -255,7 +236,8 @@ export function UserProfileForm({
           medicalConditions: data.medicalConditions 
             ? data.medicalConditions.split(',').map(s => s.trim()).filter(s => s.length > 0)
             : [],
-          equipment: data.equipment || [],
+          gymCategory: data.gymCategory || '',
+          workoutFrequency: data.workoutFrequency || '',
           unitPreference: data.unitPreference // Backend uses this for proper conversion
         }
 
@@ -436,19 +418,32 @@ export function UserProfileForm({
                     <FormItem className="space-y-3">
                       <FormLabel>Gender (Optional)</FormLabel>
                                               <FormControl>
-                          <NativeRadioGroup
-                            name="gender"
+                          <RadioGroup
                             value={field.value}
                             onValueChange={field.onChange}
-                            options={[
-                              { value: "male", label: "Male" },
-                              { value: "female", label: "Female" },
-                              { value: "non-binary", label: "Non-binary" },
-                              { value: "other", label: "Other" },
-                              { value: "prefer_not_to_say", label: "Prefer not to say" }
-                            ]}
                             className="flex flex-col space-y-1"
-                          />
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="male" id="male" />
+                              <Label htmlFor="male">Male</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="female" id="female" />
+                              <Label htmlFor="female">Female</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="non-binary" id="non-binary" />
+                              <Label htmlFor="non-binary">Non-binary</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="other" id="other" />
+                              <Label htmlFor="other">Other</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="prefer_not_to_say" id="prefer_not_to_say" />
+                              <Label htmlFor="prefer_not_to_say">Prefer not to say</Label>
+                            </div>
+                          </RadioGroup>
                         </FormControl>
                       <FormDescription className="text-xs text-muted-foreground">
                         This information helps us provide more personalized recommendations
@@ -705,45 +700,85 @@ export function UserProfileForm({
               />
             </div>
 
-            {/* Equipment Availability Section */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">Equipment Availability</h3>
+                         {/* Gym Category Section */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium">Gym Type & Equipment Access</h3>
 
-              <div className="mb-4">
-                <div className="text-sm font-medium">Available Equipment (select all that apply)</div>
-                <p className="text-sm text-muted-foreground">
-                  Select the equipment you have access to at home or at your gym.
-                </p>
+                <FormField
+                  control={form.control}
+                  name="gymCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select your gym type</FormLabel>
+                      <FormDescription>
+                        Choose the type of gym or workout space you primarily use
+                      </FormDescription>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="grid grid-cols-1 gap-3"
+                        >
+                          {gymCategoryOptions.map((category) => (
+                            <div key={category.id} className="space-y-2">
+                              <RadioGroupItem
+                                value={category.id}
+                                id={category.id}
+                                className="peer sr-only"
+                              />
+                              <Label
+                                htmlFor={category.id}
+                                className="flex flex-col space-y-2 rounded-lg border-2 border-muted p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                              >
+                                <span className="font-medium text-sm">{category.label}</span>
+                                <p className="text-xs text-muted-foreground">
+                                  {category.description}
+                                </p>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {equipmentOptions.map((item) => (
-                  <FormField
-                    key={item.id}
-                    control={form.control}
-                    name="equipment"
-                    render={({ field }) => {
-                      return (
-                        <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <NativeCheckbox
-                              name="equipment"
-                              value={item.id}
-                              checked={field.value?.includes(item.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value || []), item.id])
-                                  : field.onChange(field.value?.filter((value) => value !== item.id))
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{item.label}</FormLabel>
-                        </FormItem>
-                      )
-                    }}
-                  />
-                ))}
+
+              {/* Workout Frequency */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium">Workout Frequency</h3>
+
+                <FormField
+                  control={form.control}
+                  name="workoutFrequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>How often do you plan to work out?</FormLabel>
+                      <FormDescription>
+                        Select your preferred workout frequency per week
+                      </FormDescription>
+                      <FormControl>
+                        <NativeSelect
+                          onValueChange={field.onChange}
+                          value={field.value || ''}
+                          placeholder="Select workout frequency"
+                          options={[
+                            { value: "1", label: "Once per week - Light activity" },
+                            { value: "2", label: "Twice per week - Moderate activity" },
+                            { value: "3", label: "3 times per week - Regular activity" },
+                            { value: "4", label: "4 times per week - Active lifestyle" },
+                            { value: "5", label: "5 times per week - Very active" },
+                            { value: "6", label: "6 times per week - Highly active" },
+                            { value: "7", label: "Daily - Maximum frequency" },
+                          ]}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
 
             {/* Hidden unit preference field - this is controlled by the switch */}
             <FormField

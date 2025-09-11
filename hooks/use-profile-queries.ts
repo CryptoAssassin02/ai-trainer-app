@@ -141,7 +141,7 @@ export function useProfilePreferencesQuery(options?: {
           userId: userId,
           unitPreference: 'metric',
           goals: [],
-          equipment: [],
+          gymCategory: 'minimal_home',
           experienceLevel: 'beginner',
           workoutFrequency: '3',
           updatedAt: new Date().toISOString()

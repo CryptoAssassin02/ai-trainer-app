@@ -5,8 +5,7 @@ const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'OPENAI_API_KEY',
-  'PERPLEXITY_API_KEY'
+  'OPENAI_API_KEY'
 ];
 
 // Validate environment variables
@@ -33,9 +32,6 @@ const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY
-  },
-  perplexity: {
-    apiKey: process.env.PERPLEXITY_API_KEY
   },
   cors: {
     origin: process.env.CORS_ORIGIN || '*',

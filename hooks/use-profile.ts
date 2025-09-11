@@ -320,7 +320,7 @@ export function useProfileCompletion() {
       personal: ['name', 'age', 'gender'],
       physical: ['height', 'weight', 'unitPreference'],
       fitness: ['experienceLevel', 'goals'],
-      preferences: ['workoutFrequency', 'equipment'],
+      preferences: ['workoutFrequency', 'gymCategory'],
     } as const;
 
     const completedSections: string[] = [];

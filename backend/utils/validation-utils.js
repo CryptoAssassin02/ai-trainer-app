@@ -68,6 +68,12 @@ class ValidationUtils {
       return result;
     }
 
+    if (goals.length > 3) {
+      result.isValid = false;
+      result.messages.push('Maximum 3 goals allowed');
+      return result;
+    }
+
     const validGoals = ['weight_loss', 'muscle_gain', 'maintenance', 'performance', 'general_health'];
     const invalidGoals = goals.filter(goal => !validGoals.includes(goal));
 

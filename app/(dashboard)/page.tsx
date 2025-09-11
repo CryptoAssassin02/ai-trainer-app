@@ -1,8 +1,24 @@
-import { BodyMetricsChart } from "@/components/progress/body-metrics-chart"
+import dynamic from 'next/dynamic'
 import { DashboardSummaryCards } from "@/components/progress/dashboard-summary-cards"
-import { StrengthProgressionChart } from "@/components/progress/strength-progression-chart"
 // TEMPORARILY DISABLED: Workout features until Phase 3 implementation
 // import { WorkoutConsistencyChart } from "@/components/workout/workout-consistency-chart"
+
+// ✅ FIX: Load charts dynamically to prevent hydration issues
+const BodyMetricsChart = dynamic(
+  () => import("@/components/progress/body-metrics-chart").then(mod => ({ default: mod.BodyMetricsChart })),
+  { 
+    ssr: false,
+    loading: () => <div className="h-[400px] bg-muted/50 rounded-lg animate-pulse" />
+  }
+)
+
+const StrengthProgressionChart = dynamic(
+  () => import("@/components/progress/strength-progression-chart").then(mod => ({ default: mod.StrengthProgressionChart })),
+  { 
+    ssr: false,
+    loading: () => <div className="h-[400px] bg-muted/50 rounded-lg animate-pulse" />
+  }
+)
 
 export default function Dashboard() {
   return (

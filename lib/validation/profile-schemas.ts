@@ -103,19 +103,23 @@ export const medicalConditionsSchema = z.string()
 
 // Goals validation
 export const goalsSchema = z.array(z.string().min(1))
-  .max(5, 'Maximum 5 goals allowed')
+  .max(3, 'Maximum 3 goals allowed')
   .optional()
   .default([]);
 
-// Equipment validation
-export const equipmentSchema = z.array(z.string().min(1))
-  .max(20, 'Maximum 20 equipment items allowed')
-  .optional()
-  .default([]);
+// Gym category validation
+export const gymCategorySchema = z.enum([
+  'full_service_commercial', 'budget_friendly', 'hardcore_strength',
+  'luxury_athletic_club', 'franchise_24_7', 'community_recreation',
+  'crossfit_functional', 'limited_residential', 'personal_home_setup',
+  'minimal_home'
+], {
+  required_error: 'Gym category is required',
+  invalid_type_error: 'Invalid gym category selected'
+});
 
 // Workout frequency validation
 export const workoutFrequencySchema = z.string()
-  .min(1, 'Please specify your workout frequency')
   .max(50, 'Workout frequency description too long')
   .optional();
 
@@ -129,8 +133,8 @@ export const profileCreationSchema = z.object({
   weight: weightSchema,
   experienceLevel: experienceLevelSchema,
   goals: goalsSchema,
-  equipment: equipmentSchema,
-  // Note: exercisePreferences and equipmentPreferences are mapped to equipment field in middleware  
+  gymCategory: gymCategorySchema,
+  // Note: Gym category replaces equipment, exercisePreferences, and equipmentPreferences
   medicalConditions: medicalConditionsSchema,
   workoutFrequency: workoutFrequencySchema,
 })
@@ -171,7 +175,7 @@ export const profileUpdateSchema = z.object({
   unitPreference: unitSystemSchema.optional(),
   experienceLevel: experienceLevelSchema.optional(),
   goals: goalsSchema.optional(),
-  equipment: equipmentSchema.optional(),
+  gymCategory: gymCategorySchema.optional(),
   medicalConditions: medicalConditionsSchema.optional(),
   workoutFrequency: workoutFrequencySchema.optional(),
 })
@@ -193,7 +197,7 @@ export const profileUpdateSchema = z.object({
 export const preferenceUpdateSchema = z.object({
   unitPreference: unitSystemSchema.optional(),
   goals: goalsSchema,
-  equipment: equipmentSchema,
+  gymCategory: gymCategorySchema,
   experienceLevel: experienceLevelSchema,
   workoutFrequency: workoutFrequencySchema,
 })
@@ -280,7 +284,7 @@ export const createDynamicProfileSchema = (
   const baseSchema = mode === 'create' ? profileCreationSchema : profileUpdateSchema;
   
   if (unitPreference) {
-    return baseSchema.refine((data) => {
+    return baseSchema.refine((data: any) => {
       if (data.height && unitPreference === 'imperial') {
         return typeof data.height === 'object';
       }
@@ -321,6 +325,11 @@ export const VALIDATION_CONSTANTS = {
   HEIGHT_MAX_FEET: 10,
   MEDICAL_CONDITIONS_MAX: 10,
   MEDICAL_CONDITION_MAX_LENGTH: 200,
-  GOALS_MAX: 5,
-  EQUIPMENT_MAX: 10,
+  GOALS_MAX: 3,
+  GYM_CATEGORIES: [
+    'full_service_commercial', 'budget_friendly', 'hardcore_strength',
+    'luxury_athletic_club', 'franchise_24_7', 'community_recreation',
+    'crossfit_functional', 'limited_residential', 'personal_home_setup',
+    'minimal_home'
+  ] as const,
 } as const;

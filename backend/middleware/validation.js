@@ -185,14 +185,30 @@ const workoutSchemas = {
     goals: Joi.array()
       .items(Joi.string())
       .min(1)
+      .max(3)
       .required()
       .messages({
+        'array.max': 'Maximum 3 goals allowed',
         'array.min': 'At least one goal must be provided',
         'any.required': 'Goals are required'
       }),
-    equipment: Joi.array()
-      .items(Joi.string())
-      .default([]),
+    primaryGoal: Joi.string()
+      .optional()
+      .messages({
+        'string.base': 'Primary goal must be a string'
+      })
+      .custom((value, helpers) => {
+        // Validate that primaryGoal is included in goals array
+        const goals = helpers.state.ancestors[0].goals;
+        if (value && goals && !goals.includes(value)) {
+          return helpers.error('any.invalid');
+        }
+        return value;
+      }, 'Primary goal validation')
+      .messages({
+        'any.invalid': 'Primary goal must be included in the goals array'
+      }),
+    // Equipment will be resolved from user profile gym category
     restrictions: Joi.array()
       .items(Joi.string())
       .default([]),
@@ -206,7 +222,7 @@ const workoutSchemas = {
       }),
     workoutFrequency: Joi.string() // Changed to string to match API spec examples like '3x per week'
       // .valid('daily', '1x_week', '2x_week', '3x_week', '4x_week', '5x_week', '6x_week') // Example valid values
-      .allow(null)
+      .allow(null, '')
       .optional()
       .messages({
         // 'any.only': 'Invalid workout frequency format',
@@ -603,27 +619,19 @@ const profileSchemas = {
       .messages({
         'array.base': 'Goals must be an array'
       }),
-    equipment: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
+    gymCategory: Joi.string()
+      .valid(
+        'full_service_commercial', 'budget_friendly', 'hardcore_strength',
+        'luxury_athletic_club', 'franchise_24_7', 'community_recreation', 
+        'crossfit_functional', 'limited_residential', 'personal_home_setup',
+        'minimal_home'
+      )
+      .required()
       .messages({
-        'array.base': 'Equipment must be an array'
+        'any.only': 'Invalid gym category',
+        'any.required': 'Gym category is required'
       }),
-    exercisePreferences: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
-      .messages({
-        'array.base': 'Exercise preferences must be an array'
-      }),
-    equipmentPreferences: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
-      .messages({
-        'array.base': 'Equipment preferences must be an array'
-      }),
+
     medicalConditions: Joi.array()
       .items(
         Joi.string()
@@ -677,7 +685,7 @@ const profileSchemas = {
         'array.max': 'Cannot have more than 10 medical conditions'
       }),
     workoutFrequency: Joi.string()
-      .allow(null)
+      .allow(null, '')
       .optional()
       .messages({
         'string.base': 'Workout frequency must be a string'
@@ -773,27 +781,19 @@ const profileSchemas = {
       .messages({
         'array.base': 'Goals must be an array'
       }),
-    equipment: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
+    gymCategory: Joi.string()
+      .valid(
+        'full_service_commercial', 'budget_friendly', 'hardcore_strength',
+        'luxury_athletic_club', 'franchise_24_7', 'community_recreation', 
+        'crossfit_functional', 'limited_residential', 'personal_home_setup',
+        'minimal_home'
+      )
+      .required()
       .messages({
-        'array.base': 'Equipment must be an array'
+        'any.only': 'Invalid gym category',
+        'any.required': 'Gym category is required'
       }),
-    exercisePreferences: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
-      .messages({
-        'array.base': 'Exercise preferences must be an array'
-      }),
-    equipmentPreferences: Joi.array()
-      .items(Joi.string())
-      .allow(null)
-      .optional()
-      .messages({
-        'array.base': 'Equipment preferences must be an array'
-      }),
+
     medicalConditions: Joi.array()
       .items(
         Joi.string()
@@ -847,7 +847,7 @@ const profileSchemas = {
         'array.max': 'Cannot have more than 10 medical conditions'
       }),
     workoutFrequency: Joi.string()
-      .allow(null)
+      .allow(null, '')
       .optional()
       .messages({
         'string.base': 'Workout frequency must be a string'
@@ -868,11 +868,16 @@ const profileSchemas = {
       .messages({
         'array.base': 'Goals must be an array'
       }),
-    equipment: Joi.array()
-      .items(Joi.string())
+    gymCategory: Joi.string()
+      .valid(
+        'full_service_commercial', 'budget_friendly', 'hardcore_strength',
+        'luxury_athletic_club', 'franchise_24_7', 'community_recreation', 
+        'crossfit_functional', 'limited_residential', 'personal_home_setup',
+        'minimal_home'
+      )
       .optional()
       .messages({
-        'array.base': 'Equipment must be an array'
+        'any.only': 'Invalid gym category'
       }),
     experienceLevel: Joi.string()
       .valid('beginner', 'intermediate', 'advanced')
@@ -882,7 +887,7 @@ const profileSchemas = {
         'any.only': 'Experience level must be one of: beginner, intermediate, advanced'
       }),
     workoutFrequency: Joi.string()
-      .allow(null)
+      .allow(null, '')
       .optional()
       .messages({
         'string.base': 'Workout frequency must be a string'
@@ -979,7 +984,7 @@ function validateMetricsCalculation(req, res, next) {
 /**
  * Schema for validating macro calculation inputs
  */
-const macroCalculationSchema = Joi.object({
+/* const macroCalculationSchema = Joi.object({
   weight: Joi.number().min(20).max(300).required()
     .messages({
       'number.min': 'Weight must be at least 20 kg (44 lbs)',
@@ -1045,7 +1050,7 @@ const macroCalculationSchema = Joi.object({
 
 /**
  * Middleware to validate macro calculation request
- */
+
 function validateMacroCalculation(req, res, next) {
   const { error, value } = macroCalculationSchema.validate(req.body, { abortEarly: false });
   
@@ -1074,10 +1079,10 @@ function validateMacroCalculation(req, res, next) {
   req.body = value;
   next();
 }
-
+ **/ 
 /**
  * Schema for validating notification preferences
- */
+
 const notificationPreferencesSchema = Joi.object({
   email_enabled: Joi.boolean().optional(),
   sms_enabled: Joi.boolean().optional(),
@@ -1088,10 +1093,10 @@ const notificationPreferencesSchema = Joi.object({
   quiet_hours_end: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional()
     .messages({ 'string.pattern.base': 'Quiet hours must be in HH:MM format (e.g., 14:30)' })
 });
-
+ **/
 /**
  * Middleware for validating notification preferences
- */
+
 function validateNotificationPreferences(req, res, next) {
   const { error, value } = notificationPreferencesSchema.validate(req.body, { abortEarly: false });
   
@@ -1107,6 +1112,7 @@ function validateNotificationPreferences(req, res, next) {
   req.body = value;
   next();
 }
+ **/
 
 // Export middleware and schemas
 module.exports = {
@@ -1120,8 +1126,8 @@ module.exports = {
   measurementsSchema,
   checkInSchema,
   metricCalculationSchema,
-  macroCalculationSchema,
-  notificationPreferencesSchema,
+  // macroCalculationSchema,
+  // notificationPreferencesSchema,
 
   schemas: { // Nested schemas for organization if preferred
     user: userSchemas,
@@ -1155,6 +1161,6 @@ module.exports = {
   // Other specific validation functions (ensure these are actual middleware (req,res,next) functions)
   validateCheckIn,
   validateMetricsCalculation,
-  validateMacroCalculation,
-  validateNotificationPreferences
+  // validateMacroCalculation,
+  // validateNotificationPreferences
 }; 

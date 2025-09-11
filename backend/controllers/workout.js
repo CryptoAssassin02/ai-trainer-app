@@ -1,17 +1,16 @@
 const workoutService = require('../services/workout-service');
-const { WorkoutGenerationAgent, PlanAdjustmentAgent, ResearchAgent } = require('../agents'); // Import ResearchAgent
+const { WorkoutGenerationAgent, PlanAdjustmentAgent } = require('../agents');
 const logger = require('../config/logger');
 const { NotFoundError, DatabaseError, ApplicationError } = require('../utils/errors');
 const { getSupabaseClientWithToken } = require('../services/supabase'); // Import RLS client helper
 const AgentMemorySystem = require('../agents/memory/core'); // Import Memory System
 const OpenAIService = require('../services/openai-service'); // Assuming this is how openaiService is accessed
-const { PerplexityService } = require('../services/perplexity-service'); // Import Perplexity service with named export
+
 const { getProfileByUserId } = require('../services/profile-service'); // Import profile service
 const { isValidUUID } = require('../agents/memory/validators'); // Import UUID validator
 
 // Instantiate services
 const openaiService = new OpenAIService();
-const perplexityService = new PerplexityService();
 
 /**
  * Generates a new workout plan using an agent and stores it.
@@ -24,6 +23,12 @@ async function generateWorkoutPlan(req, res) {
     logger.warn('generateWorkoutPlan called without userId or jwtToken in request context.');
     return res.status(401).json({ status: 'error', message: 'Authentication required.' });
   }
+
+  // ✅ DEBUG: Log the exact request data to compare with working curl
+  console.log('🔍 [DEBUG] Workout generation request:');
+  console.log('🔍 [DEBUG] User ID:', userId);
+  console.log('🔍 [DEBUG] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🔍 [DEBUG] Headers:', JSON.stringify(req.headers, null, 2));
 
   logger.info(`Generating workout plan for user: ${userId}`);
 
@@ -55,38 +60,31 @@ async function generateWorkoutPlan(req, res) {
     // The profile service returns userId (camelCase) but the agent expects user_id (snake_case)
     userProfile.user_id = userProfile.userId || userId;
 
+    // CRITICAL FIX: Structure userProfile.preferences for AI prompt compatibility
+    // The AI prompt expects userProfile.preferences.workoutFrequency but profile service returns userProfile.workoutFrequency
+    if (!userProfile.preferences) {
+      userProfile.preferences = {};
+    }
+    userProfile.preferences.workoutFrequency = userProfile.workoutFrequency;
+    userProfile.preferences.exerciseTypes = req.body.exerciseTypes || userProfile.exerciseTypes || [];
+    userProfile.preferences.constraints = req.body.restrictions || userProfile.restrictions || [];
+
     const userScopedMemorySystem = new AgentMemorySystem({
         supabase: supabaseRLSClient,
         openai: openaiService, // Agents using memory for embeddings might need openai
         logger
     });
 
-    // Step 1: Use Research Agent to gather research data
-    const researchAgent = new ResearchAgent({
-        perplexityService,
-        supabaseClient: supabaseRLSClient,
-        memorySystem: userScopedMemorySystem,
-        logger
-    });
-
-    // Prepare research context
-    const researchContext = {
-      userProfile,
-      goals: req.body.goals || userProfile.goals || ['general_fitness'],
-      equipment: req.body.equipment || userProfile.equipment || ['none'],
-      restrictions: req.body.restrictions || [],
-      exerciseTypes: req.body.exerciseTypes || ['strength']
-    };
-
-    logger.info('Calling Research Agent to gather exercise research...');
-    const researchResult = await researchAgent.process(researchContext);
-
-    if (!researchResult || !researchResult.success) {
-      logger.error('Research Agent failed to gather research data', { result: researchResult });
-      throw new ApplicationError(researchResult?.error?.message || 'Failed to gather exercise research.');
+    // Extract goals from request body or user profile
+    let goals = req.body.goals || userProfile.goals || ['general_fitness'];
+    const primaryGoal = req.body.primaryGoal;
+    
+    // Reorder goals to put primary goal first (orchestrator uses first goal as primary)
+    if (primaryGoal && goals.includes(primaryGoal)) {
+      goals = [primaryGoal, ...goals.filter(g => g !== primaryGoal)];
     }
 
-    // Step 2: Use Workout Generation Agent with research data
+    // Use Workout Generation Agent directly
     const generationAgent = new WorkoutGenerationAgent({
         openaiService,
         supabaseClient: supabaseRLSClient,
@@ -94,11 +92,15 @@ async function generateWorkoutPlan(req, res) {
         logger
     });
 
-    // Prepare generation context with research data
+    // Prepare generation context
     const generationContext = {
       userProfile,
-      goals: researchContext.goals,
-      researchData: researchResult.data // Pass the research data from Research Agent
+      goals: goals, // Use reordered goals
+      gymCategory: req.body.gymCategory || userProfile.gymCategory || 'minimal_home', // ✅ REPLACE equipment
+      restrictions: req.body.restrictions || [],
+      exerciseTypes: req.body.exerciseTypes || ['strength'],
+      additionalNotes: req.body.additionalNotes || '',
+      primaryGoal: primaryGoal // Add primaryGoal to context
     };
 
     logger.info('Calling Workout Generation Agent to create personalized plan...');
@@ -110,17 +112,37 @@ async function generateWorkoutPlan(req, res) {
         throw new ApplicationError(generatedPlanResult?.data?.errors?.[0] || 'Workout plan generation failed.');
     }
 
-    // Extract plan data from the correct structure - generatedPlanResult.data contains the actual plan data
+    // Extract complete plan data from agent result for Phase 4 storage
     const planDataForStorage = {
       planName: generatedPlanResult.data.planName,
-      weeklySchedule: generatedPlanResult.data.weeklySchedule, // Include weeklySchedule that test expects
+      primaryGoal: primaryGoal,
+      goals: goals,
+      
+      // Legacy format (backward compatibility)
+      weeklySchedule: generatedPlanResult.data.weeklySchedule,
       exercises: generatedPlanResult.data.exercises,
       formattedPlan: generatedPlanResult.data.formattedPlan,
+      
+      // Complete AI response structure (NEW in Phase 4)
+      programName: generatedPlanResult.data.programName,
+      programDuration: generatedPlanResult.data.programDuration,
+      goalStructure: generatedPlanResult.data.goalStructure,
+      trainingFrequency: generatedPlanResult.data.trainingFrequency,
+      mesocycles: generatedPlanResult.data.mesocycles,
+      mesocycleStructure: generatedPlanResult.data.mesocycles,
+      progressionStrategy: generatedPlanResult.data.progressionStrategy,
+      recoveryRequirements: generatedPlanResult.data.recoveryRequirements,
+      
+      // Multi-goal orchestrator data (NEW in Phase 4)
+      orchestratedProgram: generatedPlanResult.data.orchestratedProgram,
+      goalStrategies: generatedPlanResult.data.goalStrategies,
+      
+      // AI insights and reasoning
       explanations: generatedPlanResult.data.explanations,
-      researchInsights: generatedPlanResult.data.researchInsights,
       reasoning: generatedPlanResult.data.reasoning,
       warnings: generatedPlanResult.data.warnings,
-      errors: generatedPlanResult.data.errors
+      errors: generatedPlanResult.data.errors,
+      additionalNotes: req.body.additionalNotes
     };
 
     const savedPlan = await workoutService.storeWorkoutPlan(userId, planDataForStorage, jwtToken);

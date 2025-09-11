@@ -12,7 +12,7 @@ import { ToastProvider } from "@/components/ui/toast-provider"
 import { createGlobalErrorHandler } from "@/utils/error/global-error-handler"
 
 const DynamicWorkoutProvider = dynamic(
-  () => import('@/contexts/workout-context').then((mod) => mod.WorkoutProvider),
+  () => import('../../contexts/workout-context').then((mod) => mod.WorkoutProvider),
   { 
     ssr: false,
     loading: () => <>{/* Loading workout provider... */}</>
@@ -73,7 +73,17 @@ export function Providers({ children }: { children: ReactNode }) {
         <ErrorProvider>
           <SupabaseAuthProvider>
             <ProfileQueryProvider>
-              {children}
+              {/* ✅ PHASE 2 DAY 5: Re-enable WorkoutProvider for plan management */}
+              <ErrorBoundary 
+                fallback={<div>Workout features temporarily unavailable</div>}
+                onError={(error, errorInfo) => {
+                  console.error('WorkoutProvider error:', error, errorInfo);
+                }}
+              >
+                <DynamicWorkoutProvider>
+                  {children}
+                </DynamicWorkoutProvider>
+              </ErrorBoundary>
             </ProfileQueryProvider>
           </SupabaseAuthProvider>
         </ErrorProvider>

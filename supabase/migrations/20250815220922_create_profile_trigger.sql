@@ -38,4 +38,4 @@ grant execute on function public.handle_new_user() to supabase_auth_admin;
 
 -- Add comment for documentation
 comment on function public.handle_new_user() is 'Automatically creates a user profile when a new user signs up via Supabase Auth';
-comment on trigger on_auth_user_created on auth.users is 'Trigger to create user profile on new user signup';
+-- Note: Cannot comment on auth.users trigger in local development due to permissions

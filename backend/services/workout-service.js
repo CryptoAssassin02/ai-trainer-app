@@ -58,46 +58,139 @@ async function executeTransaction(callback) {
 /**
  * Stores a new workout plan in the database.
  * @param {string} userId - The ID of the user creating the plan.
- * @param {object} planData - The workout plan data with planName, exercises, researchInsights, reasoning.
+ * @param {object} planData - The workout plan data with planName, exercises, reasoning.
  * @param {string} jwtToken - The user's JWT for RLS.
  * @returns {Promise<object>} The newly created workout plan record.
  * @throws {DatabaseError} If the database operation fails.
  */
 async function storeWorkoutPlan(userId, planData, jwtToken) {
-  const supabase = getSupabaseClientWithToken(jwtToken); // Use imported helper
-  logger.debug(`Attempting to store workout plan for user: ${userId}`);
+  const supabase = getSupabaseClientWithToken(jwtToken);
+  logger.debug(`Storing comprehensive workout plan for user: ${userId}`);
+  
   try {
-    // Map the planData structure to the database schema
+    // Determine generation method and extract comprehensive data
+    const isMultiGoal = planData.goals && planData.goals.length > 1;
+    const generationMethod = isMultiGoal ? 'multi_goal_orchestrated' : 'single_goal';
+    
+    // Extract orchestrator data if present
+    const orchestratorData = planData.orchestratedProgram || null;
+    const mesocycleStructure = planData.mesocycleStructure || planData.mesocycles || null;
+    
+    // Extract program metadata with proper type handling
+    let programDuration = (isMultiGoal ? 12 : 8); // Default fallback
+    let mesocycleCount = (isMultiGoal ? 3 : 2); // Default fallback
+    
+    // Extract duration from various possible sources
+    if (orchestratorData?.programDuration) {
+      if (typeof orchestratorData.programDuration === 'number') {
+        programDuration = orchestratorData.programDuration;
+      } else if (orchestratorData.programDuration.totalWeeks) {
+        programDuration = orchestratorData.programDuration.totalWeeks;
+      }
+    } else if (planData.programDuration) {
+      if (typeof planData.programDuration === 'number') {
+        programDuration = planData.programDuration;
+      } else if (planData.programDuration.totalWeeks) {
+        programDuration = planData.programDuration.totalWeeks;
+      }
+    }
+    
+    // Extract mesocycle count from various possible sources
+    if (mesocycleStructure?.length) {
+      mesocycleCount = mesocycleStructure.length;
+    } else if (planData.programDuration?.mesocycles) {
+      mesocycleCount = planData.programDuration.mesocycles;
+    } else if (orchestratorData?.programDuration?.mesocycles) {
+      mesocycleCount = orchestratorData.programDuration.mesocycles;
+    }
+    
+    // Ensure values are integers within valid range
+    programDuration = Math.max(8, Math.min(16, parseInt(programDuration) || 12));
+    mesocycleCount = Math.max(1, Math.min(5, parseInt(mesocycleCount) || 3));
+    
+    // Extract training frequency data
+    const trainingFrequency = planData.trainingFrequency || {
+      daysPerWeek: 4,
+      sessionsPerDay: 1,
+      restDays: isMultiGoal ? ["Sunday", "Wednesday"] : ["Sunday"]
+    };
+    
+    // Compile goal strategy data
+    const goalStrategyData = {
+      strategies: planData.goalStrategies || {},
+      trainingParameters: orchestratorData?.trainingParameters || {},
+      exercisePriorities: orchestratorData?.exercisePriorities || {},
+      progressionStrategy: orchestratorData?.progressionStrategy || {},
+      recoveryRequirements: orchestratorData?.recoveryRequirements || {}
+    };
+    
+    // Enhanced data mapping for Phase 4
     const insertData = {
       user_id: userId,
-      name: planData.planName || 'Generated Workout Plan', // Required field
-      description: `AI-generated workout plan for user`,
+      name: planData.planName || 'Generated Workout Plan',
+      description: `AI-generated ${generationMethod.replace('_', ' ')} workout plan`,
+      primary_goal: planData.primaryGoal || (planData.goals && planData.goals[0]),
+      goals: planData.goals || ['general_fitness'],
+      
+      // Enhanced Phase 4 columns
+      schema_version: 'v2.0',
+      generation_method: generationMethod,
+      program_duration_weeks: programDuration,
+      mesocycle_count: mesocycleCount,
+      training_frequency: trainingFrequency,
+      orchestrator_data: orchestratorData,
+      mesocycle_structure: mesocycleStructure,
+      goal_strategy_data: goalStrategyData,
+      
+      // Enhanced plan_data with complete structure
       plan_data: {
+        // Legacy format support (backward compatibility)
         exercises: planData.exercises || [],
-        weeklySchedule: planData.weeklySchedule || {}, // Include weeklySchedule that test expects
+        weeklySchedule: planData.weeklySchedule || {},
         formattedPlan: planData.formattedPlan || '',
+        
+        // Complete AI response structure (NEW in Phase 4)
+        aiResponse: {
+          programName: planData.programName,
+          programDuration: planData.programDuration,
+          goalStructure: planData.goalStructure,
+          mesocycles: mesocycleStructure,
+          progressionStrategy: planData.progressionStrategy,
+          recoveryRequirements: planData.recoveryRequirements
+        },
+        
+        // Multi-goal orchestrator data (NEW in Phase 4)
+        orchestratedProgram: orchestratorData,
+        
+        // AI insights and reasoning
         explanations: planData.explanations || '',
-        researchInsights: planData.researchInsights || [],
         reasoning: planData.reasoning || '',
         warnings: planData.warnings || [],
         errors: planData.errors || []
       },
+      
+      additional_notes: planData.additionalNotes || null,
       ai_generated: true,
       status: 'active',
+      
+      // Enhanced ai_reasoning with orchestrator intelligence
       ai_reasoning: {
         reasoning: planData.reasoning || '',
-        researchInsights: planData.researchInsights || []
+        compatibility: orchestratorData?.compatibility || null,
+        recommendations: orchestratorData?.recommendations || [],
+        promptInstructions: orchestratorData?.promptInstructions || null,
+        goalPriority: orchestratorData?.goalPriority || null
       }
     };
 
     const { data, error } = await supabase
       .from('workout_plans')
       .insert(insertData)
-      .select() // Return the inserted record
+      .select()
       .single();
 
     if (error) {
-      logger.error(`Supabase error storing workout plan for user ${userId}: ${error.message}`);
+      logger.error(`Supabase error storing comprehensive workout plan: ${error.message}`);
       throw new DatabaseError(`Database error storing workout plan: ${error.message}`);
     }
 
@@ -106,15 +199,21 @@ async function storeWorkoutPlan(userId, planData, jwtToken) {
         throw new DatabaseError('Failed to store workout plan, no data returned.');
     }
 
-    logger.info(`Workout plan stored successfully for user: ${userId}, Plan ID: ${data.id}`);
+    logger.info(`${generationMethod} workout plan stored successfully with complete data`, { 
+      userId, 
+      planId: data.id,
+      isMultiGoal,
+      goalCount: planData.goals?.length || 1,
+      programDuration,
+      mesocycleCount,
+      hasOrchestratorData: !!orchestratorData,
+      hasMesocycleStructure: !!mesocycleStructure
+    });
+    
     return data;
   } catch (error) {
-    logger.error(`Error in storeWorkoutPlan for user ${userId}: ${error.message}`);
-    // Rethrow specific errors or a generic one
-    if (error instanceof DatabaseError) {
-      throw error;
-    }
-    throw new DatabaseError(`Failed to store workout plan: ${error.message}`);
+    logger.error(`Error storing comprehensive workout plan: ${error.message}`);
+    throw error instanceof DatabaseError ? error : new DatabaseError(`Failed to store workout plan: ${error.message}`);
   }
 }
 

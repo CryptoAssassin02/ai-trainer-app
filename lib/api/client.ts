@@ -5,7 +5,13 @@
 
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiResponse, ApiErrorResponse } from './types';
-import { API_TIMEOUTS, APIError, API_ENDPOINTS } from './constants';
+import { API_TIMEOUTS, APIError, API_ENDPOINTS, RATE_LIMIT_MESSAGES } from './constants';
+import { 
+  RateLimitError, 
+  AuthenticationError, 
+  NotFoundError, 
+  ErrorFactory 
+} from './errors';
 
 // Import type extensions
 import './types';
@@ -226,7 +232,15 @@ export class APIClient {
           });
         }
 
-        // Handle 401 errors with automatic token refresh
+        // ✅ REVISED: Handle rate limiting with environment awareness
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'];
+          const message = (error.response.data as any)?.message || RATE_LIMIT_MESSAGES.GENERAL;
+          
+          throw new RateLimitError(message, retryAfter);
+        }
+        
+        // ✅ REVISED: Handle RLS authentication failures
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -235,12 +249,17 @@ export class APIClient {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return this.instance(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, redirect to login
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login';
-            }
-            return Promise.reject(refreshError);
+            // Clear potentially corrupted tokens
+            sessionStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_token');
+            
+            throw new AuthenticationError('Authentication required. Please sign in again.');
           }
+        }
+        
+        // ✅ REVISED: Handle RLS authorization failures (user doesn't own resource)
+        if (error.response?.status === 404 && originalRequest.url?.includes('/workouts/')) {
+          throw new NotFoundError('Workout plan not found or access denied.');
         }
 
         // Development logging
@@ -250,8 +269,8 @@ export class APIClient {
           console.groupEnd();
         }
 
-        // Classify and throw the error
-        const apiError = classifyError(error);
+        // ✅ REVISED: Use enhanced error factory
+        const apiError = ErrorFactory.createFromResponse(error);
         return Promise.reject(apiError);
       }
     );

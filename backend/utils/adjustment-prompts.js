@@ -2,7 +2,7 @@ const Handlebars = require('handlebars');
 
 // --- Template Definitions ---
 const systemPromptTemplate = Handlebars.compile(`
-You are an expert AI Fitness Coach, with decades of experience in all aspects of fitness. Your task is to adjust an existing workout plan based on user feedback while maintaining safety, effectiveness, and coherence with the user's goals.
+You are an expert AI Fitness Coach with extensive experience. Adjust existing workout plans based on user feedback while maintaining safety, effectiveness, and goal coherence.
 
 ## Original Workout Plan:
 {{{originalPlanDetails}}}
@@ -12,7 +12,7 @@ You are an expert AI Fitness Coach, with decades of experience in all aspects of
 {{#if userProfile.age}}- Age: {{userProfile.age}}{{/if}}
 {{#if userProfile.gender}}- Gender: {{userProfile.gender}}{{/if}}
 {{#if userProfile.preferences.exerciseTypes}}- Preferred Exercise Types: {{join userProfile.preferences.exerciseTypes ', '}}{{/if}}
-{{#if userProfile.preferences.equipment}}- Available Equipment: {{join userProfile.preferences.equipment ', '}}{{/if}}
+{{#if userProfile.gymCategory}}- Gym Type: {{userProfile.gymCategory}}{{/if}}
 {{#if userProfile.preferences.workoutFrequency}}- Desired Workout Frequency: {{userProfile.preferences.workoutFrequency}}{{/if}}
 
 ## User Feedback:
@@ -54,10 +54,10 @@ You are an expert AI Fitness Coach, with decades of experience in all aspects of
 {{/each}}
 {{/if}}
 
-{{#if parsedFeedback.equipmentLimitations}}
-### Equipment Limitations:
-{{#each parsedFeedback.equipmentLimitations}}
-- Equipment unavailable: "{{this.equipment}}"{{#if this.alternative}} - Suggested alternative: "{{this.alternative}}"{{/if}}{{#if this.reason}} - Reason: {{this.reason}}{{/if}}
+{{#if parsedFeedback.gymLimitations}}
+### Gym/Equipment Limitations:
+{{#each parsedFeedback.gymLimitations}}
+- Gym constraint: "{{this.limitation}}"{{#if this.alternative}} - Suggested alternative: "{{this.alternative}}"{{/if}}{{#if this.reason}} - Reason: {{this.reason}}{{/if}}
 {{/each}}
 {{/if}}
 
@@ -68,12 +68,12 @@ You are an expert AI Fitness Coach, with decades of experience in all aspects of
 {{/each}}
 {{/if}}
 
-## Safety Guidelines:
-- Prioritize safety above all else, especially concerning reported pain/discomfort.
-- Ensure substitute exercises don't aggravate any mentioned pain points.
-- Maintain proper progression and don't increase intensity/volume too dramatically.
-- Respect the user's equipment limitations and constraints.
-- Preserve the overall balance of the workout plan (e.g., push/pull balance, major muscle groups).
+## Safety & Guidelines:
+• Safety first, especially for reported pain/discomfort
+• Substitute exercises must not aggravate pain points
+• Maintain proper progression, avoid dramatic intensity/volume increases
+• Respect equipment limitations & constraints
+• Preserve workout balance (push/pull, major muscle groups)
 
 ## Instructions for Plan Adjustment:
 1. Make the requested changes while maintaining overall workout coherence and safety.
@@ -306,7 +306,7 @@ function generateAdjustmentPrompt(originalPlan, userProfile, userFeedback, parse
         preferences: {
           ...(userProfile.preferences || {}),
           exerciseTypes: userProfile.preferences?.exerciseTypes || [],
-          equipment: userProfile.preferences?.equipment || [],
+          gymCategory: userProfile.gymCategory || 'minimal_home',
           constraints: userProfile.preferences?.constraints || []
         }
       },

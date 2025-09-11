@@ -34,7 +34,7 @@ export function useProfileCompletion(options?: {
         throw new Error('Profile data not available');
       }
       
-      return calculateProfileCompletion(profileQuery.data, options?.threshold);
+      return calculateProfileCompletion(profileQuery.data as UserProfile, options?.threshold);
     },
     enabled: Boolean(user?.id) && Boolean(profileQuery.data) && (options?.enabled !== false),
     staleTime: 30 * 1000, // 30 seconds - completion status changes with profile
@@ -63,8 +63,8 @@ export function useProfileValidation(options?: {
       }
 
       return validateProfileData({
-        profile: profileQuery.data,
-        preferences: preferencesQuery.data,
+        profile: profileQuery.data as UserProfile,
+        preferences: preferencesQuery.data as ProfilePreferences | undefined,
         includePreferences: options?.includePreferences
       });
     },
@@ -89,12 +89,12 @@ export function useProfileOverview(options?: {
     const baseQueries = [
       {
         queryKey: profileQueryKeys.userProfile(user.id),
-        queryFn: () => profileService.getProfile().then(res => res.data),
+        queryFn: () => profileService.getProfile(),
         staleTime: 5 * 60 * 1000,
       },
       {
         queryKey: profileQueryKeys.userPreferences(user.id),
-        queryFn: () => profileService.getPreferences().then(res => res.data),
+        queryFn: () => profileService.getPreferences(),
         staleTime: 2 * 60 * 1000,
       },
     ];
@@ -103,7 +103,7 @@ export function useProfileOverview(options?: {
       baseQueries.push({
         queryKey: profileQueryKeys.completion(user.id),
         queryFn: async () => {
-          const profileData = await profileService.getProfile().then(res => res.data);
+          const profileData = await profileService.getProfile();
           return calculateProfileCompletion(profileData);
         },
         staleTime: 30 * 1000,
@@ -115,8 +115,8 @@ export function useProfileOverview(options?: {
         queryKey: profileQueryKeys.validation(user.id),
         queryFn: async () => {
           const [profileData, preferencesData] = await Promise.all([
-            profileService.getProfile().then(res => res.data),
-            profileService.getPreferences().then(res => res.data),
+            profileService.getProfile(),
+            profileService.getPreferences(),
           ]);
           return validateProfileData({ profile: profileData, preferences: preferencesData });
         },
@@ -154,7 +154,7 @@ export function useProfileOverview(options?: {
  * Hook that manages profile cache based on auth state changes
  */
 export function useProfileAuthSync() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -180,14 +180,14 @@ export function useProfileAuthSync() {
       // Prefetch main profile data
       queryClient.prefetchQuery({
         queryKey: profileQueryKeys.userProfile(user.id),
-        queryFn: () => profileService.getProfile().then(res => res.data),
+        queryFn: () => profileService.getProfile(),
         staleTime: 5 * 60 * 1000,
       });
 
       // Prefetch preferences
       queryClient.prefetchQuery({
         queryKey: profileQueryKeys.userPreferences(user.id),
-        queryFn: () => profileService.getPreferences().then(res => res.data),
+        queryFn: () => profileService.getPreferences(),
         staleTime: 2 * 60 * 1000,
       });
     }
@@ -318,7 +318,7 @@ export function useOptimisticProfileUpdate() {
 
       // Update with server response and remove optimistic flag
       queryClient.setQueryData(context.queryKey, (old: any) => ({
-        ...result.data,
+        ...result,
         _optimistic: false,
       }));
     },
@@ -514,11 +514,11 @@ function validateProfileData(params: {
   }
 
   // Goals validation
-  if (profile.goals && profile.goals.length > 5) {
-    warnings.push({
+  if (profile.goals && profile.goals.length > 3) {
+    errors.push({
       field: 'goals',
-      message: 'Too many goals selected',
-      suggestion: 'Consider focusing on 3-5 primary goals for better results',
+      message: 'Maximum 3 goals allowed',
+      severity: 'error',
     });
   }
 

@@ -99,7 +99,6 @@ const createEnvSchema = (nodeEnv) => {
     
     // External services
     OPENAI_API_KEY: Joi.string().allow(''),
-    PERPLEXITY_API_KEY: Joi.string().allow(''),
     
     // CORS
     CORS_ORIGIN: Joi.string().default('*'),
@@ -199,9 +198,6 @@ module.exports = {
   externalServices: {
     openai: {
       apiKey: env.OPENAI_API_KEY
-    },
-    perplexity: {
-      apiKey: env.PERPLEXITY_API_KEY
     }
   },
   

@@ -280,7 +280,7 @@ async function getProfilePreferences(userId, jwtToken) {
     
     const { data, error } = await supabase
       .from(PROFILES_TABLE)
-      .select('unit_preference, fitness_goals, equipment, experience_level, workout_frequency, updated_at, user_id')
+      .select('unit_preference, fitness_goals, gym_category, experience_level, workout_frequency, updated_at, user_id')
       .eq('user_id', userId)
       .single();
     
@@ -300,7 +300,7 @@ async function getProfilePreferences(userId, jwtToken) {
       userId: data.user_id,
       unitPreference: data.unit_preference,
       goals: data.fitness_goals,
-      equipment: data.equipment,
+      gymCategory: data.gym_category,
       experienceLevel: data.experience_level,
       workoutFrequency: data.workout_frequency,
       updatedAt: data.updated_at
@@ -371,8 +371,8 @@ async function updateProfilePreferences(userId, preferenceData, jwtToken) {
     if (preferenceData.goals !== undefined) {
       dataToUpdate.fitness_goals = preferenceData.goals;
     }
-    if (preferenceData.equipment !== undefined) {
-      dataToUpdate.equipment = preferenceData.equipment;
+    if (preferenceData.gymCategory !== undefined) {
+      dataToUpdate.gym_category = preferenceData.gymCategory;
     }
     if (preferenceData.experienceLevel !== undefined) {
       dataToUpdate.experience_level = preferenceData.experienceLevel;
@@ -387,7 +387,7 @@ async function updateProfilePreferences(userId, preferenceData, jwtToken) {
          userId: existingProfile.user_id,
          unitPreference: existingProfile.unit_preference,
          goals: existingProfile.fitness_goals,
-         equipment: existingProfile.equipment,
+         gymCategory: existingProfile.gym_category,
          experienceLevel: existingProfile.experience_level,
          workoutFrequency: existingProfile.workout_frequency
        };
@@ -421,7 +421,7 @@ async function updateProfilePreferences(userId, preferenceData, jwtToken) {
       userId: data.user_id,
       unitPreference: data.unit_preference,
       goals: data.fitness_goals,
-      equipment: data.equipment,
+      gymCategory: data.gym_category,
       experienceLevel: data.experience_level,
       workoutFrequency: data.workout_frequency,
       updatedAt: data.updated_at
@@ -542,9 +542,7 @@ function validateProfileData(profileData, isUpdate = false) {
   }
   
   // Validate equipmentPreferences if provided, allow null
-  if (profileData.equipmentPreferences !== undefined && profileData.equipmentPreferences !== null && !Array.isArray(profileData.equipmentPreferences)) {
-    errors.push({ field: 'equipmentPreferences', message: 'Equipment preferences must be an array' });
-  }
+  // Equipment preferences validation removed - replaced with gym category validation
   
   // Validate medical conditions if provided - healthcare data validation, allow null
   if (profileData.medicalConditions !== undefined && profileData.medicalConditions !== null) {
@@ -624,9 +622,7 @@ function validatePreferenceData(preferenceData) {
   }
   
   // Validate equipment preferences if provided, allow null
-  if (preferenceData.equipmentPreferences !== undefined && preferenceData.equipmentPreferences !== null && !Array.isArray(preferenceData.equipmentPreferences)) {
-    errors.push({ field: 'equipmentPreferences', message: 'Equipment preferences must be an array' });
-  }
+  // Equipment preferences validation removed - replaced with gym category validation
   
   // Throw validation error if there are any errors
   if (errors.length > 0) {
@@ -647,7 +643,7 @@ function prepareProfileDataForStorage(profileData, existingProfile = {}) {
   
   // Only copy database-formatted fields from existing profile (snake_case)
   const dbFields = [
-    'id', 'user_id', 'unit_preference', 'fitness_goals', 'equipment', 
+    'id', 'user_id', 'unit_preference', 'fitness_goals', 'gym_category', 
     'workout_frequency', 'gender', 'age', 'name', 'experience_level', 
     'medical_conditions', 'height', 'weight', 'created_at', 'updated_at'
   ];
@@ -670,16 +666,10 @@ function prepareProfileDataForStorage(profileData, existingProfile = {}) {
   if (profileData.experienceLevel !== undefined) result.experience_level = profileData.experienceLevel;
   if (profileData.medicalConditions !== undefined) result.medical_conditions = profileData.medicalConditions;
   
-  // Handle equipment field mapping - priority: equipmentPreferences > exercisePreferences > equipment
-  if (profileData.equipmentPreferences !== undefined) {
-    result.equipment = profileData.equipmentPreferences;
-    console.log('Equipment field mapping: equipmentPreferences →', profileData.equipmentPreferences);
-  } else if (profileData.exercisePreferences !== undefined) {
-    result.equipment = profileData.exercisePreferences;
-    console.log('Equipment field mapping: exercisePreferences →', profileData.exercisePreferences);
-  } else if (profileData.equipment !== undefined) {
-    result.equipment = profileData.equipment;
-    console.log('Equipment field mapping: equipment →', profileData.equipment);
+  // Handle gym category field mapping
+  if (profileData.gymCategory !== undefined) {
+    result.gym_category = profileData.gymCategory;
+    console.log('Gym category field mapping: gymCategory →', profileData.gymCategory);
   }
   
   // Handle height conversion if provided
@@ -779,11 +769,11 @@ function convertProfileUnitsForResponse(profileData) {
     updatedAt: profileData.updated_at
   };
   
-  // Note: For equipment field, we only return one field in the response
-  // The backend stores everything in the 'equipment' database field
-  // but for API responses, we use the 'equipment' field name
-  if (profileData.equipment !== undefined) {
-    response.equipment = profileData.equipment;
+  // Note: For gym category field, we return the gym category from database
+  // The backend stores gym category in the 'gym_category' database field
+  // and returns it as 'gymCategory' in API responses (camelCase)
+  if (profileData.gym_category !== undefined) {
+    response.gymCategory = profileData.gym_category;
   }
   
   // Convert height from cm to imperial if needed

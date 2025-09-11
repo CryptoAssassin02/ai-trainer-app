@@ -6,12 +6,14 @@ const envConfig = require('./env');
 
 // --- Model Definitions ---
 const MODELS = {
-  // Latest Powerful Models
-  GPT_4o: 'gpt-4o', // Most capable, multi-modal
+  // Latest Powerful Models - 2025 Updates
+  GPT_4_1: 'gpt-4.1', // Latest model with 1M token context window, enhanced reasoning
+  GPT_4o: 'gpt-4o', // Previous flagship model, multi-modal
   GPT_4_TURBO: 'gpt-4-turbo', // Predecessor to gpt-4o
 
   // Cost-effective / Faster Models
-  GPT_4o_MINI: 'gpt-4o-mini', // New cost-effective model
+  GPT_4_1_MINI: 'gpt-4.1-mini', // Cost-effective with 1M context window
+  GPT_4o_MINI: 'gpt-4o-mini', // Previous cost-effective model
   GPT_3_5_TURBO: 'gpt-3.5-turbo-0125', // Still a solid, fast option
 
   // Embedding Models
@@ -32,10 +34,11 @@ const commonDefaults = {
   topP: 1.0,
   frequencyPenalty: 0.0,
   presencePenalty: 0.0,
-  // maxTokens usually set per request type (e.g., chat vs. specific generation)
+  // Default max tokens for GPT-4.1's enhanced capabilities
+  maxTokens: 32768, // Conservative default, can be overridden per request
 
   // Default Models
-  defaultChatModel: MODELS.GPT_4o_MINI, // Balance cost and capability
+  defaultChatModel: MODELS.GPT_4_1, // Latest model with 1M token context window
   defaultEmbeddingModel: MODELS.TEXT_EMBEDDING_3_SMALL,
   // defaultReasoningModel: MODELS.O1_MINI, // Example if using reasoning models
 
@@ -51,22 +54,36 @@ const commonDefaults = {
   // These are NOT enforced client-side by this config, just guidelines.
   rateLimits: {
     // Example Tier 1 limits (check your actual tier: https://platform.openai.com/docs/guides/rate-limits)
-    requestsPerMinute: { default: 60, [MODELS.GPT_4o]: 60 },
-    tokensPerMinute: { default: 60000, [MODELS.GPT_4o]: 150000 },
+    requestsPerMinute: { 
+      default: 60, 
+      [MODELS.GPT_4_1]: 60,
+      [MODELS.GPT_4o]: 60 
+    },
+    tokensPerMinute: { 
+      default: 60000, 
+      [MODELS.GPT_4_1]: 200000, // Higher limit due to 1M context window
+      [MODELS.GPT_4o]: 150000 
+    },
   },
 
   // Placeholder for token/cost estimation constants
-  // Pricing based on OpenAI website as of late 2024 (verify current prices)
+  // Pricing based on OpenAI website as of January 2025 (verify current prices)
   // Prices are per 1 Million tokens
   pricing: {
+    // GPT-4.1 Series (2025) - More cost-effective with larger context
+    [MODELS.GPT_4_1]: { input: 2.00, output: 8.00 }, // Estimated based on research
+    [MODELS.GPT_4_1_MINI]: { input: 0.25, output: 1.00 }, // Estimated based on research
+    
+    // GPT-4o Series (2024)
     [MODELS.GPT_4o]: { input: 5.00, output: 15.00 },
     [MODELS.GPT_4o_MINI]: { input: 0.15, output: 0.60 },
-    [MODELS.GPT_4_TURBO]: { input: 10.00, output: 30.00 }, // Example price
+    [MODELS.GPT_4_TURBO]: { input: 10.00, output: 30.00 },
     [MODELS.GPT_3_5_TURBO]: { input: 0.50, output: 1.50 },
+    
+    // Embedding Models
     [MODELS.TEXT_EMBEDDING_3_SMALL]: { usage: 0.02 },
     [MODELS.TEXT_EMBEDDING_3_LARGE]: { usage: 0.13 },
-    [MODELS.TEXT_EMBEDDING_ADA_002]: { usage: 0.10 }, // Example price
-    // [MODELS.O1_MINI]: { input: TBD, output: TBD },
+    [MODELS.TEXT_EMBEDDING_ADA_002]: { usage: 0.10 },
   },
   // Rough character count per token (highly approximate)
   charsPerTokenApproximation: 4,

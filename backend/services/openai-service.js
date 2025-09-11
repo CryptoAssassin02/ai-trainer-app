@@ -53,9 +53,10 @@ class OpenAIService {
         throw new Error('OpenAI API key not found');
       }
 
-      // Create the client
+      // Create the client with timeout configuration
       this.#client = new OpenAI({
         apiKey: this.#apiKey,
+        timeout: 180000, // 3 minutes timeout for OpenAI client (higher than agent timeout)
       });
 
       logger.info('OpenAI client initialized successfully');

@@ -3,14 +3,17 @@
  * Separated from client to avoid instantiation issues in tests
  */
 
-// API timeout configurations for different operation types
+// ✅ REVISED: Backend-aligned timeouts (matches agent timeouts exactly)
 export const API_TIMEOUTS = {
-  workoutGeneration: 45000,     // 45 seconds for AI workout generation
-  workoutAdjustment: 30000,     // 30 seconds for AI plan adjustments
+  workoutGeneration: 180000,    // Keep existing for monolithic
+  workoutStructure: 60000,      // NEW: 60s for structure generation
+  workoutMesocycle: 120000,     // NEW: 120s for mesocycle generation
+  workoutStatus: 5000,          // NEW: 5s for status checks
+  workoutAdjustment: 60000,     // ✅ 60s (matches PlanAdjustmentAgent timeout)
   nutritionPlanning: 40000,     // 40 seconds for nutrition analysis
   analyticsInsights: 35000,     // 35 seconds for analytics/AI insights
   perplexityResearch: 30000,    // 30 seconds for Perplexity AI research
-  standardOperations: 15000,    // 15 seconds for standard CRUD operations
+  standardOperations: 10000,    // ✅ 10s for CRUD operations (revised from 15s)
   fileOperations: 60000,        // 60 seconds for file upload/download
   localhost: 8000,              // 8 seconds for localhost development
 } as const;
@@ -62,12 +65,18 @@ export const API_ENDPOINTS = {
   
   // Workout endpoints
   WORKOUTS: {
-    BASE: '/workouts',
-    GENERATE: '/workouts',
-    ADJUST: (planId: string) => `/workouts/${planId}`,
-    DELETE: (planId: string) => `/workouts/${planId}`,
+    BASE: '/workouts',                    // ✅ GET /workouts
+    GENERATE: '/workouts',                // ✅ POST /workouts  
+    GET: (planId: string) => `/workouts/${planId}`,     // ✅ GET /workouts/:planId
+    ADJUST: (planId: string) => `/workouts/${planId}`,  // ✅ POST /workouts/:planId
+    DELETE: (planId: string) => `/workouts/${planId}`,  // ✅ DELETE /workouts/:planId
     LOG: '/workouts/log',
     LOGS: '/workouts/log',
+    
+    // NEW: Chunked generation endpoints
+    STRUCTURE: '/workouts/structure',
+    MESOCYCLE: (planId: string, num: number) => `/workouts/${planId}/mesocycles/${num}`,
+    STATUS: (planId: string) => `/workouts/${planId}/status`,
   },
   
   // Analytics endpoints
@@ -103,4 +112,19 @@ export const API_ENDPOINTS = {
   MACROS: {
     CALCULATE: '/macros/calculate',
   },
+} as const;
+
+// ✅ NEW: Environment-aware rate limiting (matches backend exactly)
+export const RATE_LIMITS = {
+  WORKOUT_GENERATION: {
+    PRODUCTION: { requests: 10, windowMs: 60 * 60 * 1000 }, // 10/hour
+    TEST: { requests: 100, windowMs: 60 * 1000 }, // 100/minute
+    DEVELOPMENT: { requests: 50, windowMs: 60 * 1000 }, // 50/minute
+  }
+} as const;
+
+// ✅ NEW: Rate limit error messages (matches backend responses)
+export const RATE_LIMIT_MESSAGES = {
+  WORKOUT_GENERATION: 'Too many workout plan generation requests. Please try again after an hour.',
+  GENERAL: 'Too many requests. Please try again later.',
 } as const;

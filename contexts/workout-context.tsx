@@ -1,212 +1,331 @@
-'use client'
+'use client';
 
-// Note: Backend API calls will be handled via the apiClient
-import { useOpenAI } from '@/utils/ai/openai'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useProfile } from '@/hooks/use-profile-queries'
-import type { UserProfile } from '@/lib/api/types'
-import { useToast } from '@/components/ui/use-toast'
-// @ts-ignore - UUID import
-import { v4 as uuidv4 } from 'uuid'
-// Import our new agent classes
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { workoutService } from '@/lib/api/services/workout-service';
+import { useAuth } from '@/components/auth/supabase-auth-provider';
+import { useProfileQueryContext } from '@/components/profile/profile-query-provider';
 import { 
-  ResearchAgent,
-  WorkoutGenerationAgent,
-  PlanAdjustmentAgent,
-  NutritionAgent,
-  AgentMemorySystem,
-  AgentInputType,
-  AgentResultType
-} from '@/utils/ai/workout-generation'
-import { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
+  WorkoutGenerationError, 
+  ProfileValidationError,
+  isWorkoutGenerationError,
+  isRateLimitError,
+  isAuthenticationError 
+} from '@/lib/api/errors';
+import type { 
+  WorkoutPlan, 
+  WorkoutGenerationRequest, 
+  WorkoutAdjustmentRequest 
+} from '@/lib/api/types';
 
-// Define TypeScript types for our workout context
-type WorkoutAgentType = 'research' | 'generation' | 'adjustment' | 'reflection'
+// ✅ REVISED: AI operation status tracking
+type AIOperationStatus = 
+  | { status: 'idle' }
+  | { status: 'validating'; message: 'Checking profile completeness...' }
+  | { status: 'generating'; progress: number; message: 'Workout Generation Agent creating plan...' }
+  | { status: 'adjusting'; progress: number; message: 'Plan Adjustment Agent modifying plan...' }
+  | { status: 'complete'; result: WorkoutPlan }
+  | { status: 'error'; error: Error; canRetry: boolean };
 
-interface ExerciseType {
-  id?: string
-  name: string
-  sets: number
-  repsMin: number
-  repsMax: number
-  notes?: string
-  imageUrl?: string
-  technique?: string
-  targetMuscles: string[]
-  equipment: string
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  weight?: number
-  restTime?: string
-  alternatives?: string[]
-  videoUrl?: string
-}
-
-interface WorkoutPlanType {
-  id?: string
-  user_id?: string
-  title: string
-  description: string
-  duration: string
-  sessions: number
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  exercises: ExerciseType[]
-  createdAt?: string
-  updatedAt?: string
-  notes?: string
-  estimatedCaloriesBurn?: number
-  tags?: string[]
-}
-
-interface WorkoutProgressType {
-  id?: string
-  user_id?: string
-  plan_id?: string
-  exercise_name: string
-  sets_completed: number
-  reps_completed: number[]
-  weight_used: number[]
-  duration?: number
-  notes?: string
-  difficulty_rating?: number
-  completed_at?: string
-  created_at?: string
-}
-
-interface WorkoutCheckInType {
-  id?: string
-  user_id?: string
-  check_in_date: string
-  weight?: number
-  body_fat_percentage?: number
-  muscle_mass?: number
-  measurements?: {
-    chest?: number
-    waist?: number
-    hips?: number
-    arms?: number
-    thighs?: number
-  }
-  energy_level?: number
-  motivation_level?: number
-  workout_satisfaction?: number
-  sleep_quality?: number
-  stress_level?: number
-  notes?: string
-  progress_photos?: string[]
-  goals_update?: string[]
-  challenges?: string[]
-  achievements?: string[]
-  created_at?: string
-}
-
-interface AgentMessageType {
-  agent: WorkoutAgentType | 'user'
-  message: string
-  timestamp: Date
-  type: 'info' | 'success' | 'error' | 'warning' | 'user'
-  data?: any
-}
-
-// Define the context type
-interface WorkoutContextType {
-  // State
-  workoutPlans: WorkoutPlanType[]
-  selectedPlan: WorkoutPlanType | null
-  userProgress: WorkoutProgressType[]
-  userCheckIns: WorkoutCheckInType[]
-  isGenerating: boolean
-  generationStatus: 'idle' | 'researching' | 'generating' | 'complete' | 'error'
-  generationProgress: number
-  currentAgent: WorkoutAgentType | null
-  agentMessages: AgentMessageType[]
-  workoutLogs: WorkoutProgressType[]
-  checkInHistory: WorkoutCheckInType[]
-  currentPlan: WorkoutPlanType | null
+// ✅ REVISED: Enhanced context interface with AI operation support
+interface WorkoutContextValue {
+  // Data
+  plans: WorkoutPlan[] | undefined;
+  currentPlan: WorkoutPlan | undefined;
   
-  // Functions
-  generateWorkoutPlan: (goals: string[], preferences: Record<string, any>) => Promise<void>
-  adjustWorkoutPlan: (planId: string, feedback: string) => Promise<void>
-  saveWorkoutPlan: (plan: WorkoutPlanType) => Promise<string | null>
-  deleteWorkoutPlan: (planId: string) => Promise<boolean>
-  logWorkoutProgress: (progress: WorkoutProgressType) => Promise<string | null>
-  logCheckIn: (checkIn: WorkoutCheckInType) => Promise<string | null>
-  submitCheckIn: (checkIn: WorkoutCheckInType) => Promise<boolean>
-  fetchUserWorkoutPlans: (userId?: string) => Promise<void>
-  fetchWorkoutPlan: (planId: string) => Promise<WorkoutPlanType | null>
-  getWorkoutLogs: (userId?: string) => Promise<WorkoutProgressType[]>
-  getCheckInHistory: (userId?: string) => Promise<WorkoutCheckInType[]>
-  setSelectedPlan: (plan: WorkoutPlanType | null) => void
-  clearGenerationState: () => void
+  // AI Operation State
+  operationStatus: AIOperationStatus;
+  isGenerating: boolean;
+  isAdjusting: boolean;
+  canGenerate: boolean; // Based on profile completeness and rate limits
+  
+  // Loading states  
+  isLoading: boolean;
+  
+  // Error states with AI-specific handling
+  error: Error | null;
+  generationError: WorkoutGenerationError | null;
+  rateLimitError: { message: string; retryAfter: number } | null;
+  
+  // Actions
+  generatePlan: (request: WorkoutGenerationRequest) => void;
+  generatePlanAsync: (request: WorkoutGenerationRequest) => Promise<WorkoutPlan>;
+  adjustPlan: (planId: string, request: WorkoutAdjustmentRequest) => void;
+  adjustPlanAsync: (planId: string, request: WorkoutAdjustmentRequest) => Promise<WorkoutPlan>;
+  selectPlan: (planId: string) => void;
+  deletePlan: (planId: string) => void;
+  
+  // Error recovery
+  clearErrors: () => void;
+  retryLastOperation: () => void;
+  
+  // Utilities
+  refetch: () => Promise<any>;
+  clearCache: () => void;
+  validateProfileForGeneration: () => Promise<{ isValid: boolean; missingFields: string[] }>;
 }
 
-// Create the workout context
-const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined)
+const WorkoutContext = createContext<WorkoutContextValue | undefined>(undefined);
 
-// Create the provider component
-export function WorkoutProvider({ children }: { children: ReactNode }) {
-  // TEMPORARILY DISABLED: Workout features until Phase 3 implementation
-  // Backend API calls will be handled via our API client instead of direct Supabase
-  const { profile } = useProfile()
-  const { toast } = useToast()
-  const openai = useOpenAI()
-  
-  // Early return with disabled context until backend integration is complete
-  const disabledContextValue: WorkoutContextType = {
-    // State
-    workoutPlans: [],
-    selectedPlan: null,
-    userProgress: [],
-    userCheckIns: [],
-    isGenerating: false,
-    generationStatus: 'idle',
-    generationProgress: 0,
-    currentAgent: null,
-    agentMessages: [],
-    workoutLogs: [],
-    checkInHistory: [],
-    currentPlan: null,
+// ✅ REVISED: Enhanced provider with AI operation support
+export function WorkoutProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
+  const { profile, completion } = useProfileQueryContext();
+  const isProfileComplete = completion?.data?.isComplete || false;
+
+  // ✅ AI operation status state
+  const [operationStatus, setOperationStatus] = React.useState<AIOperationStatus>({ status: 'idle' });
+  const [lastOperation, setLastOperation] = React.useState<{ type: 'generate' | 'adjust'; params: any } | null>(null);
+
+  // Plans query with authentication dependency
+  const plansQuery = useQuery({
+    queryKey: ['workoutPlans', user?.id],
+    queryFn: () => workoutService.getPlans(),
+    enabled: isAuthenticated && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry authentication or rate limit errors
+      if (isAuthenticationError(error) || isRateLimitError(error)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  // ✅ REVISED: Enhanced generation mutation with AI operation tracking
+  const generateMutation = useMutation({
+    mutationFn: async (request: WorkoutGenerationRequest) => {
+      // Validate profile completeness first
+      const validation = await validateProfileForGeneration();
+      if (!validation.isValid) {
+        throw new ProfileValidationError(
+          'Profile must be complete before generating workout plans',
+          validation.missingFields
+        );
+      }
+
+      // Track operation for retry capability
+      setLastOperation({ type: 'generate', params: request });
+      
+      // Start AI operation tracking
+      setOperationStatus({ status: 'validating', message: 'Checking profile completeness...' });
+      
+      // Simulate progress tracking (in real implementation, this would come from backend events)
+      setTimeout(() => {
+        setOperationStatus({ status: 'generating', progress: 50, message: 'Workout Generation Agent creating plan...' });
+      }, 1000);
+      
+      try {
+        const result = await workoutService.generatePlan(request);
+        setOperationStatus({ status: 'complete', result });
+        return result;
+      } catch (error) {
+        const canRetry = !isRateLimitError(error) && !isAuthenticationError(error);
+        setOperationStatus({ status: 'error', error: error as Error, canRetry });
+        throw error;
+      }
+    },
+    onSuccess: (newPlan) => {
+      // Add to cache optimistically
+      queryClient.setQueryData(['workoutPlans', user?.id], (old: WorkoutPlan[] = []) => 
+        [newPlan, ...old]
+      );
+      setOperationStatus({ status: 'idle' });
+    },
+    onError: (error) => {
+      console.error('Workout generation failed:', error);
+      // Error status already set in mutationFn
+    },
+  });
+
+  // ✅ REVISED: Enhanced adjustment mutation with AI operation tracking
+  const adjustMutation = useMutation({
+    mutationFn: async ({ planId, request }: { planId: string; request: WorkoutAdjustmentRequest }) => {
+      setLastOperation({ type: 'adjust', params: { planId, request } });
+      setOperationStatus({ status: 'adjusting', progress: 50, message: 'Plan Adjustment Agent modifying plan...' });
+      
+      try {
+        const result = await workoutService.adjustPlan(planId, request);
+        setOperationStatus({ status: 'complete', result });
+        return result;
+      } catch (error) {
+        const canRetry = !isRateLimitError(error) && !isAuthenticationError(error);
+        setOperationStatus({ status: 'error', error: error as Error, canRetry });
+        throw error;
+      }
+    },
+    onSuccess: (updatedPlan) => {
+      // Update specific plan in cache
+      queryClient.setQueryData(['workoutPlans', user?.id], (old: WorkoutPlan[] = []) => 
+        old.map(plan => plan.id === updatedPlan.id ? updatedPlan : plan)
+      );
+      setOperationStatus({ status: 'idle' });
+    },
+  });
+
+  // ✅ NEW: Profile validation for workout generation
+  const validateProfileForGeneration = useCallback(async (): Promise<{ isValid: boolean; missingFields: string[] }> => {
+    if (!profile) {
+      return { isValid: false, missingFields: ['complete profile'] };
+    }
+
+    const requiredFields = ['age', 'height', 'weight', 'experienceLevel'];
+    const missingFields = requiredFields.filter(field => {
+      const value = (profile as any)[field];
+      return value === undefined || value === null || value === '';
+    });
+
+    return {
+      isValid: missingFields.length === 0 && isProfileComplete,
+      missingFields,
+    };
+  }, [profile, isProfileComplete]);
+
+  // ✅ NEW: Error classification and handling
+  const errorState = useMemo(() => {
+    const genError = generateMutation.error;
+    const adjError = adjustMutation.error;
+    const queryError = plansQuery.error;
+
+    // Prioritize generation/adjustment errors over query errors
+    const primaryError = genError || adjError || queryError;
+
+    return {
+      error: primaryError,
+      generationError: isWorkoutGenerationError(genError) ? genError : null,
+      rateLimitError: isRateLimitError(primaryError) ? {
+        message: primaryError.message,
+        retryAfter: (primaryError as any).retryAfter || 3600
+      } : null,
+    };
+  }, [generateMutation.error, adjustMutation.error, plansQuery.error]);
+
+  // ✅ NEW: Error recovery actions
+  const clearErrors = useCallback(() => {
+    generateMutation.reset();
+    adjustMutation.reset();
+    setOperationStatus({ status: 'idle' });
+  }, [generateMutation, adjustMutation]);
+
+  const retryLastOperation = useCallback(() => {
+    if (!lastOperation) return;
     
-    // Functions (all disabled)
-    generateWorkoutPlan: async (_goals: string[], _preferences: Record<string, any>) => { console.log('Workout generation disabled until backend integration'); },
-    adjustWorkoutPlan: async (_planId: string, _feedback: string) => { console.log('Workout adjustment disabled until backend integration'); },
-    saveWorkoutPlan: async (_plan: WorkoutPlanType) => { console.log('Workout saving disabled until backend integration'); return null; },
-    deleteWorkoutPlan: async (_planId: string) => { console.log('Workout deletion disabled until backend integration'); return false; },
-    logWorkoutProgress: async (_progress: WorkoutProgressType) => { console.log('Workout logging disabled until backend integration'); return null; },
-    logCheckIn: async (_checkIn: WorkoutCheckInType) => { console.log('Check-in logging disabled until backend integration'); return null; },
-    submitCheckIn: async (_checkIn: WorkoutCheckInType) => { console.log('Check-in disabled until backend integration'); return false; },
-    fetchUserWorkoutPlans: async (_userId?: string) => { console.log('Workout plan fetching disabled until backend integration'); },
-    fetchWorkoutPlan: async (_planId: string) => { console.log('Individual workout plan fetching disabled until backend integration'); return null; },
-    getWorkoutLogs: async (_userId?: string) => { console.log('Workout log fetching disabled until backend integration'); return []; },
-    getCheckInHistory: async (_userId?: string) => { console.log('Check-in history fetching disabled until backend integration'); return []; },
-    setSelectedPlan: (_plan: WorkoutPlanType | null) => { console.log('Plan selection disabled until backend integration'); },
-    clearGenerationState: () => { console.log('Generation state clearing disabled until backend integration'); },
+    if (lastOperation.type === 'generate') {
+      generateMutation.mutate(lastOperation.params);
+    } else if (lastOperation.type === 'adjust') {
+      adjustMutation.mutate(lastOperation.params);
+    }
+  }, [lastOperation, generateMutation, adjustMutation]);
+
+  // ✅ REVISED: Enhanced context value with AI operation support
+  const value: WorkoutContextValue = {
+    // Data
+    plans: plansQuery.data,
+    currentPlan: undefined, // TODO: Implement selection logic
+
+    // AI Operation State
+    operationStatus,
+    isGenerating: generateMutation.isPending,
+    isAdjusting: adjustMutation.isPending,
+    canGenerate: isAuthenticated && isProfileComplete && !generateMutation.isPending,
+
+    // Loading states
+    isLoading: plansQuery.isLoading,
+
+    // Error states
+    ...errorState,
+
+    // Actions
+    generatePlan: generateMutation.mutate,
+    generatePlanAsync: generateMutation.mutateAsync,
+    adjustPlan: (planId: string, request: WorkoutAdjustmentRequest) => 
+      adjustMutation.mutate({ planId, request }),
+    adjustPlanAsync: async (planId: string, request: WorkoutAdjustmentRequest) => 
+      adjustMutation.mutateAsync({ planId, request }),
+    selectPlan: (planId: string) => {
+      // TODO: Implement plan selection logic
+      console.log('Selecting plan:', planId);
+    },
+    deletePlan: async (planId: string) => {
+      try {
+        // ✅ PHASE 2 DAY 5: Implement actual delete functionality
+        await workoutService.deletePlan(planId);
+        
+        // Remove from cache optimistically
+        queryClient.setQueryData(['workoutPlans', user?.id], (old: WorkoutPlan[] = []) => 
+          old.filter(plan => plan.id !== planId)
+        );
+        
+        console.log('Plan deleted successfully:', planId);
+      } catch (error) {
+        console.error('Failed to delete plan:', error);
+        // Refetch to ensure consistency
+        plansQuery.refetch();
+      }
+    },
+
+    // Error recovery
+    clearErrors,
+    retryLastOperation,
+
+    // Utilities
+    refetch: plansQuery.refetch,
+    clearCache: () => queryClient.invalidateQueries({ queryKey: ['workoutPlans'] }),
+    validateProfileForGeneration,
   };
-  
+
   return (
-    <WorkoutContext.Provider value={disabledContextValue}>
+    <WorkoutContext.Provider value={value}>
       {children}
     </WorkoutContext.Provider>
-  )
+  );
 }
 
-// Create a hook to use the workout context
+// ✅ Hook for using workout context
 export function useWorkout() {
-  const context = useContext(WorkoutContext)
-  
+  const context = useContext(WorkoutContext);
   if (context === undefined) {
-    throw new Error('useWorkout must be used within a WorkoutProvider')
+    throw new Error('useWorkout must be used within a WorkoutProvider');
   }
-  
-  return context
+  return context;
 }
 
-// Export types for use in other files
-export type {
-  WorkoutAgentType,
-  ExerciseType,
-  WorkoutPlanType,
-  WorkoutProgressType,
-  WorkoutCheckInType,
-  AgentMessageType,
-  WorkoutContextType
+// ✅ NEW: Specialized hooks for specific features
+export function useWorkoutGeneration() {
+  const { 
+    generatePlan, 
+    generatePlanAsync, 
+    isGenerating, 
+    operationStatus, 
+    generationError,
+    canGenerate,
+    validateProfileForGeneration 
+  } = useWorkout();
+  
+  return { 
+    generatePlan, 
+    generatePlanAsync, 
+    isGenerating, 
+    operationStatus, 
+    generationError,
+    canGenerate,
+    validateProfileForGeneration 
+  };
+}
+
+export function useWorkoutAdjustment() {
+  const { 
+    adjustPlan, 
+    adjustPlanAsync, 
+    isAdjusting, 
+    operationStatus 
+  } = useWorkout();
+  
+  return { 
+    adjustPlan, 
+    adjustPlanAsync, 
+    isAdjusting, 
+    operationStatus 
+  };
 }

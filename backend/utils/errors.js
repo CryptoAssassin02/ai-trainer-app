@@ -26,7 +26,7 @@ class ApiError extends Error {
 const ERROR_CODES = {
   VALIDATION_ERROR: 'AGENT_VALIDATION_ERROR',       // Input validation failed
   PROCESSING_ERROR: 'AGENT_PROCESSING_ERROR',     // General error during agent processing
-  EXTERNAL_SERVICE_ERROR: 'AGENT_EXTERNAL_SERVICE_ERROR', // Error calling external API (OpenAI, Perplexity)
+  EXTERNAL_SERVICE_ERROR: 'AGENT_EXTERNAL_SERVICE_ERROR', // Error calling external API (OpenAI)
   RESOURCE_ERROR: 'AGENT_RESOURCE_ERROR',         // Missing dependency or resource (e.g., model not loaded)
   MEMORY_SYSTEM_ERROR: 'AGENT_MEMORY_SYSTEM_ERROR', // Error interacting with the memory system
   CONFIGURATION_ERROR: 'AGENT_CONFIGURATION_ERROR',   // Incorrect agent configuration

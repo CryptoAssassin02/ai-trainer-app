@@ -48,7 +48,7 @@ import type { MultiStepProfileFormProps } from '@/lib/validation/profile-form-ty
 import { PersonalInfoStep } from './steps/personal-info-step';
 import { PhysicalMeasurementsStep } from './steps/physical-measurements-step';
 import { FitnessInfoStep } from './steps/fitness-info-step';
-import { EquipmentPreferencesStep } from './steps/equipment-preferences-step';
+import { GymCategoryStep } from './steps/gym-category-step';
 
 // ==========================================
 // TYPES & INTERFACES
@@ -109,11 +109,11 @@ const FORM_STEPS: FormStep[] = [
   {
     id: 'equipment-preferences',
     title: 'Preferences & Equipment',
-    description: 'Workout preferences and available equipment',
+    description: 'Gym type and equipment access',
     icon: Settings,
-    component: EquipmentPreferencesStep,
-    fields: ['equipment', 'workoutFrequency'],
-    optional: true,
+    component: GymCategoryStep,
+    fields: ['gymCategory', 'workoutFrequency'],
+    optional: false,
   },
 ];
 
@@ -222,7 +222,7 @@ export function MultiStepProfileForm({
       weight: (profile.data as any)?.weight ?? '',
       experienceLevel: (profile.data as any)?.experienceLevel ?? '',
       goals: (profile.data as any)?.goals ?? [],
-      equipment: (profile.data as any)?.equipment ?? [],
+      gymCategory: (profile.data as any)?.gymCategory ?? '',
       medicalConditions: (profile.data as any)?.medicalConditions ?? '',
       workoutFrequency: (profile.data as any)?.workoutFrequency ?? '',
     },
@@ -272,7 +272,7 @@ export function MultiStepProfileForm({
         weight: profileData.weight || '',
         experienceLevel: profileData.experienceLevel || '',
         goals: profileData.goals || [],
-        equipment: profileData.equipment || [],
+                  gymCategory: profileData.gymCategory || 'minimal_home',
         medicalConditions: Array.isArray(profileData.medicalConditions) 
           ? profileData.medicalConditions.join(', ') 
           : (profileData.medicalConditions || ''),
@@ -333,16 +333,17 @@ export function MultiStepProfileForm({
       return !!(experienceLevel && goals && Array.isArray(goals) && goals.length > 0);
     }
     
-    // For step 3 (equipment-preferences), it's optional but should only be valid if user has interacted with it
-    if (stepIndex === 3) {
-      // Optional step - only mark as complete if user has actually filled something OR explicitly skipped
-      const workoutFrequency = values.workoutFrequency;
-      const equipment = values.equipment;
-      
-      // If user hasn't touched the step at all, it shouldn't be marked complete
-      const hasInteracted = !!(workoutFrequency || (equipment && Array.isArray(equipment) && equipment.length > 0));
-      return hasInteracted; // Only valid if user has made selections
-    }
+          // For step 3 (gym category and workout frequency), both are required for personalization
+      if (stepIndex === 3) {
+        // Gym category and workout frequency are required for workout personalization
+        const gymCategory = values.gymCategory;
+        const workoutFrequency = values.workoutFrequency;
+        
+        // Must have selected both gym category and workout frequency
+        const hasGymCategory = !!(gymCategory && gymCategory.length > 0);
+        const hasWorkoutFrequency = !!(workoutFrequency && workoutFrequency.length > 0);
+        return hasGymCategory && hasWorkoutFrequency;
+      }
     
     return true;
   };
@@ -634,8 +635,8 @@ export function MultiStepProfileForm({
         </CardContent>
       </Card>
 
-      {/* Error Display */}
-      {profileError && (
+      {/* Error Display - only show errors in edit mode, not create mode */}
+      {profileError && isEditMode && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>

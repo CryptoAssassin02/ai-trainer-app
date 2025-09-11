@@ -44,7 +44,7 @@ export const profileCreationSchema = z.object({
   height: z.union([...]),           // Dynamic based on unit
   weight: weightSchema,             // Range validated by unit
   experienceLevel: experienceLevelSchema,
-  goals: goalsSchema,               // 1-5 goals max
+  goals: goalsSchema,               // 1-3 goals max
   equipment: equipmentSchema,       // 1-10 items max
   medicalConditions: medicalConditionsSchema,
   workoutFrequency: workoutFrequencySchema,

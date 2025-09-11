@@ -237,6 +237,16 @@ class ValidationUtils {
             };
         }
         
+        if (goals.length > 3) {
+            this.logger.error('Validation Error: Maximum 3 goals allowed');
+            return { 
+                isValid: false, 
+                errors: ['Maximum 3 goals allowed'],
+                normalizedGoals: [],
+                primaryGoal: null
+            };
+        }
+        
         // Process each goal
         goals.forEach(goal => {
             if (typeof goal !== 'string') {
