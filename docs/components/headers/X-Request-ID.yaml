@@ -1,4 +1,0 @@
-description: Unique identifier for the request (for debugging and support)
-schema:
-  type: string
-  format: uuid 

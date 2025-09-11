@@ -1,5 +1,0 @@
-description: Permission denied for workout operation
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workouts/WorkoutPermissionError.yaml' 

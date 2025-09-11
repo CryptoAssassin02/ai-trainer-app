@@ -1,5 +1,0 @@
-description: Email verification status retrieved
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/auth/EmailVerificationStatusResponse.yaml' 

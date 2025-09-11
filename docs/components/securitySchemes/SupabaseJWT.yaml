@@ -1,6 +1,0 @@
-type: http
-scheme: bearer
-bearerFormat: JWT
-description: |
-  JWT token issued by Supabase Auth. Include in Authorization header as 'Bearer {token}'.
-  Tokens expire based on Supabase configuration and must be refreshed using the refresh token. 

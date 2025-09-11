@@ -1,5 +1,0 @@
-description: Unit conversion failed
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/profiles/UnitConversionError.yaml' 

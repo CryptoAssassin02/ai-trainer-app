@@ -1,5 +1,0 @@
-description: AI workout generation failed
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workouts/WorkoutGenerationError.yaml' 

@@ -1,5 +1,0 @@
-description: Workout request validation failed
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workouts/WorkoutValidationError.yaml' 

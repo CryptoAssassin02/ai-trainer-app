@@ -1,5 +1,0 @@
-description: Profile updated successfully
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/profiles/UserProfileResponse.yaml' 

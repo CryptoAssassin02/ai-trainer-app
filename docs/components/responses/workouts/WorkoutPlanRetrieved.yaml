@@ -1,5 +1,0 @@
-description: Workout plan retrieved successfully
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workouts/WorkoutPlanResponse.yaml' 

@@ -1,5 +1,0 @@
-description: Email address already registered
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/common/ConflictError.yaml' 

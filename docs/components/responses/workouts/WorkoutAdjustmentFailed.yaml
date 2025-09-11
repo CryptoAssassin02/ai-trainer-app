@@ -1,5 +1,0 @@
-description: Workout adjustment failed
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/workouts/WorkoutAdjustmentError.yaml' 

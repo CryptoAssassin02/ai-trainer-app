@@ -1,5 +1,0 @@
-description: User profile retrieved successfully
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/profiles/UserProfileResponse.yaml' 

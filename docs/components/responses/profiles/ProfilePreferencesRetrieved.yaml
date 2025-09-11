@@ -1,5 +1,0 @@
-description: Profile preferences retrieved successfully
-content:
-  application/json:
-    schema:
-      $ref: '../../schemas/profiles/ProfilePreferencesResponse.yaml' 
