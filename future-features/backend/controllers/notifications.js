@@ -2,8 +2,8 @@
  * @fileoverview Controller for handling notification preferences requests
  */
 
-const notificationService = require('../services/notification-service');
-const logger = require('../config/logger');
+const notificationService = require('../../../backend/services/notification-service');
+const logger = require('../../../backend/config/logger');
 
 /**
  * Update notification preferences for the authenticated user

@@ -3,12 +3,12 @@
  * Handles HTTP requests for data export and import operations
  */
 
-const exportService = require('../services/export-service');
-const importService = require('../services/import-service');
-const logger = require('../config/logger');
+const exportService = require('../../../backend/services/export-service');
+const importService = require('../../../backend/services/import-service');
+const logger = require('../../../backend/config/logger');
 const fs = require('fs');
 const path = require('path');
-const { ValidationError, DatabaseError, NotFoundError } = require('../utils/errors');
+const { ValidationError, DatabaseError, NotFoundError } = require('../../../backend/utils/errors');
 
 /**
  * Process export requests and stream results

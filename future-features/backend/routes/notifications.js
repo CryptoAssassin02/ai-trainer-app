@@ -4,8 +4,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { validateNotificationPreferences } = require('../middleware/validation');
+const { authenticate } = require('../../../backend/middleware/auth');
+const { validateNotificationPreferences } = require('../../../backend/middleware/validation');
 const notificationController = require('../controllers/notifications');
 const rateLimit = require('express-rate-limit');
 

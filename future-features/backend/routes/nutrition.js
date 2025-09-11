@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const nutritionController = require('../controllers/nutrition');
-const { authenticate } = require('../middleware/auth');
+const { authenticate } = require('../../../backend/middleware/auth');
 
 // All nutrition routes require authentication
 router.use(authenticate);

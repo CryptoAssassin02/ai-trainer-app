@@ -4,9 +4,9 @@
  * Handles HTTP requests for macro calculations, storage, and retrieval.
  */
 
-const macroService = require('../services/macro-service');
-const logger = require('../config/logger');
-const { BadRequestError, NotFoundError, DatabaseError } = require('../utils/errors');
+const macroService = require('../../../backend/services/macro-service');
+const logger = require('../../../backend/config/logger');
+const { BadRequestError, NotFoundError, DatabaseError } = require('../../../backend/utils/errors');
 
 /**
  * Calculate macros based on user data and store them

@@ -1,8 +1,8 @@
-const { getSupabaseClient, getSupabaseClientWithToken } = require('../../../backend/services/supabase');
-const workoutLogService = require('../../../backend/services/workout-log-service');
+const { getSupabaseClient, getSupabaseClientWithToken } = require('../../../../backend/services/supabase');
+const workoutLogService = require('../../../../backend/services/workout-log-service');
 const supertest = require('supertest');
-const { app } = require('../../../backend/server');
-const { createValidTestWorkoutLog } = require('../tests/integration/workoutLogs/helpers/schemaValidation');
+const { app } = require('../../../../backend/server');
+const { createValidTestWorkoutLog } = require('../../tests/integration/workoutLogs/helpers/schemaValidation');
 
 // Import admin client for user creation (following successful analytics pattern)
 const { createClient } = require('@supabase/supabase-js');

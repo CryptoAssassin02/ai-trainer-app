@@ -3,14 +3,14 @@
  * Handles HTTP requests related to nutrition plans and meal tracking
  */
 
-const { logger, env /* Import env for supabase URL/Key */ } = require('../config'); // Added env
-const nutritionService = require('../services/nutrition-service');
+const { logger, env /* Import env for supabase URL/Key */ } = require('../../../backend/config'); // Added env
+const nutritionService = require('../../../backend/services/nutrition-service');
 const NutritionAgent = require('../agents/nutrition-agent');
-const OpenAIService = require('../services/openai-service');
+const OpenAIService = require('../../../backend/services/openai-service');
 // Import getSupabaseClientWithToken and createClient from @supabase/supabase-js
-const { getSupabaseClientWithToken } = require('../services/supabase'); 
+const { getSupabaseClientWithToken } = require('../../../backend/services/supabase'); 
 const { createClient } = require('@supabase/supabase-js');
-const { ValidationError, NotFoundError, AuthenticationError /* Added AuthenticationError */ } = require('../utils/errors');
+const { ValidationError, NotFoundError, AuthenticationError /* Added AuthenticationError */ } = require('../../../backend/utils/errors');
 
 // Initialize OpenAI service
 const openaiService = new OpenAIService();

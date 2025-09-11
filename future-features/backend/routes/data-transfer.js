@@ -5,15 +5,15 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { validate } = require('../middleware/validation');
+const { authenticate } = require('../../../backend/middleware/auth');
+const { validate } = require('../../../backend/middleware/validation');
 const dataTransferController = require('../controllers/data-transfer');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Joi = require('joi');
-const logger = require('../config/logger');
+const logger = require('../../../backend/config/logger');
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '..', 'uploads');

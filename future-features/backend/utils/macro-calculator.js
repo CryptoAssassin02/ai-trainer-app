@@ -2,8 +2,8 @@
  * MacroCalculator - Utility for calculating macronutrient requirements
  * Provides methods for calculating BMR, TDEE, and macros based on user profile and goals
  */
-const ValidationUtils = require('./validation-utils');
-const UnitConverter = require('./unit-conversion');
+const ValidationUtils = require('../../../backend/utils/validation-utils');
+const UnitConverter = require('../../../backend/utils/unit-conversion');
 
 class MacroCalculator {
   /**

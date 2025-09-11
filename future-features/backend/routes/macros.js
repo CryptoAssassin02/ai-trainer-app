@@ -6,8 +6,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { validateMacroCalculation } = require('../middleware/validation');
+const { authenticate } = require('../../../backend/middleware/auth');
+const { validateMacroCalculation } = require('../../../backend/middleware/validation');
 const macroController = require('../controllers/macros');
 const rateLimit = require('express-rate-limit');
 
