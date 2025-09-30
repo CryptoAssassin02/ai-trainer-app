@@ -80,8 +80,11 @@ export interface UserProfile {
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   medicalConditions?: string[]; // array of medical conditions
   goals?: string[];
+  primaryGoal?: string; // optional primary goal from selected goals
   workoutFrequency?: string;
   gymCategory?: string;
+  exerciseTypes?: string[]; // array of preferred exercise types
+  additionalNotes?: string;
   height?: number | { feet: number; inches: number }; // format depends on unitPreference
   weight?: number; // kg or lbs based on unitPreference
   createdAt: string;
@@ -98,9 +101,11 @@ export interface CreateProfileRequest {
   weight?: number;
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   goals?: string[];
+  primaryGoal?: string;
   gymCategory?: string;
   medicalConditions?: string[];
   workoutFrequency?: string;
+  exerciseTypes?: string[];
 }
 
 // Profile update request type  
@@ -114,9 +119,11 @@ export interface UpdateProfileRequest {
   unitPreference?: 'metric' | 'imperial';
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   goals?: string[];
+  primaryGoal?: string;
   gymCategory?: string;
   medicalConditions?: string[];
   workoutFrequency?: string;
+  exerciseTypes?: string[];
 }
 
 // Profile preferences type
@@ -595,7 +602,7 @@ export interface MesocycleStructureItem {
 
 // ===== ENHANCED WORKOUT PLAN TYPE (Phase 4 Complete) =====
 
-export interface EnhancedWorkoutPlan extends WorkoutPlan {
+export interface EnhancedWorkoutPlan extends WorkoutPlan, WorkoutPlanComputedProps {
   // Phase 4 Database Fields
   schemaVersion: string; // 'v1.0' | 'v2.0'
   generationMethod: 'single_goal' | 'multi_goal_orchestrated';
@@ -611,23 +618,50 @@ export interface EnhancedWorkoutPlan extends WorkoutPlan {
   
   // Enhanced plan_data structure
   planData: {
-    // Legacy format (backward compatibility)
+    // Legacy format (computed from structured data for backward compatibility)
     exercises: Exercise[];
     weeklySchedule: Record<string, any>;
     formattedPlan: string;
     
-    // Complete AI response structure (Phase 4)
-    aiResponse?: {
-      programName?: string;
-      programDuration?: ProgramDuration;
-      goalStructure?: GoalStructure;
-      mesocycles?: MesocycleStructure[];
-      progressionStrategy?: ProgressionStrategy;
-      recoveryRequirements?: RecoveryRequirements;
+    // Structured output data (primary source - matches multiGoalMesocycleSchema)
+    programName?: string;
+    programDuration?: {
+      totalWeeks: number;
+      mesocycles: number;
     };
+    goalStructure?: {
+      primaryGoal: string;
+      secondaryGoals?: string[];
+      goalPrioritization?: {
+        primaryFocus: number;
+        secondaryFocus: number;
+      };
+    };
+    trainingFrequency?: {
+      daysPerWeek: number;
+      sessionsPerDay?: number;
+      restDays: string[];
+    };
+    mesocycles?: Array<{
+      mesocycleNumber: number;
+      name: string;
+      phase: string;
+      durationWeeks: number;
+      focus: string;
+      trainingParameters: any;
+      progressionStrategy: any;
+      weeks: Array<{
+        weekNumber: number;
+        weekType: string;
+        workouts: Record<string, any>;
+      }>;
+    }>;
+    progressionStrategy?: any;
+    recoveryRequirements?: any;
     
-    // Multi-goal orchestrator data
+    // Multi-goal orchestrator data (legacy support)
     orchestratedProgram?: OrchestratorData;
+    aiResponse?: any; // Deprecated - data now in structured fields above
     
     // AI insights and reasoning
     explanations: string;
@@ -647,6 +681,20 @@ export interface EnhancedWorkoutPlan extends WorkoutPlan {
       secondary: string[];
     };
   };
+}
+
+/**
+ * Computed properties for legacy compatibility
+ */
+export interface WorkoutPlanComputedProps {
+  /** Total exercise count across all mesocycles */
+  readonly totalExercises: number;
+  
+  /** Primary training days from first mesocycle */
+  readonly trainingDays: string[];
+  
+  /** Program overview summary */
+  readonly programSummary: string;
 }
 
 // Service method options

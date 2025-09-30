@@ -689,6 +689,44 @@ const profileSchemas = {
       .optional()
       .messages({
         'string.base': 'Workout frequency must be a string'
+      }),
+    primaryGoal: Joi.string()
+      .valid(
+        'weight_loss', 'muscle_gain', 'strength', 'endurance',
+        'flexibility', 'general_fitness', 'sports_performance', 'body_recomposition'
+      )
+      .allow(null, '')
+      .optional()
+      .messages({
+        'any.only': 'Primary goal must be one of the valid fitness goals',
+        'string.base': 'Primary goal must be a string'
+      }),
+    exerciseTypes: Joi.array()
+      .items(
+        Joi.string()
+          .valid(
+            'cardio', 'strength', 'hiit', 'yoga', 'pilates', 
+            'functional', 'sports', 'flexibility'
+          )
+          .messages({
+            'any.only': 'Exercise type must be one of: cardio, strength, hiit, yoga, pilates, functional, sports, flexibility'
+          })
+      )
+      .min(1)
+      .max(10)
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Exercise types must be an array',
+        'array.min': 'At least one exercise type is required if provided',
+        'array.max': 'Cannot have more than 10 exercise types'
+      }),
+    additionalNotes: Joi.string()
+      .max(300)
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.max': 'Additional notes cannot exceed 300 characters'
       })
   }).options({ allowUnknown: false }), // Reject unknown fields
   
@@ -851,6 +889,44 @@ const profileSchemas = {
       .optional()
       .messages({
         'string.base': 'Workout frequency must be a string'
+      }),
+    primaryGoal: Joi.string()
+      .valid(
+        'weight_loss', 'muscle_gain', 'strength', 'endurance',
+        'flexibility', 'general_fitness', 'sports_performance', 'body_recomposition'
+      )
+      .allow(null, '')
+      .optional()
+      .messages({
+        'any.only': 'Primary goal must be one of the valid fitness goals',
+        'string.base': 'Primary goal must be a string'
+      }),
+    exerciseTypes: Joi.array()
+      .items(
+        Joi.string()
+          .valid(
+            'cardio', 'strength', 'hiit', 'yoga', 'pilates', 
+            'functional', 'sports', 'flexibility'
+          )
+          .messages({
+            'any.only': 'Exercise type must be one of: cardio, strength, hiit, yoga, pilates, functional, sports, flexibility'
+          })
+      )
+      .min(1)
+      .max(10)
+      .allow(null)
+      .optional()
+      .messages({
+        'array.base': 'Exercise types must be an array',
+        'array.min': 'At least one exercise type is required if provided',
+        'array.max': 'Cannot have more than 10 exercise types'
+      }),
+    additionalNotes: Joi.string()
+      .max(300)
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.max': 'Additional notes cannot exceed 300 characters'
       })
   }).options({ allowUnknown: false }), // Reject unknown fields
   

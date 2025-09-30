@@ -1,0 +1,109 @@
+flowchart TD
+subgraph one ["No workout generation completed yet"]
+    B1@{ shape: display, label: "Display should originally appear as in the screenshot attached to prompt (currently implemented, **with the exception of the 'enable step-by-step mode' checkbox - this should be REMOVED**"}
+    B1A@{ shape: display, label: "'Generate trAIner Workout Plan' header and 'Review your selections and generate your workout program' still appear at top"}
+    B1C@{ shape: display, label: "'Review Your Selections' card/section appears below that containing all user's selections/inputs from profile creation"}
+    B1D@{ shape: display, label: "'Edit Profile Data' button appears in 'Review Your Selections' card footer still and redirects to the /profile page if users want to update/edit profile selections/input"}
+    B1E@{ shape: display, label: "'Workout Program Generation' card appears below that and explains process:"}
+    B1F@{ shape: braces, label: "'Program Structure' agent will first generate a personalized, high-level program overview based on selections and inputs from profile creation'"}
+    B1G@{ shape: braces, label: "'Weekly Structure' agent will then generate the structure of your first phase within the program (i.e., which days are training vs. rest days, what the focus of each day will be, etc.)'"}
+    B1H@{ shape: braces, label: "'Daily Workouts' agent will then generate the actual daily workouts per week for the entire first phase of the program'"}
+    B1I@{ shape: display, label: "Then 'Generate Workout Program' button appears at bottom of page and is clickable"}
+    B2@{ shape: sl-rect, label: "User clicks 'Generate Workout Program' button"}
+  end
+subgraph two ["All 3 parts of 3-part generation process completed"]
+    C1@{ shape: rounded, label: "Daily Workouts generation is completed -> All parts of 3-part generation process are completed, full workout program available for user review"}
+    C1A@{ shape: rounded, label: "AI progress bar card appears at top showing 100% progress at this point and shows that full workout workout program successfully generated"}
+    C2@{ shape: rounded, label: "Expandable/collapsible 'Program Structure' card appears below (collapsed by default) with a 'Successfully Generated' badge."}
+    C2A@{ shape: braces, label: "Expanding the card would reveal the 'Program Structure' card from the /workouts page that we just refactored"}
+    C3@{ shape: rounded, label: "Expandable/collapsible 'Weekly Structure' card appears below (collapsed by default) with a 'Successfully Generated' badge."}
+    C3A@{ shape: braces, label: "Expanding the card would reveal the 'Weekly Structure' card from the /workouts page that we just refactored"}
+    C4@{ shape: rounded, label: "Expandable/collapsible 'Daily Workouts' card appears below (collapsed by default) with a 'Successfully Generated' badge."}
+    C4A@{ shape: braces, label: "Expanding the card would reveal the 'Daily Workouts' card from the /workouts page that we just refactored"}
+    C5@{ shape: rounded, label: "'View Workout Program' button appears at bottom and is clickable -> returns users to /workouts page"}
+  end
+subgraph three ["2 parts of 3-part generation process completed"]
+    D1@{ shape: rounded, label: "Weekly Structure generation is completed -> 'Daily Workouts Agent' is notified and initiated, building off of program structure and weekly structure generated"}
+    D1A@{ shape: rounded, label: "AI progress bar card appears at top showing 66% progress at this point and shows that 'Daily Workouts' Agent is generating all daily workouts per week for Phase 1 of program"}
+    D2@{ shape: rounded, label: "Expandable/collapsible 'Program Structure' card appears below (collapsed by default) with a 'Successfully Generated' badge."}
+    D2A@{ shape: braces, label: "Expanding the card would reveal the 'Program Structure' card from the /workouts page that we just refactored"}
+    D3@{ shape: rounded, label: "Expandable/collapsible 'Weekly Structure' card appears below (collapsed by default) with a 'Successfully Generated' badge."}
+    D3A@{ shape: braces, label: "Expanding the card would reveal the 'Weekly Structure' card from the /workouts page that we just refactored"}
+    D4@{ shape: rounded, label: "'Daily Workouts' card appears below (not yet collapsible/expandable) with 'In progress' badge."}
+    D5@{ shape: rounded, label: "Daily Workouts generation is completed and stored to database - 3-part generation process is completed"}
+  end
+subgraph four ["**ONLY** 1 part of 3-part generation process completed on Auto/Default mode ('Step-by-Step Mode **NOT ENABLED**)"]
+    E1@{ shape: rounded, label: "Program Structure generation is completed -> 'Weekly Structure Agent' is notified and initiated, building off of program structure generated"}
+    E1A@{ shape: rounded, label: "AI progress bar card appears at top showing 33% progress at this point and shows that 'Weekly Structure' Agent is generating determining the optimal weekly structure for Phase 1"}
+    E2@{ shape: rounded, label: "'Program Structure' card appears below and is now expandible/collapsible (collapsed by default) with a 'Successfully Generated' badge."}
+    E2A@{ shape: braces, label: "Expanding the card would reveal the 'Program Structure' card from the /workouts page that we just refactored"}
+    E3@{ shape: rounded, label: "'Weekly Structure' card appears below (not yet collapsible/expandable) with 'In progress' badge."}
+    E4@{ shape: rounded, label: "'Daily Workouts' card appears below (not yet collapsible/expandable) with 'Waiting for Weekly Structure' badge."}
+    E5@{ shape: rounded, label: "Weekly Structure generation is completed and stored to database so 'daily workouts' agent can retrieve and build off of for daily workouts generation"}
+  end
+subgraph five ["Generation Display Logic for Auto/Default mode ('Step-by-Step Mode' NOT ENABLED)"]
+    F1@{ shape: rounded, label: "'Program Structure Generation' agent is initiated and begins generating program structure"}
+    F2@{ shape: rounded, label: "'Review Your Selections' card, 'Edit Profile Data' button in 'Review Your Selections card footer, 'Workout Program Generation' card explaining process, and 'Generate Workout Program' button **NO LONGER APPEAR AND ARE REPLACED BY:**"}
+    F2A@{ shape: display, label: "'Generate trAIner Workout Plan' header still appears at top"}
+    F2B@{ shape: rounded, label: "AI Progress Bar card appears below header and shows that the 'Program Structure' Agent is generating the high-level program overview - 0% progress at this point"}
+    F2C@{ shape: display, label: "'Program Structure' card appears below AI Progress Bar card and has 'In Progress' badge"}
+    F2D@{ shape: display, label: "'Weekly Structure' card appears below 'Program Structure' card and has 'Waiting for Program Structure' badge"}
+    F2E@{ shape: display, label: "'Daily Workouts' card appears below 'Program Structure' card and has 'Waiting for Program Structure' badge"}
+    F3@{ shape: rounded, label: "Program Structure generation is completed and stored to database so 'weekly structure' agent can retrieve and build off of for weekly structure generation"}
+  end
+
+A1 --> A2
+A2 -- No --> B1
+A2 -- Yes --> A4
+A4 -- **Yes** --> E1
+A4 -- **NO** --> A5
+A3 -- **Yes** --> C1
+A5 -- **Yes** --> D1
+
+
+B1 --> B1A
+B1A --> B1C 
+B1C --> B1D
+B1D --> B1E
+B1E -.-> B1F
+B1E & B1F -.-> B1G
+B1E & B1G -.-> B1H
+B1E --> B1I
+B1I --> B2
+B2 --> F1
+
+C1 --> C1A
+C1A --> C2
+C2 --> C2A & C3
+C3 --> C3A & C4
+C4 --> C4A & C5
+
+D1 --> D1A
+D1A --> D2
+D2 --> D2A & D3
+D3 --> D3A & D4
+D1 & D4 --> D5
+D5 --> A3
+
+E1 --> E1A
+E1A --> E2
+E2 --> E2A
+E2 --> E3
+E3 --> E4
+E1 & E4 --> E5
+E5 --> A5
+
+F1 --> F2
+F2 --> F2A
+F2A --> F2B
+F2B --> F2C
+F2C --> F2D
+F2D --> F2E
+F1 & F2E --> F3
+F3 --> A4
+
+A1@{ shape: circle, label: "System decision tree for /workouts/generate display logic"}
+A2@{ shape: diamond, label: "Any workouts generated for user yet?"}
+A3@{ shape: diamond, label: "All parts of the 3-part generation process completed ('Program Structure', 'Weekly Structure', & 'Daily Workouts')?"}
+A4@{ shape: diamond, label: "**ONLY** 1 part of the 3-part generation process completed ('Program Structure')?"}
+A5@{ shape: diamond, label: "**PRECISELY** 2 parts of the 3-part generation process completed ('Program Structure' and 'Weekly Structure')?"}

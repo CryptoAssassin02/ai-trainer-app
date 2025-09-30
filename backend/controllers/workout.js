@@ -13,9 +13,14 @@ const { isValidUUID } = require('../agents/memory/validators'); // Import UUID v
 const openaiService = new OpenAIService();
 
 /**
- * Generates a new workout plan using an agent and stores it.
+ * DEPRECATED: Monolithic generation endpoint. Use chunked flow instead:
+ *  - POST /api/v1/workouts/structure
+ *  - POST /api/v1/workouts/:planId/mesocycles/:mesocycleNumber
+ * This function is retained temporarily for backward compatibility and will be removed
+ * after clients/tests migrate.
  */
 async function generateWorkoutPlan(req, res) {
+  logger.warn('[DEPRECATION] generateWorkoutPlan (monolithic) was called. Please migrate to chunked endpoints: /workouts/structure then /workouts/:planId/mesocycles/:mesocycleNumber');
   const userId = req.user?.id;
   const jwtToken = req.headers.authorization?.split(' ')[1];
 

@@ -44,6 +44,19 @@ import {
 } from '@/lib/validation/profile-schemas';
 import type { MultiStepProfileFormProps } from '@/lib/validation/profile-form-types';
 
+// Extended form data type that includes the new fields
+type ExtendedProfileFormData = ProfileCreationFormData & {
+  primaryGoal?: string;
+  exerciseTypes: string[];
+  additionalNotes?: string;
+};
+
+type ExtendedProfileUpdateFormData = ProfileUpdateFormData & {
+  primaryGoal?: string;
+  exerciseTypes?: string[];
+  additionalNotes?: string;
+};
+
 // Step components
 import { PersonalInfoStep } from './steps/personal-info-step';
 import { PhysicalMeasurementsStep } from './steps/physical-measurements-step';
@@ -74,7 +87,7 @@ interface StepComponentProps {
 
 
 
-type FormData = ProfileCreationFormData | ProfileUpdateFormData;
+type FormData = ExtendedProfileFormData | ExtendedProfileUpdateFormData;
 
 // ==========================================
 // FORM STEPS CONFIGURATION
@@ -103,8 +116,8 @@ const FORM_STEPS: FormStep[] = [
     description: 'Experience level and goals',
     icon: Target,
     component: FitnessInfoStep,
-    fields: ['experienceLevel', 'goals'], // medicalConditions is optional
-    optionalFields: ['medicalConditions'],
+    fields: ['experienceLevel', 'goals'], // medicalConditions and primaryGoal are optional
+    optionalFields: ['medicalConditions', 'primaryGoal'],
   },
   {
     id: 'equipment-preferences',
@@ -112,7 +125,7 @@ const FORM_STEPS: FormStep[] = [
     description: 'Gym type and equipment access',
     icon: Settings,
     component: GymCategoryStep,
-    fields: ['gymCategory', 'workoutFrequency'],
+    fields: ['gymCategory', 'workoutFrequency', 'exerciseTypes'],
     optional: false,
   },
 ];
@@ -222,9 +235,12 @@ export function MultiStepProfileForm({
       weight: (profile.data as any)?.weight ?? '',
       experienceLevel: (profile.data as any)?.experienceLevel ?? '',
       goals: (profile.data as any)?.goals ?? [],
+      primaryGoal: (profile.data as any)?.primaryGoal ?? '',
       gymCategory: (profile.data as any)?.gymCategory ?? '',
       medicalConditions: (profile.data as any)?.medicalConditions ?? '',
       workoutFrequency: (profile.data as any)?.workoutFrequency ?? '',
+      exerciseTypes: (profile.data as any)?.exerciseTypes ?? [],
+      additionalNotes: (profile.data as any)?.additionalNotes ?? '',
     },
     mode: 'onChange',
   });
@@ -272,11 +288,14 @@ export function MultiStepProfileForm({
         weight: profileData.weight || '',
         experienceLevel: profileData.experienceLevel || '',
         goals: profileData.goals || [],
-                  gymCategory: profileData.gymCategory || 'minimal_home',
+        primaryGoal: profileData.primaryGoal || '',
+        gymCategory: profileData.gymCategory || 'minimal_home',
         medicalConditions: Array.isArray(profileData.medicalConditions) 
           ? profileData.medicalConditions.join(', ') 
           : (profileData.medicalConditions || ''),
         workoutFrequency: profileData.workoutFrequency || '',
+        exerciseTypes: profileData.exerciseTypes || [],
+        additionalNotes: profileData.additionalNotes || '',
       });
     }
   }, [(profile.data as any)?.id, (profile.data as any)?.updatedAt, profileLoading, reset, isEditMode, initialUnitPreference]); // Use stable identifiers
@@ -333,16 +352,18 @@ export function MultiStepProfileForm({
       return !!(experienceLevel && goals && Array.isArray(goals) && goals.length > 0);
     }
     
-          // For step 3 (gym category and workout frequency), both are required for personalization
+          // For step 3 (gym category, workout frequency, and exercise types), all are required for personalization
       if (stepIndex === 3) {
-        // Gym category and workout frequency are required for workout personalization
+        // Gym category, workout frequency, and exercise types are required for workout personalization
         const gymCategory = values.gymCategory;
         const workoutFrequency = values.workoutFrequency;
+        const exerciseTypes = values.exerciseTypes;
         
-        // Must have selected both gym category and workout frequency
+        // Must have selected all three: gym category, workout frequency, and at least one exercise type
         const hasGymCategory = !!(gymCategory && gymCategory.length > 0);
         const hasWorkoutFrequency = !!(workoutFrequency && workoutFrequency.length > 0);
-        return hasGymCategory && hasWorkoutFrequency;
+        const hasExerciseTypes = !!(exerciseTypes && Array.isArray(exerciseTypes) && exerciseTypes.length > 0);
+        return hasGymCategory && hasWorkoutFrequency && hasExerciseTypes;
       }
     
     return true;
@@ -464,10 +485,15 @@ export function MultiStepProfileForm({
       }
       
       console.log('📝 Transformed data:', JSON.stringify(profileData, null, 2));
+      console.log('🔍 NEW FIELDS DEBUG - primaryGoal:', profileData.primaryGoal);
+      console.log('🔍 NEW FIELDS DEBUG - exerciseTypes:', profileData.exerciseTypes);
+      console.log('🔍 NEW FIELDS DEBUG - goals:', profileData.goals);
       console.log('📝 About to call updateProfileAsync...');
       const result = await updateProfileAsync(profileData as any);
       setDebugInfo('✅ Profile saved! Invalidating cache...');
       console.log('✅ Profile saved successfully:', result);
+      console.log('🔍 API RESPONSE DEBUG - result type:', typeof result);
+      console.log('🔍 API RESPONSE DEBUG - result keys:', result ? Object.keys(result) : 'null/undefined');
       
       // Critical: Invalidate and refetch profile data after successful update
       await queryClient.invalidateQueries({ 
@@ -488,6 +514,9 @@ export function MultiStepProfileForm({
       console.error('❌ Error type:', typeof error);
       console.error('❌ Error message:', errorMessage);
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      console.error('🔍 ERROR DEBUG - Was this a database/API error?', error);
+      console.error('🔍 ERROR DEBUG - HTTP status:', (error as any)?.response?.status);
+      console.error('🔍 ERROR DEBUG - Response data:', (error as any)?.response?.data);
       setSubmitSuccess(false);
     }
   };

@@ -1,0 +1,445 @@
+flowchart TD
+subgraph one["Detailed User Flow for Workout Generation: Single-Step Workout Form"]
+        A1@{ shape: circle, label: "/workouts page"}
+        A2@{ shape: trap-t, label: "User clicks 'Generate Your First Plan ->' button"}
+        A3@{ shape: rounded, label: "/workouts/generate page"}
+        A4@{ shape: sl-rect, label: "User reviews all saved profile data displayed"}
+        A5@{ shape: diamond, label: "All profile data for user appears correct?"}
+        A6@{ shape: trap-t, label: "User clicks 'Edit Profile Data' button"}
+        A6A@{ shape: rounded, label: "User redirected to single-step-profile-form or /profile page"}
+        A6B@{ shape: sl-rect, label: "User updates any inputs/selections in profile data they need to"}
+        A6C@{ shape: trap-t, label: "User clicks 'Save Profile'"}
+        A6D@{ shape: rounded, label: "User is redirected back to single-step-workout-form or /workouts/generate page"}
+        A7@{ shape: trap-t, label: "User clicks 'Generate Workout Plan'"}
+        A8@{ shape: rounded, label: "Agent uses all stored profile data to generate a personalized, high-level overview of program structure"}
+        A9@{ shape: bow-rect, label: "High-level overview of program structure is stored to the database"}
+        A10@{ shape: trap-t, label: "User reviews high-level overview of program structure"}
+        A11@{ shape: trap-t, label: "User clicks 'View Program'"}
+  end
+subgraph two["Detailed Display for Workout Generation flow - Single-Step Workout Form"]
+        B1@{ shape: display, label: "Header ('Generate trAIner Workout Plan') and sub-header appear at top"}
+        B2@{ shape: braces, label: "No progress indicator nor multi-step workout form visualization section, as this will be a single step form"}
+        B3@{ shape: display, label: "'Review Your Selections' section is visible"}
+        B4@{ shape: cyl, label: "Contains all selections from profile creation (loaded directly from DB)"}
+        B4A@{ shape: display, label: "**1**: 'Basic Information' section contains user's inputs/selections for 'Full Name', 'Age', 'Gender', and 'Unit System'"}
+        B4B@{ shape: display, label: "**2**: 'Body Measurements' section contains user's input for 'Height' and 'Weight' (in imperial or metric units, depending on selection in profile creation)"}
+        B4C@{ shape: display, label: "**3**: 'Fitness Information' section contains user's inputs/selections for 'Fitness Experience Level', 'Fitness Goals', 'Primary Goal Selection' (**only if user has 2+ 'Fitness Goals' selected), and 'Medical Considerations'"}
+        B4D@{ shape: display, label: "**4**: 'Preferences & Equipment' section contains user's inputs/selections for 'Workout Frequency', 'Exercise Types', and 'Gym Type & Equipment Access'"}
+        B4E@{ shape: display, label: "'Edit Profile Data' button appears and is clickable at the bottom of the 'Review Your Selections' section"}
+        B5@{ shape: display, label: "'Workout Program Structure Generation' section is visible which explains the process of generating the workout"}
+        B5A@{ shape: display, label: "First line should say, 'Our AI Agent will use your profile data and preferences above to craft a highly personalized and curated workout program:'"}
+        B5B@{ shape: display, label: "Next line should say, '**Workout Generation Agent** will first generate a personalized, high-level program overview'"}
+        B5C@{ shape: display, label: "Next line should say, '**Upon successful generation**, you can review your program overview'"}
+        B5D@{ shape: display, label: "Last line should be a message saying, 'Generation typically takes 15-30 seconds. You can cancel at any time if needed.'"}
+        B6@{ shape: display, label: "'Edit Profile Data' button is in bottom left, 'Generate Workout Plan' button is in the center, and 'Cancel' button is in bottom right"}
+        B7@{ shape: rounded, label: "Upon success, high-level overview of program structure is visible"}
+        B8@{ shape: display, label: "Message appears saying, 'Click 'View Program' to begin generating the weekly plans and daily workouts for your first mesocycle'"}
+        B9@{ shape: display, label: "'View Program' button is visible and clickable"}
+  end
+subgraph three["Multi-Step Profile Creation Display & Flow - Step 1 'Personal Information'"]
+        C1@{ shape: circle, label: "/profile/create page - Step 1: 'Personal Information'"}
+        C2@{ shape: display, label: "'Personal Information' - Step 1 contains 'Unit System' selection, 'Full Name' (pre-loaded from signup), 'Age' input, and 'Gender' input"}
+        C2A@{ shape: display, label: "'Full Name' appears as complete upon loading since name loads from signup"}
+        C2B@{ shape: braces, label: "'< Previous' button is always grayed out and not clickable upon loading in Step 1 (nowhere to go back to), and 'Next >' button is grayed out until required fields are input"}
+        C2C@{ shape: braces, label: "Upon Step 1 loading, Progress indicator at top shows 0% complete"}
+        C3@{ shape: sl-rect, label: "User selects either 'Imperial (lbs, ft/in)' or 'Metric (kg, cm)' in 'Unit System' selection"}
+        C4@{ shape: sl-rect, label: "User inputs age in 'Age'"}
+        C4A@{ shape: display, label: "'Age' appears as 'Completed' after user inputs age"}
+        C5@{ shape: sl-rect, label: "User selects their gender from dropdown in 'Gender'"}
+        C5A@{ shape: display, label: "'Gender' appears as 'Completed' after user inputs gender"}
+        C6@{ shape: rounded, label: "Once all required fields are input, 'Next >' button becomes clickable, and progress indicator at top shows 25% completed"}
+        C7@{ shape: trap-t, label: "User clicks 'Next >'"}
+  end
+subgraph four["Multi-Step Profile Creation Display & Flow - Step 2 'Physical Measurements'"]
+        D1@{ shape: circle, label: "/profile/create page - Step 2: 'Physical Measurements' loads and appears on screen"}
+        D2@{ shape: display, label: "'Physical Measurements' - Step 2 contains 'Height' input, and 'Weight' input in either lbs, ft/in or cm, kg - depending on selection in Step 1"}
+        D2A@{ shape: diamond, label: "Imperial units (lbs, ft/in) selected?"}
+        D2B@{ shape: braces, label: "'< Previous' button is clickable upon loading, but 'Next >' button is grayed out until required fields are input"}
+        D2C@{ shape: braces, label: "Upon Step 2 loading, Progress indicator at top shows 25% complete"}
+        D3@{ shape: sl-rect, label: "User inputs 'Height' in feet and inches"}
+        D3A@{ shape: sl-rect, label: "User inputs 'Height' in cm"}
+        D3B@{ shape: display, label: "'Height' appears as 'Completed' after user inputs height"}
+        D4@{ shape: sl-rect, label: "User inputs 'Weight' in lbs"}
+        D4A@{ shape: sl-rect, label: "User inputs 'Weight' in kg"}
+        D4B@{ shape: display, label: "'Weight' appears as 'Completed' after user inputs weight"}
+        D5@{shape: rounded, label: "Once all required fields are input, 'Next >' button becomes clickable, and progress indicator at top shows 50% completed"}
+        D6@{ shape: trap-t, label: "User clicks 'Next >'"}
+  end
+subgraph five["Multi-Step Profile Creation Display & Flow - Step 3 'Fitness Information'"]
+        E1@{ shape: circle, label: "/profile/create page - Step 3: 'Fitness Information' loads and appears on screen"}
+        E2@{ shape: display, label: "'Fitness Information' - Step 3 contains 'Fitness Experience Level' selection, 'Fitness Goals' selection (max of 3 goals), 'Primary Goal' selection (**only if user selects 2+ goals, otherwise is not displayed**), and 'Medical Considerations' input"}
+        E2A@{ shape: braces, label: "'< Previous' button is clickable upon loading, but 'Next >' button is grayed out until required fields are input"}
+        E2B@{ shape: braces, label: "Upon Step 3 loading, Progress indicator at top shows 50% complete"}
+        E3@{ shape: sl-rect, label: "User selects their fitness experience level from dropdown in 'Fitness Experience Level'"}
+        E4@{ shape: sl-rect, label: "User selects up to a max of 3 goals in 'Fitness Goals'"}
+        E4A@{ shape: diamond, label: "User selects 2+ goals?"}
+        E4B@{ shape: display, label: "'Primary Goals Selection' **DOES NOT** appear"}
+        E4C@{ shape: display, label: "'Primary Goals Selection' **DOES** appear"}
+        E4D@{ shape: sl-rect, label: "User selects their primary goal from dropdown out of their 2 or 3 selected goals to be prioritized in workout plans"}
+        E4E@{ shape: display, label: "'Fitness Goals' appears as 'Completed' after user selects fitness goal(s)"}
+        E4F@{ shape: display, label: "'Primary Goals Selection' appears as 'Completed' after user selects primary goal"}
+        E5@{ shape: diamond, label: "Does user have 'Medical Considerations' for the agent to consider when building workout plans?"}
+        E5A@{ shape: sl-rect, label: "User checks box beside 'I have medical conditions or physical limitations to consider'"}
+        E5B@{ shape: display, label: "Text box appears where user can input their specific medical conditions or physical limitations"}
+        E5C@{ shape: sl-rect, label: "User inputs their specific medical conditions within the displayed check box"}
+        E5D@{ shape: sl-rect, label: "User ignores 'Medical Considerations' section"}
+        E5E@{ shape: display, label: "'Medical Considerations' appears as 'Completed' after user inputs medical considerations"}
+        E6@{shape: rounded, label: "Once all required fields are input, 'Next >' button becomes clickable and progress indicator at top shows 75% completed"}
+        E7@{ shape: trap-t, label: "User clicks 'Next >'"}
+        E8@{ shape: braces, label: "Field **MUST BE** required"}
+        E9@{ shape: braces, label: "Field is optional and **NOT** required"}
+  end
+subgraph six["Multi-Step Profile Creation Display & Flow - Step 4 'Preferences & Equipment'"]
+        F1@{ shape: circle, label: "/profile/create page - Step 4: 'Preferences & Equipment' loads and appears on screen"}
+        F2@{ shape: display, label: "'Preferences & Equipment' - Step 4 contains 'Workout Frequency' selection, 'Exercise Types' selection, and 'Gym Type & Equipment Access' selection"}
+        F2A@{ shape: braces, label: "'< Previous' button is clickable upon loading, but 'Create Profile' button is grayed out until required fields are input"}
+        F2B@{ shape: braces, label: "Upon Step 4 loading, Progress indicator at top shows 75% complete"}
+        F3@{ shape: sl-rect, label: "User selects preferred workout frequency per week from dropdown in 'Workout Frequency'"}
+        F3A@{ shape: display, label: "'Workout Frequency' appears as 'Completed' after user selects workout frequency"}
+        F4@{ shape: sl-rect, label: "User selects preferred types of exercise in 'Exercise Types'"}
+        F4A@{ shape: display, label: "'Exercise Types' appears as 'Completed' after user selects exercise types"}
+        F5@{ shape: sl-rect, label: "User selects the gym category that most appropriately applies to their situation in 'Gym Type & Equipment Access'"}
+        F5A@{ shape: display, label: "'Gym Type & Equipment Access' appears as 'Completed' after user selects gym type"}
+        F6@{ shape: braces, label: "Field **MUST BE** required"}
+        F7@{shape: rounded, label: "Once all required fields are input, 'Create Profile' button becomes clickable and progress indicator at top shows 100% completed"}
+        F8@{ shape: trap-t, label: "User clicks 'Create Profile'"}
+        F9@{ shape: bow-rect, label: "All information and data from Steps 1-4 is saved to database for user"}
+  end
+subgraph seven["User Profile Review Display & Flow"]
+        G1@{ shape: circle, label: "/profile page loads and full user profile appears on screen"}
+        G2@{ shape: cyl, label: "All data from profile creation is retrieved from database and displayed upon loading"}
+        G3@{ shape: trap-t, label: "User reviews all of the saved profile data to ensure accuracy and completeness"}
+        G4@{ shape: diamond, label: "All information appears accurate and complete?"}
+        G4A@{ shape: sl-rect, label: "User updates any data, if necessary, directly on this page"}
+        G4B@{ shape: bow-rect, label: "Updates to user's data will be stored to database upon clicking 'Save Profile'"}
+        G5@{ shape: trap-t, label: "User clicks 'Save Profile'"}
+  end
+subgraph eight["Generate First Mesocycle Flow - Display Logic & User Workflow"]
+        H1@{ shape: circle, label: "/workouts page loads with program overview card visible centered to fit the page"}
+        H2@{ shape: display, label: "Program overview card has all mesocycles visible"}
+        H3@{ shape: display, label: "First mesocycle has 'Generate' button next to it, but all other mesocycles do not"}
+        H4@{ shape: trap-t, label: "User clicks 'Generate' button for first mesocycle"}
+        H5@{ shape: cyl, label: "Agent loads all user profile data & program overview structure from database to be used in the prompt"}
+        H6@{ shape: rounded, label: "All profile data & program overview data are injected into the chunked mesocycle generation prompt"}
+        H7@{ shape: display, label: "Progress visualization appears: 'Mesocycle 1 of X... XX%'"}
+        H8@{ shape: rounded, label: "Agent generates weekly plans & actual daily workouts for and applicable only to **first mesocycle**"}
+        H9@{ shape: bow-rect, label: "All weekly plans and daily workouts within each respective week are stored to the database for user"}
+        H10@{ shape: display, label: "Micro-celebration: Mesocycle completion animation and achievement badge appear - Generation success message appears saying, 'You've successfully generated your first mesocycle - click 'View Plan' to access your weekly plans and daily workouts for this mesocycle"}
+        H11@{ shape: rounded, label: "'View Plan' button replaces 'Generate button for Mesocycle 1"}
+        H12@{ shape: trap-t, label: "User clicks 'View Plan' button"}
+  end
+subgraph nine["'View & Log Plans' Page (/workouts/plans) Display Logic for Week 1"]
+        I1@{ shape: circle, label: "/workouts/plans page loads"}
+        I2@{ shape: display, label: "Displays '(User's Name)('s) (name of mesocycle) Plan' header at top (centered)"}
+        I3@{ shape: cyl, label: "All user's data for generated mesocycle is retrieved from DB and able to be displayed on the page"}
+        I4@{ shape: display, label: "'Back to Program Overview' button appears at top-right and bottom-right of screen"}
+        I5@{ shape: display, label: "'Current Week: Week 1' sub-heading (centered) w/ individual daily workout cards centered below"}
+        I5A@{ shape: display, label: "Each daily workout card contains brief description of that day's workout"}
+        I5B@{ shape: display, label: "Each daily workout card contains 'View/Log Workout' button"}
+        I6@{ shape: display, label: "There are clickable, toggle arrows on both sides of 'Current Week: Week 1'"}
+        I7@{ shape: display, label: "'Logged Workouts' section appears below 'Current Week: Week 1' section"}
+        I7A@{ shape: display, label: "Under the 'Logged Workouts' section header, there will be clickable and collapsible sub-headers for each week ('Week 1 Logged Workouts' first, 'Week 2 Logged Workouts' below that, and so on)"}
+        I7B@{ shape: display, label: "If no workouts have been logged, clicking the collapsible sub-header will display a 'No workouts completed or logged' message below the 'Week X Logged Workouts' sub-headers"}
+        I7C@{ shape: display, label: "If workouts have been logged in Week X, then clicking the collapsible 'Week X Logged Workouts' sub-header will display the individual daily workout cards that have been completed/logged"}
+        I7D@{ shape: display, label: "Each of the individual daily workout cards in the 'Logged Workouts' section will have a 'View Daily Log' button"}
+        I7E@{ shape: rounded, label: "When a daily workout is completed and logged it will no longer appear under 'Current Week: Week X' section header, but rather appear under 'Week X Logged Workouts' sub-header in 'Logged Workouts' section"}
+  end
+subgraph ten["How System/DB Determines the Current Week"]
+        J1@{ shape: cyl, label: "The system and DB will track what week is the current week based on either:"}
+        J1A@{ shape: cyl, label: "**1)** 1 calendar week (6 additional days) has passed since user completed/logged first workout of week regardless if all daily workouts were completed or not"}
+        J1B@{ shape: braces, label: "For example, user logs 1st Week 1 workout on Monday, then following Monday the Current Week will be Week 2 even if not all Week 1 workouts were completed/logged"}
+        J1C@{ shape: cyl, label: "**2)** All current week daily workouts were completed prior to end of 1 calendar week"}
+        J1D@{ shape: braces, label: "For example, user has 4 daily workouts in Week 1 (Day 1, Day 2, Day 3, & Day 4) and completes all workouts in 6 calendar days (leaving 1 day remaining in calendar week)"}
+  end
+subgraph eleven["Current Week Toggle Arrow Logic"]
+        K1@{ shape: diamond, label: "User can click either left or right arrows on either side of 'Current Week: Week X' section header"}
+        K2@{ shape: trap-t, label: "User clicks right arrow"}
+        K2A@{ shape: rounded, label: "Displays the next week's daily workouts (e.g., if current week is week 1, then clicking right will display week 2)"}
+        K2B@{ shape: display, label: "If user toggles to a future week, the individual daily workout cards now contain a 'View Workout' button instead of a 'View/Log Workout' button"}
+        K2C@{ shape: braces, label: "This ensures the user completes and logs all daily workouts in the current week before being able to log/complete workouts in future weeks"}
+        K3@{ shape: trap-t, label: "User clicks left arrow"}
+        K3A@{ shape: rounded, label: "Displays the previous week's daily workouts (e.g., if current week is week 1, then clicking left will display final week - which is considered a future week)"}
+  end
+subgraph twelve["Individual Daily Workout Cards - Logged vs. Unlogged Logic From Start of 1st Week to Middle of 2nd Week"]
+        L1@{ shape: cyl, label: "Both unlogged/not completed and logged/completed daily workouts will be stored within the DB"}
+        L2@{ shape: circ, label: "No week 1 (current week) workouts have been completed/logged by user yet and all are stored in DB with property/value indicating they're incomplete"}
+        L2A@{ shape: braces, label: "In this example, the user selected 4 days/week as their preferred workout frequency"}
+        L2B@{ shape: circle, label: "All 4 individual daily workout cards appear in 'Current Week: Week 1' section with 'Incomplete' badge in each card"}
+        L3@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 1, Day 1 workout card"}
+        L3A@{ shape: sl-rect, label: "User completes Week 1, Day 1 workout and logs their workout"}
+        L3B@{ shape: trap-t, label: "User clicks 'Save Workout Logs'"}
+        L3C@{ shape: rounded, label: "User is redirected back to /workouts/plans page"}
+        L3D@{ shape: bow-rect, label: "Week 1, Day 1 workout logged data is saved and stored to the DB with an updated property/value classifying it as logged"}
+        L4@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the Week 1 Day 1 workout card no longer appears under the 'Current Week: Week 1' section"}
+        L4A@{ shape: rounded, label: "Instead, Week 1 Day 1 workout card appears below in the 'Logged Workouts' section, under the 'Week 1 Logged Workouts' collapsible sub-header with a 'Completed' badge"}
+        L5@{ shape: rounded, label: "Now, only **three** Week 1 daily workout cards remain in the 'Current Week: Week 1' section"}
+        L6@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 1, Day 2 workout card"}
+        L6A@{ shape: sl-rect, label: "User completes Week 1, Day 2 workout and logs their workout"}
+        L6B@{ shape: trap-t, label: "User clicks 'Save Workout Logs'"}
+        L6C@{ shape: rounded, label: "User is redirected back to /workouts/plans page"}
+        L6D@{ shape: bow-rect, label: "Week 1, Day 2 workout logged data is saved and stored to the DB with an updated property/value classifying it as logged"}
+        L7@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the Week 1 Day 2 workout card no longer appears under the 'Current Week: Week 1' section"}
+        L7A@{ shape: rounded, label: "Instead, Week 1 Day 2 workout card appears below in the 'Logged Workouts' section, under the 'Week 1 Logged Workouts' collapsible sub-header with a 'Completed' badge"}
+        L8@{ shape: rounded, label: "Now, only **two** Week 1 daily workout cards remain in the 'Current Week: Week 1' section"}
+        L9@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 1, Day 3 workout card"}
+        L9A@{ shape: sl-rect, label: "User completes Week 1, Day 3 workout and logs their workout"}
+        L9B@{ shape: trap-t, label: "User clicks 'Save Workout Logs'"}
+        L9C@{ shape: rounded, label: "User is redirected back to /workouts/plans page"}
+        L9D@{ shape: bow-rect, label: "Week 1, Day 3 workout logged data is saved and stored to the DB with an updated property/value classifying it as logged"}
+        L10@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the Week 1 Day 3 workout card no longer appears under the 'Current Week: Week 1' section"}
+        L10A@{ shape: rounded, label: "Instead, Week 1 Day 3 workout card appears below in the 'Logged Workouts' section, under the 'Week 1 Logged Workouts' collapsible sub-header with a 'Completed' badge"}
+        L11@{ shape: rounded, label: "Now, only **one** Week 1 daily workout card remains in the 'Current Week: Week 1' section"}
+        L12@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 1, Day 4 workout card"}
+        L12A@{ shape: sl-rect, label: "User completes Week 1, Day 4 workout and logs their workout"}
+        L12B@{ shape: trap-t, label: "User clicks 'Save Workout Logs'"}
+        L12C@{ shape: rounded, label: "User is redirected back to /workouts/plans page"}
+        L12D@{ shape: bow-rect, label: "Week 1, Day 4 workout logged data is saved and stored to the DB with an updated property/value classifying it as logged"}
+        L13@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the 'Current Week: Week 1' section is **NOW the 'Current Week: Week 2' section"}
+        L13A@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the Week 1 Day 4 and all other Week 1 daily workout cards appear below in the 'Logged Workouts' section, under the 'Week 1 Logged Workouts' collapsible sub-header with a 'Completed' badge"}
+        L14@{ shape: rounded, label: "Now, **four** Week 2 daily workout cards appear in the 'Current Week: Week 2' section"}   
+        L15@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 2, Day 1 workout card"}
+        L15A@{ shape: sl-rect, label: "User completes Week 2, Day 1 workout and logs their workout"}
+        L15B@{ shape: trap-t, label: "User clicks 'Save Workout Logs'"}
+        L15C@{ shape: rounded, label: "User is redirected back to /workouts/plans page"}
+        L15D@{ shape: bow-rect, label: "Week 2, Day 1 workout logged data is saved and stored to the DB with an updated property/value classifying it as logged"}
+        L16@{ shape: rounded, label: "Upon the /workouts/plans page redirect, the Week 2 Day 1 workout card no longer appears under the 'Current Week: Week 2' section"}
+        L16A@{ shape: rounded, label: "Instead, Week 2 Day 1 workout card appears below in the 'Logged Workouts' section, under the 'Week 2 Logged Workouts' collapsible sub-header with a 'Completed' badge"}
+        L17@{ shape: rounded, label: "Now, **three** Week 2 daily workout cards appear in the 'Current Week: Week 2' section"}
+        L18@{ shape: notch-pent, label: "This process will continue in this pattern until all daily workouts for all weeks of the mesocycle are completed and logged"}
+  end
+subgraph thirteen["Workout Logging Display Logic & Workflow - Using Week 1, Day 1 as Example"]
+        M1@{ shape: trap-t, label: "User clicks 'View/Log Workout' button on Week 1, Day 1 daily workout card"}
+        M2@{ shape: rounded, label: "Page reloads (still on /workouts/plans page)"}
+        M3@{ shape: cyl, label: "All Week 1, Day 1 workout details are retrieved from the database"}
+        M4@{ shape: display, label: "Workout logging form appears on the page upon reload and the Week 1, Day 1 details are displayed within the form"}
+        M4A@{ shape: display, label: "The form and Week 1, Day 1 details are displayed in the following order (noting that the format and display of all exercises will be the same as described below):"}
+        M4B@{ shape: braces, label: "The user will work through the form as follows:"}
+        M5@{ shape: braces, label: "First section: Daily workout details"}
+        M5A@{ shape: display, label: "'Week 1, Day 1 Workout Log' header, centered at top"}
+        M5B@{ shape: display, label: "Each exercise appears in it's own divided section of the form - 'Name of Exercise' listed to the top left of the divided section in large, bold font"}
+        M5C@{ shape: display, label: "In each divided section for each, respective exercise - the prescribed # of sets are listed horizontally with even spacing between each set ('Set 1' -> 'Set 2' -> 'Set 3', etc.)"}
+        M5D@{ shape: display, label: "Directly below the set #s, with the same spacing and alignment, the prescribed reps or rep-ranges will be displayed for each respective set - 'Target Reps: XX' (or 'Target Rep Range: 8-12')"}
+        M5E@{ shape: display, label: "Directly below the target reps/rep-ranges, with the same spacing and alignment, the user will input the weight lifted in the units selected in profile creation - 'Weight: (insert box for user to type #) XXX'"}
+        M5F@{ shape: display, label: "Directly below the weight lifted, with the same spacing and alignment, the user will input the reps completed - 'Reps Completed: XX'"}
+        M6@{ shape: braces, label: "Second section: Additional scales"}
+        M6A@{ shape: display, label: "In a final section at the bottom of the form, there will be 3 draggable scales for users to measure: 'Energy Level', 'Difficulty of Workout', and 'Satisfaction with Workout'"}
+        M7@{ shape: braces, label: "Bottom section: Save button"}
+        M7A@{ shape: display, label: "Finally, at the bottom, there's a 'Save Workout Log' button"}
+        M8@{ shape: sl-rect, label: "User will input the weight lifted for each set of each exercise"}
+        M8A@{ shape: sl-rect, label: "User will input the reps completed for each set of each exercise"}
+        M8B@{ shape: sl-rect, label: "User will input their perceived measurement of 'Energy Level', 'Difficulty of Workout', and 'Satisfaction with Workout'"}
+        M8C@{ shape: trap-t, label: "User will click 'Save Workout Log' button"}
+        M9@{ shape: bow-rect, label: "All logged data by user is stored to the database for the Week 1, Day 1 workout, specifically"}
+        M9A@{ shape: rounded, label: "Micro-celebration: Workout completion animation + progress ring update + badge for logging first workout"}
+        M10@{ shape: rect, label: "Automatically redirects back to the main /workouts/plans page"}
+        M11@{ shape: display, label: "Message appears temporarily at bottom of screen saying, (Successfully completed and logged workout. You can view this workout log in 'Logged Workouts')"}
+        
+  end
+    A1 --> A2
+    A2 -- Redirect to: --> A3
+    A3 -.-> B1
+    A3 --> A4
+    A4 --> A5
+    A4 ==> B4A & B4B & B4C & B4D
+    A5 -- No --> A6
+    A5 -- Yes --> A7
+    A6 --> A6A
+    A6A --> A6B
+    A6B --> A6C
+    A6C --> A6D
+    A6D --> A7
+    A7 --> A8
+    A8 --> A9
+    A9 ==> B7
+    A9 --> A10
+    A10 --> A11
+    A11 ==> H1
+
+    B1 -.-> B2
+    B1 -- Below that: --> B3
+    B3 -.-> B4
+    B4 -.-> B4A
+    B4A -.-> B4B
+    B4B -.-> B4C
+    B4C -.-> B4D
+    B4D -.-> B4E
+    B4E -- Below that: --> B5
+    B3 -- Below that: --> B5
+    B5 -.-> B5A
+    B5A -.-> B5B
+    B5B -.-> B5C
+    B5C -.-> B5D
+    B5D -- Below that: --> B6
+    B5 -- Below that: --> B6
+    B6 -- Below that: --> B7
+    B7 -- Below that: --> B8
+    B8 -- Below that: --> B9
+    B9 ==> A11
+
+    C1 --> C2
+    C2 -.-> C2A & C2C & C2B
+    C2 --> C3
+    C3 --> C4
+    C3 -.-> C2
+    C4 --> C5
+    C4 -.-> C4A
+    C5 -.-> C5A
+    C5 --> C6
+    C6 --> C7
+    C7 -- Next Step loads: --> D1
+
+    D1 --> D2
+    D2 --> D2A
+    D2 -.-> D2B & D2C
+    D2A -- Yes --> D3
+    D2A -- No --> D3A
+    D3 --> D4
+    D3A --> D4A
+    D3 & D3A -.-> D3B
+    D4 & D4A --> D5
+    D4 & D4A -.-> D4B
+    D5 --> D6
+    D6 -- Next Step loads: --> E1
+
+    E1 --> E2
+    E2 -.-> E2A & E2B
+    E2 --> E3
+    E3 --> E4
+    E4 --> E4A
+    E4 -.-> E4E
+    E4A -- No --> E4B
+    E4A -- Yes --> E4C
+    E4C --> E4D
+    E4B & E4D --> E5
+    E4D -.-> E4F
+    E5 -- Yes --> E5A
+    E5A --> E5B
+    E5B --> E5C
+    E5 -- No --> E5D
+    E5C & E5D --> E6
+    E5C -.-> E5E
+    E6 --> E7
+    E7 -- Next Step loads: --> F1
+    E8 ==> E3 & E4
+    E8 == **ONLY IF USER SELECTS 2+ GOALS** ==> E4C
+    E9 ==> E5
+
+    F1 --> F2
+    F2 -.-> F2A & F2B
+    F2 --> F3
+    F3 --> F4
+    F3 -.-> F3A
+    F4 --> F5
+    F4 -.-> F4A
+    F6 ==> F3 & F4 & F5
+    F5 --> F7
+    F5 -.-> F5A
+    F7 --> F8
+    F8 --> F9
+    F8 -- Redirects to: --> G1
+
+    G1 --> G2
+    G2 --> G3
+    G3 --> G4
+    G4 -- No --> G4A
+    G4 -- Yes --> G5
+    G4A --> G5
+    G5 -.-> G4B
+    G5 -- Redirects to: --> A1
+
+    H1 -.-> H2
+    H2 -.-> H3
+    H3 ==> H4
+    H4 --> H5 & H6
+    H5 & H6 -.-> H7
+    H7 --> H8 & H9
+    H7 -.-> H10 & H11
+    H11 ==> H12
+    H12 -- Redirects to: ---> I1
+
+    I1 --> I2 & I3 & I4
+    I2 -- Below that: --> I5
+    I5 -.-> I5A & I5B & I6
+    I5 -- Below that: -----> I7
+    I7 -.-> I7A
+    I7A -.-> I7B & I7C
+    I7C -.-> I7D
+    I5A & I5B ---> I7E
+    I7E --> I7C
+
+    J1 <==> I5
+    J1 --> J1A & J1C
+    J1A -.-> J1B
+    J1C -.-> J1D
+
+    K1 <==> I6
+    K1 --> K2 & K3
+    K2 --> K2A & K2B
+    K2C <--> K2B
+    K3 --> K3A & K2B
+
+    L1 <==> I5 & I7
+    L1 --> L2 & L2B
+    L2A -.-> L2 & L2B
+    L2 & L2B --> L3
+    L3 --> L3A
+    L3A --> L3B
+    L3B --> L3C & L3D
+    L3C & L3D --> L4 & L4A
+    L4 --> L5
+    L5 --> L6
+    L6 --> L6A
+    L6A --> L6B
+    L6B --> L6C & L6D
+    L6C & L6D --> L7 & L7A
+    L7 --> L8
+    L8 --> L9
+    L9 --> L9A
+    L9A --> L9B
+    L9B --> L9C & L9D
+    L9C & L9D --> L10 & L10A
+    L10 --> L11
+    L11 --> L12
+    L12 --> L12A
+    L12A --> L12B
+    L12B --> L12C & L12D
+    L12C & L12D --> L13 & L13A
+    L13 --> L14
+    L14 --> L15
+    L15 --> L15A
+    L15A --> L15B
+    L15B --> L15C & L15D
+    L15C & L15D --> L16 & L16A
+    L16 --> L17
+    L17 --> L18
+    L13A & L14 ==> J1C
+
+    I5B <==> M1
+    M1 --> M2 & M3
+    M2 & M3 --> M4
+    M4 --> M4A & M4B
+    M4A -.-> M5 & M6 & M7
+    M4B --> M5
+    M5 -.-> M5A
+    M5 --> M8
+    M8 <--> M5E
+    M8 --> M8A
+    M8A <--> M5F
+    M8A --> M6
+    M5A -. Below that: .-> M5B
+    M5B -. Below that: .-> M5C
+    M5C -. Below that: .-> M5D
+    M5D -. Below that: .-> M5E
+    M5E -. Below that: .-> M5F
+    M5F -. Below that: .-> M6
+    M6 -.-> M6A
+    M6 --> M8B
+    M8B <--> M6A
+    M8B --> M7
+    M7 --> M8C
+    M8C <--> M7A
+    M6A -. Below that: .-> M7
+    M7 -.-> M7A
+    M8C --> M9 & M9A & M10
+    M10 --> M11 
+    M10 ==> L4 & L4A & L5

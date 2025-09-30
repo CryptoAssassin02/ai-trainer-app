@@ -38,7 +38,7 @@ export default function ProfilePage() {
           <UserProfileForm 
             mode="edit"
             enableAutoSave={true}
-            redirectOnSuccess="/dashboard"
+            redirectOnSuccess="/workouts"
             showAdvancedOptions={true}
             enableRealTimeValidation={true}
             showCompletionIndicator={true}

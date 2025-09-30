@@ -1,54 +1,136 @@
 'use client';
 
 import { useWorkout } from '@/hooks/use-workout';
-import { 
-  WorkoutPlanCard,
+import {
   WorkoutSkeleton,
   EmptyWorkoutState,
   AIOperationProgress,
-  EnhancedPlanOverview,
-  MesocycleTimeline
+  WeeklyStructureCalendar,
+  DailyWorkoutsWeekView
 } from '@/components/workout';
 import { ApiErrorDisplay } from '@/components/error/api-error-display';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useProfileQueryContext } from '@/components/profile/profile-query-provider';
 import { enhancedWorkoutAPI } from '@/lib/api/workout-api';
-import type { EnhancedWorkoutPlan } from '@/lib/api/types';
-import { useState } from 'react';
+import type { EnhancedWorkoutPlan, WeekStructure } from '@/lib/api/types';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { Target, Trash2 } from 'lucide-react';
+import type { ProgramStructure } from '@/lib/api/types';
 
 export default function WorkoutsPage() {
-  const { 
-    plans, 
-    isLoading, 
-    error, 
-    operationStatus, 
-    isGenerating,
-    canGenerate 
+  const {
+    plans,
+    isLoading,
+    error,
+    operationStatus,
+    canGenerate,
+    deletePlan
   } = useWorkout();
   
   const { profile } = useProfileQueryContext();
-  const [selectedPlan, setSelectedPlan] = useState<EnhancedWorkoutPlan | null>(null);
-  const [filterType, setFilterType] = useState<'all' | 'multi-goal' | 'single-goal'>('all');
+  const [viewType, setViewType] = useState<'program' | 'weekly' | 'daily'>('program');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [selectedMesocycle, setSelectedMesocycle] = useState<number>(1);
+  
+  // NEW: Program overview state for recently generated structure
+  const [programOverview, setProgramOverview] = useState<{
+    structure: ProgramStructure;
+    planId: string;
+    mesocyclesCompleted: number;
+  } | null>(null);
+  
+  // Resolve a program structure for viewing (no generation actions)
+  useEffect(() => {
+    // First, check localStorage for recent context
+    const storedProgram = localStorage.getItem('recentProgramStructure');
+    if (storedProgram) {
+      try {
+        const parsed = JSON.parse(storedProgram);
+        setProgramOverview(parsed);
+        // Clear after retrieving to prevent stale data
+        localStorage.removeItem('recentProgramStructure');
+        return; // Use localStorage data and exit
+      } catch (error) {
+        localStorage.removeItem('recentProgramStructure');
+      }
+    }
+    
+    // Fallback: detect embedded structure in any available plan
+    if (plans && plans.length > 0) {
+      const planWithEmbeddedStructure = plans.find(p => (p as any)?.plan_data?.structure) as any;
+      if (planWithEmbeddedStructure?.plan_data?.structure) {
+        const structure = planWithEmbeddedStructure.plan_data.structure as ProgramStructure;
+        setProgramOverview({
+          structure,
+          planId: planWithEmbeddedStructure.id,
+          mesocyclesCompleted: (planWithEmbeddedStructure as any).mesocycles_generated || 0
+        });
+      } else {
+        setProgramOverview(null);
+      }
+    } else {
+      setProgramOverview(null);
+    }
+  }, [plans]); // Re-run when plans change
+
+  // Load full plan details for Weekly/Daily views
+  const [detailedPlan, setDetailedPlan] = useState<EnhancedWorkoutPlan | null>(null);
+  const [isPlanLoading, setIsPlanLoading] = useState(false);
+  useEffect(() => {
+    const planId = programOverview?.planId;
+    if (!planId) { setDetailedPlan(null); return; }
+    setIsPlanLoading(true);
+    (async () => {
+      try {
+        const fetched = await enhancedWorkoutAPI.getWorkoutPlan(planId);
+        setDetailedPlan(fetched);
+      } finally {
+        setIsPlanLoading(false);
+      }
+    })();
+  }, [programOverview?.planId]);
+
+  // Delete handler for program overview
+  const handleDeleteProgram = () => {
+    if (programOverview) {
+      deletePlan(programOverview.planId);
+      setProgramOverview(null);
+      setShowDeleteDialog(false);
+    }
+  };
+  
   
   // Extract first name from profile data, similar to dashboard
   const firstName = (profile as any)?.name?.split(' ')[0] || 'Your';
   
-  // Enhanced plan filtering
-  const filteredPlans = plans?.filter(plan => {
-    const isEnhanced = (plan as EnhancedWorkoutPlan).schemaVersion !== undefined;
-    const isMultiGoal = isEnhanced ? enhancedWorkoutAPI.isMultiGoalPlan(plan as EnhancedWorkoutPlan) : false;
-    
-    switch (filterType) {
-      case 'multi-goal':
-        return isMultiGoal;
-      case 'single-goal':
-        return !isMultiGoal;
-      default:
-        return true;
-    }
-  }) || [];
+  // Data derivations for Weekly and Daily views
+  const selectedMesoIndex = useMemo(() => Math.max(0, (selectedMesocycle || 1) - 1), [selectedMesocycle]);
+  const weeklyStructure = useMemo(() => {
+    const m = (detailedPlan as any)?.planData?.mesocycles?.[selectedMesoIndex];
+    return m?.weekly_structures || [];
+  }, [detailedPlan, selectedMesoIndex]);
+  const weeks: WeekStructure[] = useMemo(() => {
+    if (!detailedPlan) return [] as unknown as WeekStructure[];
+    const fromStructured = detailedPlan.mesocycleStructure?.[selectedMesoIndex]?.weeks as WeekStructure[] | undefined;
+    if (fromStructured && fromStructured.length) return fromStructured;
+    const fromPlanData = (detailedPlan as any)?.planData?.mesocycles?.[selectedMesoIndex]?.weeks as WeekStructure[] | undefined;
+    return fromPlanData || ([] as unknown as WeekStructure[]);
+  }, [detailedPlan, selectedMesoIndex]);
+  const currentWeek = weeks[currentWeekIndex];
   
   if (isLoading) return <WorkoutSkeleton />;
   if (error) return <ApiErrorDisplay error={error} />;
@@ -70,113 +152,172 @@ export default function WorkoutsPage() {
       <div className="w-full py-8 space-y-8">
         {/* Perfectly Centered Header Section */}
         <div className="w-full text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cornflower-blue to-blue-600 bg-clip-text text-transparent">
-            {firstName}'s Workout Plans
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#3E9EFF] to-[#3E9EFF]/65 bg-clip-text text-transparent">
+            {firstName}'s Workout Program
           </h1>
           <p className="text-muted-foreground text-lg">
             AI-powered personalized fitness plans
           </p>
           
-          {/* Enhanced Plan Filtering */}
-          {plans && plans.length > 0 && (
-            <div className="flex justify-center gap-2 mt-4">
-              <Button
-                variant={filterType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('all')}
-                className={filterType === 'all' ? 'bg-cornflower-blue' : ''}
-              >
-                All Plans ({plans.length})
-              </Button>
-              <Button
-                variant={filterType === 'multi-goal' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('multi-goal')}
-                className={filterType === 'multi-goal' ? 'bg-cornflower-blue' : ''}
-              >
-                Multi-Goal ({plans.filter(p => (p as EnhancedWorkoutPlan).schemaVersion && enhancedWorkoutAPI.isMultiGoalPlan(p as EnhancedWorkoutPlan)).length})
-              </Button>
-              <Button
-                variant={filterType === 'single-goal' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('single-goal')}
-                className={filterType === 'single-goal' ? 'bg-cornflower-blue' : ''}
-              >
-                Single-Goal ({plans.filter(p => !(p as EnhancedWorkoutPlan).schemaVersion || !enhancedWorkoutAPI.isMultiGoalPlan(p as EnhancedWorkoutPlan)).length})
-              </Button>
-            </div>
-          )}
+          {/* View Filters */}
+          <div className="flex justify-center gap-2 mt-4">
+            <Button
+              variant={viewType === 'program' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewType('program')}
+              className={`min-w-[160px] ${viewType === 'program' ? 'bg-[#3E9EFF]' : ''}`}
+            >
+              Program Structure
+            </Button>
+            <Button
+              variant={viewType === 'weekly' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewType('weekly')}
+              className={`min-w-[160px] ${viewType === 'weekly' ? 'bg-[#3E9EFF]' : ''}`}
+            >
+              Weekly Structure
+            </Button>
+            <Button
+              variant={viewType === 'daily' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewType('daily')}
+              className={`min-w-[160px] ${viewType === 'daily' ? 'bg-[#3E9EFF]' : ''}`}
+            >
+              Daily Workouts
+            </Button>
+          </div>
         </div>
         
         {/* Absolutely Centered Content Area */}
         <div className="w-full flex justify-center">
-          {/* Plans Display */}
-          {plans?.length === 0 ? (
+          {/* MAIN VIEWS */}
+          {!programOverview ? (
             <div className="w-full max-w-3xl mx-4">
               <EmptyWorkoutState canGenerate={canGenerate} />
             </div>
-          ) : filteredPlans.length === 0 ? (
-            <div className="w-full max-w-3xl mx-4 text-center">
-              <Card>
-                <CardContent className="py-12">
-                  <p className="text-muted-foreground">No plans match the selected filter.</p>
-                  <Button
-                    variant="outline"
-                    onClick={() => setFilterType('all')}
-                    className="mt-4"
-                  >
-                    Show All Plans
-                  </Button>
+          ) : viewType === 'program' ? (
+            <div className="w-full max-w-4xl mx-4">
+              <Card className="border-cornflower-blue bg-gradient-to-br from-cornflower-blue/5 to-blue-500/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-center gap-2 text-2xl font-bold text-[#3E9EFF] text-center">
+                    <Target className="h-5 w-5" />
+                    {programOverview.structure.programName}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div>
+                      <div className="text-md font-medium text-[#3E9EFF]">Duration:</div>
+                      <div className="text-sm text-muted-foreground">{programOverview.structure.totalDuration} weeks</div>
+                    </div>
+                    <div>
+                      <div className="text-md font-medium text-[#3E9EFF]">Training Frequency:</div>
+                      <div className="text-sm text-muted-foreground">{programOverview.structure.trainingFrequency.daysPerWeek} days/week</div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                      {programOverview.structure.mesocycles.map((meso) => {
+                        const total = programOverview.structure.mesocycles.length;
+                        const current = Math.min((programOverview.mesocyclesCompleted || 0) + 1, total);
+                        const isFuture = meso.mesocycleNumber > current;
+                        return (
+                          <Card key={meso.mesocycleNumber} className="border border-cornflower-blue/30">
+                            <CardHeader className="py-4">
+                              <CardTitle className="text-base text-lg font-semibold text-[#3E9EFF]">
+                                Phase {meso.mesocycleNumber}: {meso.theme}
+                                <div className="text-sm font-medium text-white">{meso.focus}</div>
+                              </CardTitle>
+                              <CardDescription>{meso.duration} weeks</CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              {isFuture ? (
+                                <div className="text-center text-sm text-muted-foreground py-2">
+                                  Unlocks after you complete the earlier stages — log all daily workouts to continue.
+                                </div>
+                              ) : (
+                                <div className="flex gap-3 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    className="flex-2 max-w-xs bg-[#3E9EFF] text-black"
+                                    onClick={() => { setSelectedMesocycle(meso.mesocycleNumber); setViewType('weekly'); setCurrentWeekIndex(0); }}
+                                  >
+                                    View Weekly Structure
+                                  </Button>
+                                  <Button
+                                    className="flex-2 max-w-xs bg-[#3E9EFF]"
+                                    onClick={() => { setSelectedMesocycle(meso.mesocycleNumber); setViewType('daily'); setCurrentWeekIndex(0); }}
+                                  >
+                                    View Daily Workouts
+                                  </Button>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                  <div className="pt-4 border-t">
+                    <div className="flex gap-3 justify-center">
+                      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="flex-1 max-w-sm">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Program
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Workout Program</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{programOverview.structure.programName}"? This action cannot be undone and the program will be permanently removed from your account.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteProgram}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Yes, Delete Program
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
-          ) : (
-            <div className="w-full max-w-6xl mx-4 space-y-6">
-              {/* Enhanced Plan Overview for Selected Plan */}
-              {selectedPlan && (
-                <Card className="border-cornflower-blue">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-lg font-semibold">Plan Details</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedPlan(null)}
-                      >
-                        Close
-                      </Button>
-                    </div>
-                    <EnhancedPlanOverview plan={selectedPlan} />
-                    {selectedPlan.mesocycleStructure && selectedPlan.mesocycleStructure.length > 0 && (
-                      <div className="mt-6">
-                        <MesocycleTimeline mesocycles={selectedPlan.mesocycleStructure} />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+          ) : viewType === 'weekly' ? (
+            <div className="w-full max-w-5xl mx-4 space-y-4">
+              <div className="text-center text-sm text-muted-foreground">Mesocycle {selectedMesocycle}</div>
+              <WeeklyStructureCalendar weeklyStructure={weeklyStructure} />
+              {!isPlanLoading && weeklyStructure?.length === 0 && (
+                <div className="text-center text-muted-foreground">No weekly structure available yet for this mesocycle.</div>
               )}
-              
-              {/* Plans Grid */}
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredPlans.map(plan => (
-                  <div key={plan.id} className="relative">
-                    <WorkoutPlanCard plan={plan} />
-                    {/* Enhanced Plan Details Button */}
-                    {(plan as EnhancedWorkoutPlan).schemaVersion && (
-                      <div className="absolute top-2 right-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setSelectedPlan(plan as EnhancedWorkoutPlan)}
-                          className="text-xs bg-cornflower-blue/10 hover:bg-cornflower-blue/20"
-                        >
-                          Details
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+            </div>
+          ) : (
+            <div className="w-full max-w-6xl mx-4 space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentWeekIndex(i => Math.max(0, i - 1))}
+                  disabled={currentWeekIndex === 0}
+                >
+                  Prev Week
+                </Button>
+                <div className="text-lg font-medium">Week {currentWeek?.weekNumber || 1}</div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentWeekIndex(i => Math.min((weeks?.length || 1) - 1, i + 1))}
+                  disabled={!weeks || weeks.length === 0 || currentWeekIndex === weeks.length - 1}
+                >
+                  Next Week
+                </Button>
               </div>
+              <DailyWorkoutsWeekView week={currentWeek} />
             </div>
           )}
         </div>

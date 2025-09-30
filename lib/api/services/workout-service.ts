@@ -23,9 +23,11 @@ import { enhancedWorkoutAPI } from '../workout-api';
 export class WorkoutService {
   /**
    * Generate a new workout plan using AI
+   * @deprecated Use chunked generation (generateStructure + generateMesocycle) instead
    * ✅ PHASE 2 DAY 4: Added AbortController support for cancellation
    */
   async generatePlan(request: WorkoutGenerationRequest, options?: RequestOptions & { signal?: AbortSignal }): Promise<WorkoutPlan> {
+    console.warn('DEPRECATED: generatePlan() - Use chunked generation instead');
     try {
       // ✅ REVISED: Enhanced error handling for dual-agent operations with cancellation support
       const result = await apiClient.post<ApiResponse<WorkoutPlan>>(
@@ -76,8 +78,8 @@ export class WorkoutService {
       );
       
       // ✅ PHASE 5: Transform database responses to enhanced format
-      const rawPlans = result.data || [];
-      return rawPlans.map(rawPlan => {
+      const rawPlans = (result as any)?.data ?? [];
+      return rawPlans.map((rawPlan: any) => {
         // Check if this is a Phase 4 enhanced plan
         if (rawPlan.schema_version || rawPlan.orchestrator_data || rawPlan.mesocycle_structure) {
           // Use enhanced API for Phase 4 plans - create temporary plan ID for transformation
@@ -85,6 +87,12 @@ export class WorkoutService {
           // In production, we'd expose a public transformation method
           const enhancedPlan: EnhancedWorkoutPlan = {
             ...rawPlan,
+            // Preserve critical backend fields for gating UI flows (structure-generated, mesocycle gating)
+            // These snake_case properties are intentionally kept so pages that read backend fields continue to work
+            generation_state: rawPlan.generation_state,
+            mesocycles_generated: rawPlan.mesocycles_generated,
+            total_mesocycles: rawPlan.total_mesocycles,
+            plan_data: rawPlan.plan_data,
             // Transform snake_case to camelCase for Phase 4 fields
             schemaVersion: rawPlan.schema_version || 'v1.0',
             generationMethod: rawPlan.generation_method || 'single_goal',
@@ -96,9 +104,18 @@ export class WorkoutService {
             mesocycleStructure: rawPlan.mesocycle_structure,
             goalStrategyData: rawPlan.goal_strategy_data || { strategies: {}, trainingParameters: {}, exercisePriorities: { compound: 5, isolation: 3 }, progressionStrategy: { primary: 'linear' }, recoveryRequirements: { restBetweenSets: '60-90s', sleepRecommendation: '7-9 hours' } },
             planData: {
-              exercises: rawPlan.plan_data?.exercises || [],
-              weeklySchedule: rawPlan.plan_data?.weeklySchedule || {},
-              formattedPlan: rawPlan.plan_data?.formattedPlan || '',
+              // Legacy format - computed from structured data
+              exercises: this.extractExercisesFromMesocycles(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || [])),
+              weeklySchedule: this.buildWeeklyScheduleFromMesocycles(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || [])),
+              formattedPlan: rawPlan.plan_data?.formattedPlan || this.generateFormattedPlan(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || []), rawPlan.plan_data?.programName || rawPlan.name),
+
+              // Structured output data (primary)
+              programName: rawPlan.plan_data?.programName,
+              programDuration: rawPlan.plan_data?.programDuration,
+              goalStructure: rawPlan.plan_data?.goalStructure,
+              mesocycles: this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure),
+              
+              // AI insights
               aiResponse: rawPlan.plan_data?.aiResponse,
               orchestratedProgram: rawPlan.plan_data?.orchestratedProgram,
               explanations: rawPlan.plan_data?.explanations || '',
@@ -143,11 +160,16 @@ export class WorkoutService {
       }
       
       // ✅ PHASE 5: Transform database response to enhanced format if applicable
-      const rawPlan = result.data;
+      const rawPlan = (result as any)?.data;
       if (rawPlan.schema_version || rawPlan.orchestrator_data || rawPlan.mesocycle_structure) {
         // Transform Phase 4 plan to enhanced format
         const enhancedPlan: EnhancedWorkoutPlan = {
           ...rawPlan,
+          // Preserve critical backend fields for gating UI flows (structure-generated, mesocycle gating)
+          generation_state: rawPlan.generation_state,
+          mesocycles_generated: rawPlan.mesocycles_generated,
+          total_mesocycles: rawPlan.total_mesocycles,
+          plan_data: rawPlan.plan_data,
           // Transform snake_case to camelCase for Phase 4 fields
           schemaVersion: rawPlan.schema_version || 'v1.0',
           generationMethod: rawPlan.generation_method || 'single_goal',
@@ -158,10 +180,19 @@ export class WorkoutService {
           orchestratorData: rawPlan.orchestrator_data,
           mesocycleStructure: rawPlan.mesocycle_structure,
           goalStrategyData: rawPlan.goal_strategy_data || { strategies: {}, trainingParameters: {}, exercisePriorities: { compound: 5, isolation: 3 }, progressionStrategy: { primary: 'linear' }, recoveryRequirements: { restBetweenSets: '60-90s', sleepRecommendation: '7-9 hours' } },
-          planData: {
-            exercises: rawPlan.plan_data?.exercises || [],
-            weeklySchedule: rawPlan.plan_data?.weeklySchedule || {},
-            formattedPlan: rawPlan.plan_data?.formattedPlan || '',
+            planData: {
+            // Legacy format - computed from structured data
+              exercises: this.extractExercisesFromMesocycles(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || [])),
+              weeklySchedule: this.buildWeeklyScheduleFromMesocycles(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || [])),
+              formattedPlan: rawPlan.plan_data?.formattedPlan || this.generateFormattedPlan(this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure || []), rawPlan.plan_data?.programName || rawPlan.name),
+
+            // Structured output data (primary)
+            programName: rawPlan.plan_data?.programName,
+            programDuration: rawPlan.plan_data?.programDuration,
+            goalStructure: rawPlan.plan_data?.goalStructure,
+            mesocycles: this.normalizeMesocycles(rawPlan.plan_data?.mesocycles || rawPlan.mesocycle_structure),
+            
+            // AI insights
             aiResponse: rawPlan.plan_data?.aiResponse,
             orchestratedProgram: rawPlan.plan_data?.orchestratedProgram,
             explanations: rawPlan.plan_data?.explanations || '',
@@ -189,21 +220,20 @@ export class WorkoutService {
   }
 
   /**
-   * Adjust an existing workout plan
+   * Adjust an existing workout plan (NEW endpoint)
    */
-  async adjustPlan(planId: string, request: WorkoutAdjustmentRequest): Promise<WorkoutPlan> {
+  async adjustPlan(
+    planId: string,
+    agentType: 'structure' | 'weekly_structure' | 'daily_workout',
+    editRequest: any,
+    mesocycleIndex?: number,
+    options?: RequestOptions
+  ): Promise<WorkoutPlan> {
     try {
-      // ✅ REVISED: Handle plan adjustment agent with proper error classification
-      const result = await apiClient.post<ApiResponse<WorkoutPlan>>(  // ✅ POST not PUT
-        `/workouts/${planId}`,
-        { 
-          adjustments: { 
-            notesOrPreferences: request.feedback // ✅ Backend expects nested structure
-          } 
-        },
-        { 
-          timeout: API_TIMEOUTS.workoutAdjustment // ✅ 60s timeout (backend agent timeout)
-        }
+      const result = await apiClient.post<ApiResponse<WorkoutPlan>>(
+        `/workouts/${planId}/adjust`,
+        { agentType, editRequest, mesocycleIndex },
+        { timeout: API_TIMEOUTS.workoutAdjustment, ...(options || {}) }
       );
       
       if (!result.data) {
@@ -390,17 +420,55 @@ export class WorkoutService {
   }
 
   /**
+   * NEW: Generate weekly structure for a mesocycle (chunked generation step 2a)
+   */
+  async generateWeeklyStructure(
+    planId: string,
+    mesocycleNumber: number,
+    body?: Record<string, any>,
+    options?: RequestOptions & { signal?: AbortSignal }
+  ): Promise<{ planId: string; mesocycleNumber: number; weeklyStructure: any }>{
+    try {
+      const result = await apiClient.post<ApiResponse<{ planId: string; mesocycleNumber: number; weeklyStructure: any }>>(
+        `/workouts/${planId}/mesocycles/${mesocycleNumber}/weekly-structure`,
+        body || {},
+        { timeout: API_TIMEOUTS.workoutStructure, signal: options?.signal }
+      );
+
+      if (!result.data) {
+        throw new Error(`Weekly structure generation failed - no data returned`);
+      }
+
+      return result.data;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Weekly structure generation was cancelled`);
+      }
+      console.error(`Weekly structure generation failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * NEW: Generate specific mesocycle details (chunked generation step 2+)
    */
   async generateMesocycle(
-    planId: string, 
+    planId: string,
     mesocycleNumber: number,
-    options?: RequestOptions & { signal?: AbortSignal }
+    // Backward compatible args: arg3 can be options (old calls) or request body (new calls)
+    arg3?: any,
+    arg4?: RequestOptions & { signal?: AbortSignal }
   ): Promise<MesocycleResponse> {
     try {
+      const isOptionsArg = arg3 && (typeof arg3 === 'object') && (
+        'signal' in arg3 || 'timeout' in arg3 || 'skipAuth' in arg3
+      );
+      const requestBody = isOptionsArg ? {} : (arg3 || {});
+      const options = (isOptionsArg ? (arg3 as RequestOptions & { signal?: AbortSignal }) : (arg4 as (RequestOptions & { signal?: AbortSignal } | undefined)));
+
       const result = await apiClient.post<ApiResponse<MesocycleResponse>>(
         API_ENDPOINTS.WORKOUTS.MESOCYCLE(planId, mesocycleNumber),
-        {}, // No body required - context comes from stored structure
+        requestBody,
         { 
           timeout: API_TIMEOUTS.workoutMesocycle,
           signal: options?.signal
@@ -434,14 +502,181 @@ export class WorkoutService {
       if (!result.data) {
         throw new Error('Failed to get generation status');
       }
-      
+      // Enrich status with weekly/daily readiness for current mesocycle when possible
+      try {
+        const planRes = await apiClient.get<ApiResponse<any>>(
+          `/workouts/${planId}`,
+          { timeout: API_TIMEOUTS.standardOperations }
+        );
+        const plan = (planRes as any)?.data;
+        if (plan?.plan_data) {
+          const current = (result.data as any).currentMesocycle || plan.current_mesocycle || 1;
+          const mesocycles = Array.isArray(plan.plan_data.mesocycles)
+            ? plan.plan_data.mesocycles
+            : (plan.plan_data.mesocycles ? Object.values(plan.plan_data.mesocycles) : []);
+          const node = mesocycles[current - 1] || {};
+          (result.data as any).weeklyStructureReady = Array.isArray(node?.weekly_structures) && node.weekly_structures.length > 0;
+          (result.data as any).dailyWorkoutsReady = Array.isArray(node?.daily_workouts) && node.daily_workouts.length > 0;
+        }
+      } catch (_) {
+        // Non-fatal enrichment failure
+      }
+
       return result.data;
     } catch (error) {
       console.error('Get generation status failed:', error);
       throw error;
     }
   }
+
+  /**
+   * NEW: Progressive generation via SSE
+   */
+  progressiveGenerate(
+    planId: string,
+    requestBody: Record<string, any>,
+    onEvent: (evt: { type: 'structure_generated' | 'weekly_complete' | 'mesocycle_progress' | 'completed' | 'error'; data: any }) => void
+  ): { disconnect: () => void } {
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1';
+    const token = (typeof window !== 'undefined') ? (sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')) : null;
+    const controller = new AbortController();
+    const disconnect = () => controller.abort();
+
+    fetch(`${baseURL}/workouts/${planId}/generate-progressive`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'text/event-stream',
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(requestBody || {}),
+      signal: controller.signal
+    }).then(async (res) => {
+      if (!res.ok || !res.body) {
+        onEvent({ type: 'error', data: { message: `Failed to open SSE stream (${res.status})` } });
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      const flush = (text: string) => {
+        buffer += text;
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const lines = rawEvent.split('\n');
+          let eventType: string | null = null;
+          let dataStr = '';
+          for (const line of lines) {
+            if (line.startsWith('event:')) eventType = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+          }
+          if (!eventType) continue;
+          try {
+            const data = dataStr ? JSON.parse(dataStr) : {};
+            if (eventType === 'structure_generated' || eventType === 'weekly_complete' || eventType === 'mesocycle_progress' || eventType === 'completed' || eventType === 'error') {
+              onEvent({ type: eventType as any, data });
+            }
+          } catch {}
+        }
+      };
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        flush(chunk);
+      }
+    }).catch((e) => {
+      if (e?.name === 'AbortError') return;
+      onEvent({ type: 'error', data: { message: e?.message || 'SSE connection failed' } });
+    });
+
+    return { disconnect };
+  }
+
+  /**
+   * Extract exercises from mesocycles structure
+   */
+  private extractExercisesFromMesocycles(mesocycles: any[]): any[] {
+    const normalized = this.normalizeMesocycles(mesocycles);
+    const exercises: any[] = [];
+    normalized.forEach((mesocycle: any) => {
+      mesocycle.weeks?.forEach((week: any) => {
+        Object.values(week.workouts || {}).forEach((workout: any) => {
+          if (typeof workout === 'object' && workout.exercises) {
+            exercises.push(...workout.exercises);
+          }
+        });
+      });
+    });
+    return exercises;
+  }
+
+  private buildWeeklyScheduleFromMesocycles(mesocycles: any[]): Record<string, any> {
+    const normalized = this.normalizeMesocycles(mesocycles);
+    const weeklySchedule: Record<string, any> = {};
+    normalized?.[0]?.weeks?.[0]?.workouts && 
+    Object.entries(normalized[0].weeks[0].workouts).forEach(([day, workout]) => {
+      weeklySchedule[day] = typeof workout === 'object' ? workout : { type: workout };
+    });
+    return weeklySchedule;
+  }
+
+  private generateFormattedPlan(mesocycles: any[], programName: string): string {
+    const normalized = this.normalizeMesocycles(mesocycles);
+    let formatted = `${programName}\n\n`;
+    normalized.forEach((mesocycle: any) => {
+      formatted += `${mesocycle.name} (${mesocycle.durationWeeks} weeks)\n`;
+      formatted += `Focus: ${mesocycle.focus}\n\n`;
+    });
+    return formatted;
+  }
+
+  private normalizeMesocycles(input: any): any[] {
+    if (Array.isArray(input)) return input;
+    if (input && typeof input === 'object') return Object.values(input);
+    return [];
+  }
 }
 
 // Create singleton instance
 export const workoutService = new WorkoutService();
+
+// ===== Generation Status Helpers (Service Alignment) =====
+// These helpers mirror the stage-derivation logic used by the display layer,
+// ensuring a single source of truth for stage readiness and derived stage.
+
+export type GenerationStage = 'structure' | 'weekly' | 'daily';
+
+/**
+ * Returns true when the current mesocycle has a weekly structure available.
+ * Relies on enrichment added in getGenerationStatus (weeklyStructureReady).
+ */
+export function isWeeklyStructureReady(status: GenerationStatusResponse | null | undefined): boolean {
+  if (!status) return false;
+  const enriched: any = status as any;
+  return !!enriched?.weeklyStructureReady === true;
+}
+
+/**
+ * Returns true when the current mesocycle has daily workouts available.
+ * Relies on enrichment added in getGenerationStatus (dailyWorkoutsReady),
+ * or overall state === 'completed'.
+ */
+export function isDailyWorkoutsReady(status: GenerationStatusResponse | null | undefined): boolean {
+  if (!status) return false;
+  if (status.state === 'completed') return true;
+  const enriched: any = status as any;
+  return !!enriched?.dailyWorkoutsReady === true;
+}
+
+/**
+ * Derive high-level generation stage from status.
+ * Order of precedence: daily > weekly > structure.
+ */
+export function deriveGenerationStage(status: GenerationStatusResponse | null | undefined): GenerationStage {
+  if (isDailyWorkoutsReady(status)) return 'daily';
+  if (isWeeklyStructureReady(status)) return 'weekly';
+  return 'structure';
+}

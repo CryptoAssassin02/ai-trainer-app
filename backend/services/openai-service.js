@@ -102,15 +102,29 @@ class OpenAIService {
     await this.initClient();
 
     // Determine the final max_tokens value, prioritizing options
-    const maxTokensValue = options.max_tokens ?? this.#config.maxTokens;
+    const maxTokensValue = options.max_completion_tokens ?? options.max_tokens ?? this.#config.maxTokens;
+    const modelName = options.model ?? this.#config.defaultChatModel;
+    
+    // GPT-5 models have different parameter requirements
+    const isGPT5Model = modelName && (modelName.includes('gpt-5') || modelName.includes('GPT-5'));
+    const tokenParamName = isGPT5Model ? 'max_completion_tokens' : 'max_tokens';
+    
+    // GPT-5 models only support temperature: 1 (default), others support custom temperature
+    const requestedTemperature = options.temperature ?? this.#config.temperature;
+    const temperatureValue = isGPT5Model ? 1 : requestedTemperature;
+    
+    // Debug logging for GPT-5 parameter adjustments
+    if (isGPT5Model && requestedTemperature !== 1) {
+      logger.info(`[OpenAIService] GPT-5 model detected: adjusting temperature from ${requestedTemperature} to 1 (required for GPT-5)`);
+    }
 
     // Base payload with defaults
     const requestPayload = {
-      model: options.model ?? this.#config.defaultChatModel,
+      model: modelName,
       messages,
-      temperature: options.temperature ?? this.#config.temperature,
-      // Add max_tokens only if it has a value (either from options or config)
-      ...(maxTokensValue !== undefined && maxTokensValue !== null ? { max_tokens: maxTokensValue } : {}),
+      temperature: temperatureValue,
+      // Add max_tokens or max_completion_tokens based on model
+      ...(maxTokensValue !== undefined && maxTokensValue !== null ? { [tokenParamName]: maxTokensValue } : {}),
       // Add other parameters from options if needed, ensuring correct naming
       ...(options.top_p !== undefined ? { top_p: options.top_p } : {}),
       ...(options.frequency_penalty !== undefined ? { frequency_penalty: options.frequency_penalty } : {}),
@@ -118,6 +132,8 @@ class OpenAIService {
       ...(options.response_format ? { response_format: options.response_format } : {}),
       ...(options.tools ? { tools: options.tools } : {}),
       ...(options.tool_choice ? { tool_choice: options.tool_choice } : {}),
+      ...(options.reasoning_effort !== undefined ? { reasoning_effort: options.reasoning_effort } : {}),
+      ...(options.verbosity !== undefined ? { verbosity: options.verbosity } : {}),
     };
 
     logger.info(`Generating OpenAI chat completion with model: ${requestPayload.model}`);
@@ -146,7 +162,10 @@ class OpenAIService {
       try {
         logger.debug(`Executing OpenAI Chat Completion (Attempt ${retries + 1})`);
         
-        const response = await this.#client.chat.completions.create(requestPayload);
+        // Use parse() method for structured outputs with SDK v5.x+
+        const response = requestPayload.response_format?.type === 'json_schema' 
+          ? await this.#client.chat.completions.parse(requestPayload)
+          : await this.#client.chat.completions.create(requestPayload);
 
         // DEBUG: Log response structure
         logger.info(`[OpenAIService] DEBUG - Response received, type: ${typeof response}`);
@@ -177,6 +196,12 @@ class OpenAIService {
         if (choice.finish_reason === 'tool_calls') {
           logger.info('OpenAI chat completion finished due to tool calls.');
           return choice.message; // Return the full message object with tool_calls
+        }
+
+        // Handle structured outputs (json_schema response_format)
+        if (requestPayload.response_format?.type === 'json_schema') {
+          logger.info('OpenAI chat completion using structured output (json_schema).');
+          return response; // Return the full response object for structured output parsing
         }
 
         // Validate message content exists

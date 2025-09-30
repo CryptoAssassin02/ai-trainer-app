@@ -1,0 +1,96 @@
+---
+config:
+  layout: dagre
+---
+flowchart TD
+ subgraph one["Frontend - Workout Generation (Chunked)"]
+        B1["/workouts/generate (app/(dashboard)/workouts/generate/page.tsx)"]
+        B2@{ label: "SingleStepWorkoutForm (components/workout/single-step-workout-form.tsx)" }
+        B3@{ label: "Click 'Generate Workout Plan' (onSubmit → handleChunkedGeneration)" }
+        B4@{ label: "workoutService.generateStructure(request) (lib/api/services/workout-service.ts)" }
+        B5@{ label: "ChunkedGenerationDisplay (components/workout/chunked-generation-display.tsx)" }
+        B6@{ label: "Click 'Generate' for Mesocycle N (handleIndividualMesocycleGeneration)" }
+        B7@{ label: "workoutService.generateMesocycle(planId, N, body?) (lib/api/services/workout-service.ts)" }
+        B8@{ label: "Poll workoutService.getGenerationStatus(planId) (lib/api/services/workout-service.ts)" }
+        B9@{ label: "MesocycleGenerationCard (components/workout/mesocycle-generation-card.tsx)" }
+        B10["/workouts (app/(dashboard)/workouts/page.tsx)"]
+        B11@{ label: "handleGenerateMesocycle(N) calls workoutService.generateMesocycle" }
+  end
+ subgraph two["Backend - Routes → Controllers → Agents"]
+        C1@{ label: "POST /v1/workouts/structure (backend/routes/workout.js)" }
+        C2@{ label: "generateWorkoutStructure (backend/controllers/workout-chunked.js)" }
+        C3@{ label: "WorkoutStructureAgent.process (backend/agents/workout-structure-agent.js)" }
+        C4@{ label: "Insert plan (workout_plans); set orchestratorData, generationMethod" }
+        C5@{ label: "Response { planId, structure }" }
+        C6@{ label: "POST /v1/workouts/:planId/mesocycles/:mesocycleNumber" }
+        C7@{ label: "generateMesocycleDetails (backend/controllers/workout-chunked.js)" }
+        C8@{ label: "WorkoutMesocycleAgent.process (backend/agents/workout-mesocycle-agent.js)" }
+        C9@{ label: "Update plan_data.mesocycles[N], mesocycles_generated, generation_completed_at" }
+        C10@{ label: "GET /v1/workouts/:planId/status" }
+        C11@{ label: "POST /v1/workouts/:planId/generate-progressive (SSE)" }
+  end
+ subgraph three["Database - Supabase"]
+        D1@{ label: "Table workout_plans: id, user_id, plan_data(JSONB), mesocycles_generated, total_mesocycles, generation_state, ai_reasoning, orchestrator_data, training_frequency" }
+  end
+ subgraph four["Error Paths (selected)"]
+        E1@{ label: "404 plan not found (generateMesocycleDetails)" }
+        E2@{ label: "400 invalid mesocycle number" }
+        E3@{ label: "409 mesocycle already generated" }
+        E4@{ label: "Agent validation 400 (missing goals) - structure" }
+        E5@{ label: "503 external service error (OpenAI) - mesocycle" }
+  end
+    B1 --> B2
+    B2 --> B3
+    B3 --> B4
+    B4 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    C5 --> B5
+    B5 --> B6
+    B6 --> B7
+    B7 --> C6
+    C6 --> C7
+    C7 --> C8
+    C8 --> C9
+    C9 --> B9
+    B10 --> B11
+    B11 --> B7
+    B8 --> C10
+    C10 --> B9
+    B2 -. optional .-> B8
+    B2 -. optional .-> C11
+
+    %% Shapes
+    B1@{ shape: doc}
+    B10@{ shape: doc}
+    B2@{ shape: sl-rect}
+    B3@{ shape: trap-t}
+    B4@{ shape: bow-rect}
+    B5@{ shape: display}
+    B6@{ shape: trap-t}
+    B7@{ shape: bow-rect}
+    B8@{ shape: braces}
+    B9@{ shape: display}
+    B11@{ shape: sl-rect}
+
+    C1@{ shape: doc}
+    C2@{ shape: sl-rect}
+    C3@{ shape: sl-rect}
+    C4@{ shape: bow-rect}
+    C5@{ shape: rounded}
+    C6@{ shape: doc}
+    C7@{ shape: sl-rect}
+    C8@{ shape: sl-rect}
+    C9@{ shape: bow-rect}
+    C10@{ shape: doc}
+    C11@{ shape: doc}
+
+    D1@{ shape: cyl}
+
+    E1@{ shape: diamond}
+    E2@{ shape: diamond}
+    E3@{ shape: diamond}
+    E4@{ shape: diamond}
+    E5@{ shape: diamond}

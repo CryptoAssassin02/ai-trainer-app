@@ -7,11 +7,14 @@
 'use client';
 
 import React from 'react';
+import { useSafeFormWatch } from '@/hooks/use-safe-form-watch';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormDescription, FormLabel, FormControl, FormMessage, FormItem } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 interface GymCategoryStepProps {
   form: any;
@@ -26,7 +29,7 @@ const GYM_CATEGORIES = [
   {
     id: 'full_service_commercial',
     name: 'Full-Service Commercial Gym',
-    description: 'Chain gyms like LA Fitness, Genesis with pools, classes, extensive equipment',
+    description: 'Chain gyms with pools, classes, extensive equipment',
     icon: '🏢',
     examples: ['LA Fitness', 'Genesis Health Clubs', 'Vasa Fitness'],
     equipment: ['Full cardio section', 'Complete free weights', 'Machine circuit', 'Plate-loaded machines', 'Pin-loaded machines', 'Group fitness']
@@ -45,7 +48,7 @@ const GYM_CATEGORIES = [
     name: 'Hardcore Strength/Powerlifting Gym',
     description: 'Serious lifting environment with heavy equipment',
     icon: '💪',
-    examples: ['Iron Heaven', "Bob's Fitness Complex"],
+    examples: ['Gold\'s Gym'],
     equipment: ['Heavy free weights', 'Multiple power racks', 'Plate-loaded machines', 'Pin-loaded machines', 'Competition plates']
   },
   {
@@ -106,6 +109,18 @@ const GYM_CATEGORIES = [
   }
 ];
 
+// Exercise types for workout customization
+const exerciseTypes = [
+  { id: "cardio", label: "Cardio", icon: "🏃", description: "Running, cycling, swimming" },
+  { id: "strength", label: "Strength Training", icon: "💪", description: "Weight lifting, resistance training" },
+  { id: "hiit", label: "HIIT", icon: "⚡", description: "High-intensity interval training" },
+  { id: "yoga", label: "Yoga", icon: "🧘", description: "Flexibility and mindfulness" },
+  { id: "pilates", label: "Pilates", icon: "🤸", description: "Core strength and stability" },
+  { id: "functional", label: "Functional Training", icon: "🏋️", description: "Movement-based exercises" },
+  { id: "sports", label: "Sports-Specific", icon: "🏆", description: "Sport-specific conditioning" },
+  { id: "flexibility", label: "Flexibility/Stretching", icon: "🤲", description: "Mobility and recovery" },
+];
+
 const workoutFrequencies = [
   { value: "1", label: "Once per week", description: "Light activity" },
   { value: "2", label: "Twice per week", description: "Moderate activity" },
@@ -121,13 +136,114 @@ const workoutFrequencies = [
  * Replaces the complex equipment preferences step with simplified gym category selection
  */
 export function GymCategoryStep({ form, isLoading }: GymCategoryStepProps) {
+  const selectedExerciseTypes = useSafeFormWatch(form, 'exerciseTypes', []);
+  const additionalNotesValue = useSafeFormWatch(form, 'additionalNotes', '');
+
   return (
     <div className="space-y-6">
+      {/* Workout Frequency */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Workout Frequency</CardTitle>
+          <FormDescription>
+            How often do you plan to work out each week?
+          </FormDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={form.control}
+            name="workoutFrequency"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <NativeSelect
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                    disabled={isLoading}
+                    data-testid="workout-frequency-input"
+                    placeholder="Select workout frequency"
+                    options={workoutFrequencies.map((freq) => ({
+                      value: freq.value,
+                      label: `${freq.label} - ${freq.description}`
+                    }))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Exercise Types */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            Exercise Types
+            {selectedExerciseTypes.length > 0 && (
+              <Badge variant="secondary">{selectedExerciseTypes.length} selected</Badge>
+            )}
+          </CardTitle>
+          <FormDescription>
+            Select your preferred types of exercise (minimum 1 required)
+          </FormDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            {exerciseTypes.map((type) => (
+              <Card key={type.id} className={`cursor-pointer transition-all hover:shadow-md touch-manipulation ${
+                selectedExerciseTypes.includes(type.id) ? 'ring-2 ring-[#3E9EFF] bg-[#3E9EFF]/5' : 'hover:bg-muted/30'
+              }`}>
+                <CardContent className="p-4 sm:p-5">
+                  <FormField
+                    control={form.control}
+                    name="exerciseTypes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={type.id}
+                              checked={selectedExerciseTypes.includes(type.id)}
+                              onChange={(e) => {
+                                const currentTypes = field.value || [];
+                                if (e.target.checked) {
+                                  field.onChange([...currentTypes, type.id]);
+                                } else {
+                                  field.onChange(currentTypes.filter((t: string) => t !== type.id));
+                                }
+                              }}
+                              disabled={isLoading}
+                              className="sr-only"
+                              data-testid={`exercise-type-${type.id}`}
+                            />
+                            <span className="text-2xl">{type.icon}</span>
+                            <div className="flex-1">
+                              <span className="text-base font-semibold cursor-pointer">
+                                {type.label}
+                              </span>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {type.description}
+                              </div>
+                            </div>
+                          </label>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Gym Category Selection */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            🏋️ Gym Type & Equipment Access
+            Gym Type & Equipment Access
           </CardTitle>
           <FormDescription>
             Select the type of gym or workout space you primarily use. This helps us create workouts that match your available equipment.
@@ -189,33 +305,34 @@ export function GymCategoryStep({ form, isLoading }: GymCategoryStepProps) {
         </CardContent>
       </Card>
 
-      {/* Workout Frequency */}
+      {/* Additional Notes */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">📅 Workout Frequency</CardTitle>
+          <CardTitle className="text-lg">Additional Notes</CardTitle>
           <FormDescription>
-            How often do you plan to work out each week?
+            Provide any preferences or constraints (max 300 characters). Examples: "Prefer machines and dumbbells over barbell exercises", "Prefer Hack Squat over Barbell Back Squat".
           </FormDescription>
         </CardHeader>
         <CardContent>
           <FormField
             control={form.control}
-            name="workoutFrequency"
+            name="additionalNotes"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>Notes</FormLabel>
                 <FormControl>
-                  <NativeSelect
-                    onValueChange={field.onChange}
+                  <Textarea
+                    placeholder="Share equipment preferences, exercise swaps, or limitations..."
+                    maxLength={300}
                     value={field.value || ''}
+                    onChange={field.onChange}
                     disabled={isLoading}
-                    data-testid="workout-frequency-input"
-                    placeholder="Select workout frequency"
-                    options={workoutFrequencies.map((freq) => ({
-                      value: freq.value,
-                      label: `${freq.label} - ${freq.description}`
-                    }))}
+                    data-testid="additional-notes-input"
                   />
                 </FormControl>
+                <div className="text-xs text-muted-foreground text-right mt-1">
+                  {additionalNotesValue?.length || 0}/300
+                </div>
                 <FormMessage />
               </FormItem>
             )}

@@ -129,9 +129,11 @@ class ExplanationGenerator {
                      { role: 'user', content: prompt }
                  ],
                  {
-                     model: this.config.model || 'gpt-4o', 
+                     model: this.config.model || 'gpt-5-mini', 
                      temperature: 0.5,
-                     max_tokens: 500 
+                     max_tokens: 500,
+                     reasoning_effort: 'medium', // Moderate reasoning for explanations
+                     verbosity: 'medium' // Balanced detail for user explanations
                  }
              );
              return response || "Summary generation failed.";

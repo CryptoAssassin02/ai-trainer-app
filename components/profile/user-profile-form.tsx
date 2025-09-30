@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { useSafeFormWatch } from '@/hooks/use-safe-form-watch'
 import { 
   profileCreationSchema, 
   profileUpdateSchema,
@@ -24,6 +25,7 @@ import { Label } from "@/components/ui/label"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { useProfile } from "@/hooks/use-profile-queries"
 import { useProfileFormLogic } from "@/hooks/use-profile-form-logic"
 import type { UserProfile } from "@/lib/api/types"
@@ -34,14 +36,26 @@ import { useAuth } from "@/components/auth/supabase-auth-provider"
 
 // Define fitness goals options
 const fitnessGoals = [
-  { id: "weight_loss", label: "Weight Loss" },
-  { id: "muscle_gain", label: "Muscle Gain" },
-  { id: "strength", label: "Strength" },
-  { id: "endurance", label: "Endurance" },
-  { id: "flexibility", label: "Flexibility" },
-  { id: "general_fitness", label: "General Fitness" },
-  { id: "sports_performance", label: "Sports Performance" },
-  { id: "body_recomposition", label: "Body Recomposition" },
+  { id: "weight_loss", label: "Weight Loss", icon: "📉", description: "Reduce body weight and body fat" },
+  { id: "muscle_gain", label: "Muscle Gain", icon: "💪", description: "Build lean muscle mass" },
+  { id: "strength", label: "Strength", icon: "🏋️", description: "Increase maximum strength" },
+  { id: "endurance", label: "Endurance", icon: "🏃", description: "Improve cardiovascular fitness" },
+  { id: "flexibility", label: "Flexibility", icon: "🧘", description: "Enhance range of motion" },
+  { id: "general_fitness", label: "General Fitness", icon: "⚡", description: "Overall health and wellness" },
+  { id: "sports_performance", label: "Sports Performance", icon: "🏆", description: "Excel in specific sports" },
+  { id: "body_recomposition", label: "Body Recomposition", icon: "🔄", description: "Lose fat while gaining muscle" },
+]
+
+// Exercise types for workout customization
+const exerciseTypes = [
+  { id: "cardio", label: "Cardio", icon: "🏃", description: "Running, cycling, swimming" },
+  { id: "strength", label: "Strength Training", icon: "💪", description: "Weight lifting, resistance training" },
+  { id: "hiit", label: "HIIT", icon: "⚡", description: "High-intensity interval training" },
+  { id: "yoga", label: "Yoga", icon: "🧘", description: "Flexibility and mindfulness" },
+  { id: "pilates", label: "Pilates", icon: "🤸", description: "Core strength and stability" },
+  { id: "functional", label: "Functional Training", icon: "🏋️", description: "Movement-based exercises" },
+  { id: "sports", label: "Sports-Specific", icon: "🏆", description: "Sport-specific conditioning" },
+  { id: "flexibility", label: "Flexibility/Stretching", icon: "🤲", description: "Mobility and recovery" },
 ]
 
   // Define gym category options - MUST match validation schema
@@ -61,6 +75,9 @@ const fitnessGoals = [
 // Use comprehensive validation schema with dynamic height validation
 type FormValues = ProfileCreationFormData & {
   medicalConditions: string;
+  primaryGoal?: string;
+  exerciseTypes: string[];
+  additionalNotes?: string;
 }
 
 export function UserProfileForm({
@@ -117,15 +134,23 @@ export function UserProfileForm({
       weight: undefined,
       experienceLevel: undefined,
       goals: [],
+      primaryGoal: "",
       medicalConditions: "",
       gymCategory: 'minimal_home',
       workoutFrequency: '',
-      unitPreference: "metric"
+      exerciseTypes: [],
+      unitPreference: "metric",
+      additionalNotes: ""
     },
   })
 
   // Destructure reset method for proper useEffect dependencies (React Hook Form best practice)
   const { reset } = form;
+  
+  // Watch selected goals and exercise types for conditional rendering
+  const selectedGoals = useSafeFormWatch(form, 'goals', []);
+  const selectedExerciseTypes = useSafeFormWatch(form, 'exerciseTypes', []);
+  const additionalNotesValue = useSafeFormWatch(form, 'additionalNotes', '');
 
   // Update form when profile changes - following React Hook Form best practices
   useEffect(() => {
@@ -154,12 +179,15 @@ export function UserProfileForm({
         weight: profileData.weight || (profileIsMetric ? 72.5 : 160),
         experienceLevel: profileData.experienceLevel as "beginner" | "intermediate" | "advanced" || "beginner",
         goals: profileData.goals || [],
+        primaryGoal: profileData.primaryGoal || "",
         medicalConditions: Array.isArray(profileData.medicalConditions) 
           ? profileData.medicalConditions.join(', ') 
           : (profileData.medicalConditions || ""),
         gymCategory: (profileData.gymCategory as any) || 'minimal_home',
         workoutFrequency: profileData.workoutFrequency || '',
-        unitPreference: profileData.unitPreference || "metric"
+        exerciseTypes: profileData.exerciseTypes || [],
+        unitPreference: profileData.unitPreference || "metric",
+        additionalNotes: (profileData as any)?.additionalNotes || ""
       })
     }
   }, [(profile.data as UserProfile)?.id, (profile.data as UserProfile)?.updatedAt, profileLoading, reset]) // Use stable identifiers instead of entire object
@@ -233,12 +261,15 @@ export function UserProfileForm({
           weight: data.weight, // Send as-is (backend will convert based on unitPreference)
           experienceLevel: data.experienceLevel,
           goals: data.goals,
+          primaryGoal: data.primaryGoal || '',
           medicalConditions: data.medicalConditions 
             ? data.medicalConditions.split(',').map(s => s.trim()).filter(s => s.length > 0)
             : [],
           gymCategory: data.gymCategory || '',
           workoutFrequency: data.workoutFrequency || '',
-          unitPreference: data.unitPreference // Backend uses this for proper conversion
+          exerciseTypes: data.exerciseTypes || [],
+          unitPreference: data.unitPreference, // Backend uses this for proper conversion
+          additionalNotes: (form.getValues('additionalNotes') || '').slice(0, 300)
         }
 
         // Update profile via the modern profile hooks
@@ -298,7 +329,7 @@ export function UserProfileForm({
           <p className="flex items-center gap-2">
             <Info className="h-4 w-4 text-primary" />
             <span>
-              The information you provide here will be used to personalize your workout plans and recommendations.
+              Review profile information below before saving and proceeding with workout generation.
             </span>
           </p>
         </div>
@@ -363,7 +394,7 @@ export function UserProfileForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel className="text-md font-medium">Full Name</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Enter your name (2-100 characters)" 
@@ -388,7 +419,7 @@ export function UserProfileForm({
                   name="age"
                   render={({ field: { value, onChange, ...fieldProps } }) => (
                     <FormItem>
-                      <FormLabel>Age</FormLabel>
+                      <FormLabel className="text-md font-medium">Age</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -416,7 +447,7 @@ export function UserProfileForm({
                   name="gender"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel>Gender (Optional)</FormLabel>
+                      <FormLabel className="text-md font-medium">Gender (Optional)</FormLabel>
                                               <FormControl>
                           <RadioGroup
                             value={field.value}
@@ -430,10 +461,6 @@ export function UserProfileForm({
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="female" id="female" />
                               <Label htmlFor="female">Female</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="non-binary" id="non-binary" />
-                              <Label htmlFor="non-binary">Non-binary</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="other" id="other" />
@@ -454,7 +481,7 @@ export function UserProfileForm({
                 />
               </div>
             </div>
-
+          
             {/* Body Measurements Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
@@ -463,7 +490,7 @@ export function UserProfileForm({
 
               {/* Height Fields */}
               <div className="space-y-4">
-                <div className="text-sm font-medium">Height</div>
+                <div className="text-md font-medium">Height</div>
                 {isMetric ? (
                   <FormField
                     control={form.control}
@@ -546,7 +573,7 @@ export function UserProfileForm({
 
               {/* Weight Field */}
               <div className="space-y-4">
-                <div className="text-sm font-medium">Weight</div>
+                <div className="text-md font-medium">Weight</div>
                 {isMetric ? (
                   <FormField
                     control={form.control}
@@ -616,7 +643,7 @@ export function UserProfileForm({
                 name="experienceLevel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Experience Level</FormLabel>
+                    <FormLabel className="text-md font-medium">Experience Level</FormLabel>
                     <FormControl>
                       <NativeSelect
                         name="experienceLevel"
@@ -630,7 +657,7 @@ export function UserProfileForm({
                         ]}
                       />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="text-sm text-muted-foreground">
                       This helps us tailor workout intensity and progression to your level.
                     </FormDescription>
                     <FormMessage />
@@ -640,8 +667,8 @@ export function UserProfileForm({
 
               {/* Fitness Goals Field */}
               <div className="mb-4">
-                <div className="text-sm font-medium">Fitness Goals (select all that apply)</div>
-                <p className="text-sm text-muted-foreground">Choose the goals that are most important to you.</p>
+                <div className="text-md font-medium">Fitness Goals (select all that apply)</div>
+                <p className="text-sm text-muted-foreground">Choose the goals that are most important to you (up to 3 goals).</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {fitnessGoals.map((goal) => (
@@ -672,13 +699,48 @@ export function UserProfileForm({
                 ))}
               </div>
 
+              {/* Primary Goal Selection - Show when 2+ goals selected */}
+              {selectedGoals.length > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="text-md font-medium">Primary Goal Selection</div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Choose your main focus. This goal will be prioritized in crafting your personalized workout program.
+                  </p>
+                  <FormField
+                    control={form.control}
+                    name="primaryGoal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <NativeSelect
+                            value={field.value || selectedGoals[0]}
+                            onValueChange={field.onChange}
+                            placeholder="Select your primary goal"
+                            options={selectedGoals.map((goalId: string) => {
+                              const goal = fitnessGoals.find(g => g.id === goalId);
+                              return {
+                                value: goalId,
+                                label: `${goal?.icon} ${goal?.label}`
+                              };
+                            })}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
               {/* Medical Conditions Field with Enhanced Validation */}
               <FormField
                 control={form.control}
                 name="medicalConditions"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Medical Conditions or Movement Limitations</FormLabel>
+                    <FormLabel className="text-md font-medium">Medical Considerations</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Please list any medical conditions, injuries, or movement limitations that might affect your workouts. Maximum 10 conditions, 200 characters each."
@@ -698,18 +760,47 @@ export function UserProfileForm({
                   </FormItem>
                 )}
               />
+
+              {/* Additional Notes Field */}
+              <FormField
+                control={form.control}
+                name="additionalNotes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-md font-medium">Additional Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder={
+                          (additionalNotesValue?.length || 0) === 0
+                            ? "Examples: Prefer machines and dumbbells over barbell exercises; Prefer Hack Squat over Barbell Back Squat"
+                            : "Share equipment preferences, exercise swaps, or limitations..."
+                        }
+                        maxLength={300}
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        className="min-h-[100px]"
+                        data-testid="additional-notes-input"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      <span className="text-xs text-muted-foreground">Character count: {additionalNotesValue?.length || 0}/300</span>
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
                          {/* Gym Category Section */}
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Gym Type & Equipment Access</h3>
+                <h3 className="text-lg font-medium">Preferences & Equipment</h3>
 
                 <FormField
                   control={form.control}
                   name="gymCategory"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Select your gym type</FormLabel>
+                      <FormLabel className="text-md font-medium">Gym Type</FormLabel>
                       <FormDescription>
                         Choose the type of gym or workout space you primarily use
                       </FormDescription>
@@ -746,8 +837,8 @@ export function UserProfileForm({
               </div>
 
               {/* Workout Frequency */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Workout Frequency</h3>
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Workout Frequency</h3>
 
                 <FormField
                   control={form.control}
@@ -778,6 +869,55 @@ export function UserProfileForm({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Exercise Types */}
+              <div className="space-y-4">
+                <h3 className="text-md font-medium flex items-center gap-2">
+                  Exercise Types
+                  {selectedExerciseTypes.length > 0 && (
+                    <Badge variant="secondary">{selectedExerciseTypes.length} selected</Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Select your preferred types of exercise (minimum 1 required)
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {exerciseTypes.map((type) => (
+                    <FormField
+                      key={type.id}
+                      control={form.control}
+                      name="exerciseTypes"
+                      render={({ field }) => {
+                        return (
+                          <FormItem key={type.id} className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <NativeCheckbox
+                                name="exerciseTypes"
+                                value={type.id}
+                                checked={field.value?.includes(type.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, type.id])
+                                    : field.onChange(field.value?.filter((value) => value !== type.id))
+                                }}
+                              />
+                            </FormControl>
+                            <div className="flex-1">
+                              <FormLabel className="font-normal flex items-center gap-2">
+                                <span className="text-lg">{type.icon}</span>
+                                {type.label}
+                              </FormLabel>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {type.description}
+                              </div>
+                            </div>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
 
             {/* Hidden unit preference field - this is controlled by the switch */}
@@ -844,7 +984,7 @@ export function UserProfileForm({
       </CardContent>
       <CardFooter className="flex justify-center border-t pt-6">
         <p className="text-sm text-muted-foreground">
-          Your profile information helps us create personalized workout and nutrition plans.
+          Your profile information helps us create highly personalized workout programs.
         </p>
       </CardFooter>
     </Card>

@@ -208,9 +208,9 @@ const outputSchema = {
         planName: { type: "string", description: "A concise name for the workout plan (e.g., 'Intermediate Strength Plan - 3 Days')." },
         weeklySchedule: {
             type: "object",
-            description: "An object mapping day names (e.g., 'Monday', 'Wednesday') to workout sessions or 'Rest'.",
+            description: "An object mapping day names (e.g., 'Day 1', 'Day 2') to workout sessions or 'Rest'.",
             patternProperties: {
-                "^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$": {
+                "^(Day 1|Day 2|Day 3|Day 4|Day 5|Day 6|Day 7)$": {
                     oneOf: [
                         { type: "string", enum: ["Rest"] },
                         {
@@ -388,7 +388,7 @@ const multiGoalMesocycleSchema = {
                                 workouts: {
                                     type: "object",
                                     patternProperties: {
-                                        "^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$": {
+                                        "^(Day 1|Day 2|Day 3|Day 4|Day 5|Day 6|Day 7)$": {
                                             oneOf: [
                                                 { 
                                                     type: "string", 

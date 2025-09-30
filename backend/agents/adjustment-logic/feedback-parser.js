@@ -109,9 +109,11 @@ class FeedbackParser {
                     { role: "user", content: feedbackText }
                 ],
                 {
-                    model: this.config.model || 'gpt-3.5-turbo',
+                    model: this.config.model || 'gpt-5-nano',
                     temperature: 0.2, // Low temperature for focused parsing
-                    max_tokens: this.config.max_tokens || 2048 // Adjust as needed
+                    max_tokens: this.config.max_tokens || 2048, // Adjust as needed
+                    reasoning_effort: 'minimal', // Simple parsing task
+                    verbosity: 'low' // Concise structured output
                 }
             );
 

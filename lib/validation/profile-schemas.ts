@@ -123,6 +123,28 @@ export const workoutFrequencySchema = z.string()
   .max(50, 'Workout frequency description too long')
   .optional();
 
+// Additional notes validation - optional, max 300 characters
+export const additionalNotesSchema = z.string()
+  .max(300, 'Additional notes must be 300 characters or less')
+  .optional();
+
+// Primary goal validation - optional field that must be one of the selected goals
+export const primaryGoalSchema = z.string()
+  .min(1, 'Primary goal cannot be empty')
+  .optional();
+
+// Exercise types validation - user's preferred exercise types for workout generation
+export const exerciseTypesSchema = z.array(z.string().min(1))
+  .min(1, 'At least one exercise type is required')
+  .max(10, 'Maximum 10 exercise types allowed')
+  .refine(
+    (types) => types.every(type => type.trim().length > 0),
+    'Exercise types cannot be empty strings'
+  );
+
+// Exercise types validation - optional for profile, but when provided must have at least 1
+export const profileExerciseTypesSchema = exerciseTypesSchema.optional();
+
 // Primary profile creation schema
 export const profileCreationSchema = z.object({
   unitPreference: unitSystemSchema,
@@ -133,10 +155,13 @@ export const profileCreationSchema = z.object({
   weight: weightSchema,
   experienceLevel: experienceLevelSchema,
   goals: goalsSchema,
+  primaryGoal: primaryGoalSchema,
   gymCategory: gymCategorySchema,
   // Note: Gym category replaces equipment, exercisePreferences, and equipmentPreferences
   medicalConditions: medicalConditionsSchema,
   workoutFrequency: workoutFrequencySchema,
+  exerciseTypes: profileExerciseTypesSchema,
+  additionalNotes: additionalNotesSchema,
 })
 .refine((data) => {
   // Custom validation for height based on unit preference
@@ -163,6 +188,16 @@ export const profileCreationSchema = z.object({
 }, {
   message: 'Weight is outside the expected range for the selected unit system',
   path: ['weight']
+})
+.refine((data) => {
+  // Primary goal validation - must be one of the selected goals if provided
+  if (data.primaryGoal && data.goals && data.goals.length > 0) {
+    return data.goals.includes(data.primaryGoal);
+  }
+  return true;
+}, {
+  message: 'Primary goal must be one of your selected fitness goals',
+  path: ['primaryGoal']
 });
 
 // Profile update schema (all fields optional except unit preference changes)
@@ -175,9 +210,12 @@ export const profileUpdateSchema = z.object({
   unitPreference: unitSystemSchema.optional(),
   experienceLevel: experienceLevelSchema.optional(),
   goals: goalsSchema.optional(),
+  primaryGoal: primaryGoalSchema,
   gymCategory: gymCategorySchema.optional(),
   medicalConditions: medicalConditionsSchema.optional(),
   workoutFrequency: workoutFrequencySchema.optional(),
+  exerciseTypes: profileExerciseTypesSchema,
+  additionalNotes: additionalNotesSchema,
 })
 .refine((data) => {
   // Height format validation for updates
@@ -191,6 +229,16 @@ export const profileUpdateSchema = z.object({
 }, {
   message: 'Height format must match unit system',
   path: ['height']
+})
+.refine((data) => {
+  // Primary goal validation for updates - must be one of the selected goals if provided
+  if (data.primaryGoal && data.goals && data.goals.length > 0) {
+    return data.goals.includes(data.primaryGoal);
+  }
+  return true;
+}, {
+  message: 'Primary goal must be one of your selected fitness goals',
+  path: ['primaryGoal']
 });
 
 // Preference update schema

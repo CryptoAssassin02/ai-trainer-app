@@ -47,76 +47,92 @@ try {
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
-  AlertTriangle: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  AlertTriangle: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  AlertCircle: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  AlertCircle: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  Info: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  Info: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  RefreshCw: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  RefreshCw: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  Bug: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  Bug: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  X: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  X: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  CheckCircle: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  CheckCircle: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  RotateCcw: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  RotateCcw: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  Home: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  Home: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  Eye: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  Eye: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  EyeOff: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  EyeOff: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  Copy: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  Copy: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  ExternalLink: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
+  ExternalLink: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
   }),
-  AlertOctagon: ({ className, ...props }) => require('react').createElement('span', { 
-    'data-testid': 'mock-lucide-icon', 
-    className, 
-    ...props 
-  })
+  AlertOctagon: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
+  }),
+  // Added icons used by workout stage components
+  Target: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
+  }),
+  Play: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
+  }),
+  Loader2: ({ className, ...props }) => require('react').createElement('span', {
+    'data-testid': 'mock-lucide-icon',
+    className,
+    ...props
+  }),
 }));
 
 // Mock PromiseRejectionEvent for browser API testing

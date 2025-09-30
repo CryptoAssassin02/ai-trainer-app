@@ -1,0 +1,120 @@
+---
+alwaysApply: false
+---
+
+# Implementation Plan for Hybrid Workout Generation System
+
+## Objective
+Extend the existing workout generation system to include a **Weekly Structure Agent** and **Adjustment Agent**, implementing a hybrid approach that supports automated sequential execution with optional user review/edit and a manual “Step-by-Step Mode.” Ensure integration with the existing frontend (React/Next.js), backend (Node.js), and Supabase database, maintaining modularity, UX, and data consistency.
+
+## Prerequisites
+- Existing workflow: `Program Structure Agent` generates high-level program structure, stored in `workout_plans.plan_data`. `WorkoutMesocycleAgent` generates weekly structure and daily workouts for a mesocycle.
+- Tech stack: Next.js (frontend), Node.js (backend), Supabase (database), Mermaid diagram (`workout-structure-mesocycle-flow.mmd`).
+- New agents: `WeeklyStructureAgent` (generates weekly training/rest day splits and muscle group focus) and `AdjustmentAgent` (handles user edits).
+
+## Tasks
+
+### 1. Update Database Schema
+**Goal**: Extend the `workout_plans` table to store weekly structure data and adjustment metadata.  
+**Prompt for IDE Agent**:  
+"Update the Supabase database schema for the `workout_plans` table to include a JSONB field `weekly_structures` in `plan_data` to store weekly schedules (training/rest days, muscle group focus) for each mesocycle. Add a JSONB field `adjustment_history` to track user edits (agent type, edit details, timestamp). Ensure backward compatibility with existing `plan_data.mesocycles` structure. Generate migration script in `supabase/migrations/YYYYMMDD_update_workout_plans.sql`."  
+**Context**:  
+- `plan_data.mesocycles` currently stores mesocycle data. Add `weekly_structures` as a nested array per mesocycle (e.g., `plan_data.mesocycles[N].weekly_structures`).
+- `adjustment_history` will log edits (e.g., `{ agent: 'weekly_structure', edit: 'Moved leg day to Wednesday', timestamp: '2025-09-25T09:39:00Z' }`).
+- Use Supabase CLI for migration.
+
+### 2. Create Weekly Structure Agent
+**Goal**: Implement the `WeeklyStructureAgent` to generate weekly schedules based on user inputs and mesocycle data.  
+**Prompt for IDE Agent**:  
+"Create a new `WeeklyStructureAgent` class in `backend/agents/weekly-structure-agent.js`. Implement a `process` method that takes `userInputs` (training frequency, goals, equipment) and `mesocycleData` (duration, focus) to generate a weekly structure (array of weeks with training/rest days and muscle group focus, e.g., [{ week: 1, days: [{ day: 'Monday', type: 'training', focus: 'push' }, ...] }]). Validate inputs and ensure recovery balance (e.g., 2 rest days for 5-day frequency). Output JSON compatible with `plan_data.mesocycles[N].weekly_structures`. Handle errors (400 for invalid inputs, 503 for external service failures)."  
+**Context**:  
+- Use existing `WorkoutStructureAgent` as a template for structure and error handling.
+- Ensure output aligns with exercise science principles (e.g., NSCA guidelines for rest and muscle group balance).
+- Integrate with OpenAI API (or equivalent) for AI-driven optimization.
+
+### 3. Refactor WorkoutMesocycleAgent to DailyWorkoutAgent
+**Goal**: Refactor the existing `WorkoutMesocycleAgent` to focus solely on generating daily workouts, using weekly structure as input.  
+**Prompt for IDE Agent**:  
+"Rename `backend/agents/workout-mesocycle-agent.js` to `daily-workout-agent.js` and refactor the `WorkoutMesocycleAgent` class to `DailyWorkoutAgent`. Update the `process` method to take `weeklyStructure` (from `plan_data.mesocycles[N].weekly_structures`) and `userInputs` to generate daily workouts (exercises, sets, reps, tempo) for each training day. Remove weekly structure logic, relying on `WeeklyStructureAgent` output. Ensure output is stored in `plan_data.mesocycles[N].daily_workouts`. Update error handling to check for valid weekly structure input."  
+**Context**:  
+- Original agent handled both weekly structure and daily workouts, increasing error risk.
+- Refactored agent focuses on exercise prescription, reducing complexity.
+- Store output in `plan_data.mesocycles[N].daily_workouts` as an array of workouts per day.
+
+### 4. Create Adjustment Agent
+**Goal**: Implement an `AdjustmentAgent` to handle user-requested edits for any stage (program structure, weekly structure, daily workouts).  
+**Prompt for IDE Agent**:  
+"Create a new `AdjustmentAgent` class in `backend/agents/adjustment-agent.js`. Implement a `process` method that accepts `planId`, `agentType` ('structure', 'weekly_structure', 'daily_workout'), `editRequest` (natural language or structured JSON), and `currentPlanData`. Generate updated outputs for the specified agent type, validate changes against user inputs and exercise science principles, and log edits in `plan_data.adjustment_history`. Return updated data for storage in `workout_plans.plan_data`. Handle errors (400 for invalid edits, 503 for external service issues)."  
+**Context**:  
+- Edits may include reordering training days, changing muscle group focus, or modifying exercises.
+- Use OpenAI API for natural language processing of edit requests.
+- Trigger re-runs of subsequent agents (e.g., `DailyWorkoutAgent` after weekly structure edit).
+
+### 5. Update Backend Routes and Controllers
+**Goal**: Add routes and controllers for the `WeeklyStructureAgent` and `AdjustmentAgent`, and update existing routes.  
+**Prompt for IDE Agent**:  
+"Update `backend/routes/workout.js` to add a new route `POST /v1/workouts/:planId/mesocycles/:mesocycleNumber/weekly-structure` that calls a new `generateWeeklyStructure` controller in `backend/controllers/workout-chunked.js`. Implement `generateWeeklyStructure` to invoke `WeeklyStructureAgent.process` and store output in `workout_plans.plan_data.mesocycles[N].weekly_structures`. Add a route `POST /v1/workouts/:planId/adjust` that calls a new `adjustPlan` controller to invoke `AdjustmentAgent.process`. Update `POST /v1/workouts/:planId/mesocycles/:mesocycleNumber` to use `DailyWorkoutAgent.process`. Ensure all routes handle errors (404, 400, 409, 503) consistently."  
+**Context**:  
+- Reuse existing controller logic for consistency (e.g., error handling from `generateMesocycleDetails`).
+- Update `generateMesocycleDetails` to call `DailyWorkoutAgent` instead of `WorkoutMesocycleAgent`.
+- Store adjustment history in `plan_data.adjustment_history`.
+
+### 6. Update Workout Service
+**Goal**: Extend the frontend `workoutService` to handle new agent calls and adjustments.  
+**Prompt for IDE Agent**:  
+"Update `lib/api/services/workout-service.ts` to add `generateWeeklyStructure(planId, mesocycleNumber, body?)` that calls `POST /v1/workouts/:planId/mesocycles/:mesocycleNumber/weekly-structure`. Add `adjustPlan(planId, agentType, editRequest)` that calls `POST /v1/workouts/:planId/adjust`. Update `generateMesocycle(planId, mesocycleNumber, body?)` to call `POST /v1/workouts/:planId/mesocycles/:mesocycleNumber` with `DailyWorkoutAgent`. Ensure all methods handle errors and update polling in `getGenerationStatus` to include weekly structure status."  
+**Context**:  
+- Extend existing `workoutService` to support new routes.
+- Update polling to check `plan_data.mesocycles[N].weekly_structures` and `daily_workouts` completion.
+
+### 7. Update Frontend Form and Display
+**Goal**: Modify the frontend to support hybrid workflow with review/edit and step-by-step mode.  
+**Prompt for IDE Agent**:  
+"Update `components/workout/single-step-workout-form.tsx` to add a toggle for 'Step-by-Step Mode' (checkbox or switch). Modify `handleChunkedGeneration` to run `generateStructure`, `generateWeeklyStructure`, and `generateMesocycle` sequentially by default, with optional pauses for review in step-by-step mode. Update `components/workout/chunked-generation-display.tsx` to display `weekly_structures` (calendar view with training/rest days and muscle group focus) and allow edits via a new `AdjustmentForm` component. Add `AdjustmentForm` in `components/workout/adjustment-form.tsx` to accept natural language or structured inputs for edits, calling `workoutService.adjustPlan`. Use Tailwind CSS for styling and add progress indicators (e.g., loading spinner)."  
+**Context**:  
+- Default mode: Run all agents sequentially, display results in collapsible sections (structure, weekly structure, daily workouts).
+- Step-by-step mode: Pause after each agent, show output, and allow edits via `AdjustmentForm`.
+- Use calendar view for weekly structure (e.g., react-calendar or custom grid).
+
+### 8. Add Mesocycle Generation Card for Weekly Structure
+**Goal**: Extend the UI to display weekly structure output.  
+**Prompt for IDE Agent**:  
+"Update `components/workout/mesocycle-generation-card.tsx` to display `weekly_structures` from `plan_data.mesocycles[N]` in a calendar or table format, showing training/rest days and muscle group focus. Add an 'Edit' button that opens `AdjustmentForm` with `agentType='weekly_structure'`. Ensure responsive design with Tailwind CSS and accessibility (ARIA labels)."  
+**Context**:  
+- Reuse existing card component for consistency.
+- Display weekly structure before daily workouts in the UI hierarchy.
+
+### 9. Implement Progress Feedback and Error Handling
+**Goal**: Enhance UX with progress indicators and error messages.  
+**Prompt for IDE Agent**:  
+"Update `components/workout/chunked-generation-display.tsx` to show a progress bar or spinner during agent execution, using `workoutService.getGenerationStatus` polling. Display user-friendly error messages for 400, 404, 409, and 503 errors from backend routes. Use Tailwind CSS for styling and ensure accessibility (e.g., screen reader support for error messages)."  
+**Context**:  
+- Align with Nielsen Norman Group’s UX principle of system status visibility.
+- Map backend errors to clear messages (e.g., 409: “Mesocycle already generated”).
+
+### 10. Test and Validate
+**Goal**: Ensure the system works as expected and maintains data consistency.  
+**Prompt for IDE Agent**:  
+"Create a test suite in `tests/workout-generation.test.js` using Jest to test the new routes (`POST /v1/workouts/:planId/mesocycles/:mesocycleNumber/weekly-structure`, `POST /v1/workouts/:planId/adjust`), `WeeklyStructureAgent`, `DailyWorkoutAgent`, and `AdjustmentAgent`. Include unit tests for agent input validation and integration tests for sequential execution and adjustment workflows. Mock Supabase and OpenAI API calls. Verify data consistency in `workout_plans.plan_data` (e.g., `weekly_structures` and `daily_workouts` alignment)."  
+**Context**:  
+- Test error paths (e.g., 400 for invalid inputs, 503 for API failures).
+- Ensure adjustments trigger correct re-runs of subsequent agents.
+
+## Order of Implementation
+1. **Database Schema**: Establishes storage for new data (weekly structures, adjustments).
+2. **Weekly Structure Agent**: Core logic for new agent, enabling subsequent integration.
+3. **Daily Workout Agent Refactor**: Splits existing mesocycle logic, ensuring modularity.
+4. **Adjustment Agent**: Enables user edits, critical for UX.
+5. **Backend Routes/Controllers**: Connects agents to API, enabling frontend integration.
+6. **Workout Service**: Bridges frontend and backend for new functionality.
+7. **Frontend Form/Display**: Implements hybrid UX with review/edit and step-by-step mode.
+8. **Mesocycle Generation Card**: Enhances UI for weekly structure display.
+9. **Progress Feedback/Error Handling**: Polishes UX with feedback and error handling.
+10. **Testing**: Validates system integrity and data consistency.
+
+## Notes
+- Use Supabase’s JSONB for flexible storage of `weekly_structures` and `adjustment_history`.
+- Ensure agents validate inputs against exercise science principles (e.g., NSCA guidelines).
+- Leverage Tailwind CSS for consistent, responsive UI.
+- Test thoroughly to prevent error propagation in sequential execution.
+- Monitor OpenAI API usage to avoid rate limits or 503 errors.

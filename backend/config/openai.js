@@ -21,9 +21,13 @@ const MODELS = {
   TEXT_EMBEDDING_3_LARGE: 'text-embedding-3-large',
   TEXT_EMBEDDING_ADA_002: 'text-embedding-ada-002', // Older, cheaper
 
-   // Reasoning Models (if applicable/available - may require specific access)
-   // O1: 'o1',
-   // O1_MINI: 'o1-mini'
+  // Reasoning Models (if applicable/available - may require specific access)
+  // O1: 'o1',
+  // O1_MINI: 'o1-mini'
+
+  // GPT-5 Variants 
+  GPT_5_MINI: 'gpt-5-mini', //Cost-effective reasoning/multimodal model; set as new default
+  GPT_5_NANO: 'gpt-5-nano', //Fastest/cheapest for summarization/classification; for additional features
 };
 
 // --- Default Settings based on Environment ---
@@ -34,13 +38,13 @@ const commonDefaults = {
   topP: 1.0,
   frequencyPenalty: 0.0,
   presencePenalty: 0.0,
-  // Default max tokens for GPT-4.1's enhanced capabilities
-  maxTokens: 32768, // Conservative default, can be overridden per request
+  // Default max tokens for GPT-5 models; can be overridden per request
+  maxTokens: 75000,
 
   // Default Models
-  defaultChatModel: MODELS.GPT_4_1, // Latest model with 1M token context window
+  defaultChatModel: MODELS.GPT_5_MINI, // Latest model with 1M token context window
   defaultEmbeddingModel: MODELS.TEXT_EMBEDDING_3_SMALL,
-  // defaultReasoningModel: MODELS.O1_MINI, // Example if using reasoning models
+  // defaultReasoningModel: MODELS.GPT_5_MINI, // Example if using reasoning models
 
   // Retry Configuration (used by openai-service)
   retry: {
@@ -55,12 +59,16 @@ const commonDefaults = {
   rateLimits: {
     // Example Tier 1 limits (check your actual tier: https://platform.openai.com/docs/guides/rate-limits)
     requestsPerMinute: { 
-      default: 60, 
-      [MODELS.GPT_4_1]: 60,
-      [MODELS.GPT_4o]: 60 
+      default: 10, 
+      [MODELS.GPT_5_MINI]: 10,
+      [MODELS.GPT_5_NANO]: 10,
+      [MODELS.GPT_4_1]: 10,
+      [MODELS.GPT_4o]: 10 
     },
     tokensPerMinute: { 
       default: 60000, 
+      [MODELS.GPT_5_MINI]: 200000, // Higher limit due to 1M context window
+      [MODELS.GPT_5_NANO]: 200000, // Higher limit due to 1M context window
       [MODELS.GPT_4_1]: 200000, // Higher limit due to 1M context window
       [MODELS.GPT_4o]: 150000 
     },
@@ -84,6 +92,10 @@ const commonDefaults = {
     [MODELS.TEXT_EMBEDDING_3_SMALL]: { usage: 0.02 },
     [MODELS.TEXT_EMBEDDING_3_LARGE]: { usage: 0.13 },
     [MODELS.TEXT_EMBEDDING_ADA_002]: { usage: 0.10 },
+
+    // GPT-5 Models
+    [MODELS.GPT_5_MINI]: { input: 0.25, output: 2.00 },
+    [MODELS.GPT_5_NANO]: { input: 0.05, output: 0.20 },
   },
   // Rough character count per token (highly approximate)
   charsPerTokenApproximation: 4,
@@ -95,7 +107,7 @@ if (envConfig.isProduction) {
   environmentConfig = {
     logLevel: 'info',
     // Production might favor more robust models by default
-    // defaultChatModel: MODELS.GPT_4o,
+    // defaultChatModel: MODELS.GPT_5_MINI,
     // Stricter retry might be needed, or rely more on monitoring
     // retry: { ...commonDefaults.retry, maxRetries: 2 },
   };
@@ -103,7 +115,7 @@ if (envConfig.isProduction) {
   environmentConfig = {
     logLevel: 'warn', // Reduce noise during tests
     // Use cheapest/fastest models for testing
-    defaultChatModel: MODELS.GPT_3_5_TURBO,
+    defaultChatModel: MODELS.GPT_5_NANO,
     defaultEmbeddingModel: MODELS.TEXT_EMBEDDING_ADA_002,
     // Lower retries for tests to fail faster
     retry: { ...commonDefaults.retry, maxRetries: 1, initialDelayMs: 100 },

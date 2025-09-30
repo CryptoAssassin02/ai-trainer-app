@@ -30,9 +30,11 @@ Consolidated Summary:`;
         content: prompt
       }
     ], {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-5-nano',
       max_tokens: 250,
-      temperature: 0.5,
+      temperature: 0.3,
+      reasoning_effort: 'minimal', // NEW: Simple memory consolidation
+      verbosity: 'low', // NEW: Concise summaries
     });
     
     const result = summary?.trim() || "Summary generation failed.";

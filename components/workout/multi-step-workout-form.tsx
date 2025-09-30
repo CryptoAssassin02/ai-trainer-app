@@ -39,6 +39,7 @@ import {
   type WorkoutGenerationFormData
 } from '@/lib/validation/workout-schemas';
 import { ProgramStructure } from '@/lib/api/types';
+import { useWorkoutGeneration } from '@/hooks/use-workout-generation';
 
 // AI Operation Progress Component
 import { AIOperationProgress } from './ai-operation-progress';
@@ -138,9 +139,11 @@ export function MultiStepWorkoutForm({
     // NEW: Chunked generation states
     | { status: 'generating_structure'; progress: number; message: 'Generating program structure...' }
     | { status: 'structure_complete'; structure: ProgramStructure; message: 'Program structure generated successfully' }
-    | { status: 'generating_mesocycle'; mesocycleNumber: number; totalMesocycles: number; progress: number; message: string }
-    | { status: 'mesocycle_complete'; mesocycleNumber: number; totalMesocycles: number; remainingMesocycles?: number; progress?: number; message: string }
-    | { status: 'chunked_complete'; result: any; message: 'Complete workout program generated!' } // eslint-disable-line @typescript-eslint/no-explicit-any
+    | { status: 'generating_weekly'; progress: number; message: 'Generating weekly structure...' }
+    | { status: 'weekly_complete'; message: 'Weekly structure generated successfully' }
+    | { status: 'generating_daily'; mesocycleNumber: number; totalMesocycles: number; progress: number; message: string }
+    | { status: 'daily_complete'; mesocycleNumber: number; totalMesocycles: number; remainingMesocycles?: number; progress?: number; message: string }
+    | { status: 'phase_complete'; result: any; message: 'Complete workout program generated!' } // eslint-disable-line @typescript-eslint/no-explicit-any
   >({ status: 'idle' });
   
   // ✅ PHASE 2 DAY 4: AbortController for cancellation support
@@ -166,6 +169,9 @@ export function MultiStepWorkoutForm({
     showProgressiveGeneration: false,
     generatingMesocycle: null
   });
+
+  // SSE for progressive generation (optional future use)
+  const { isStreaming, lastEvent, connectProgressive, disconnect } = useWorkoutGeneration();
 
   // Debug state for troubleshooting (reduced logging)
   useEffect(() => {
@@ -595,7 +601,7 @@ export function MultiStepWorkoutForm({
       while (attempts < maxAttempts) {
         try {
           setAiOperationStatus({ 
-            status: 'generating_mesocycle', 
+            status: 'generating_daily', 
             progress: Math.round(((mesocycleNumber - 1) / chunkingState.totalMesocycles) * 100), 
             message: `Retrying mesocycle ${mesocycleNumber}...`,
             mesocycleNumber: mesocycleNumber,
@@ -618,7 +624,7 @@ export function MultiStepWorkoutForm({
           }));
 
           setAiOperationStatus({ 
-            status: 'mesocycle_complete', 
+            status: 'daily_complete', 
             progress: Math.round((mesocycleNumber / chunkingState.totalMesocycles) * 100), 
             message: `Mesocycle ${mesocycleNumber} completed successfully!`,
             mesocycleNumber: mesocycleNumber,
@@ -679,7 +685,7 @@ export function MultiStepWorkoutForm({
 
     try {
       setAiOperationStatus({
-        status: 'generating_mesocycle',
+        status: 'generating_daily',
         progress: Math.round(((mesocycleNumber - 1) / chunkingState.totalMesocycles) * 100),
         message: `Generating mesocycle ${mesocycleNumber} of ${chunkingState.totalMesocycles}...`,
         mesocycleNumber: mesocycleNumber,
@@ -705,7 +711,7 @@ export function MultiStepWorkoutForm({
       }));
 
       setAiOperationStatus({
-        status: 'mesocycle_complete',
+        status: 'daily_complete',
         progress: Math.round((mesocycleNumber / chunkingState.totalMesocycles) * 100),
         message: `Mesocycle ${mesocycleNumber} completed successfully!`,
         mesocycleNumber: mesocycleNumber,

@@ -41,8 +41,14 @@ router.post('/structure',
 router.post('/:planId/mesocycles/:mesocycleNumber',
   authenticate,              // Ensure user is logged in
   planGenerationLimiter,     // Apply rate limiting
-  validateWorkoutGeneration, // Validate request body
   workoutChunkedController.generateMesocycleDetails // Handle the request
+);
+
+// POST /:planId/mesocycles/:mesocycleNumber/weekly-structure - Generate weekly structure for a mesocycle
+router.post('/:planId/mesocycles/:mesocycleNumber/weekly-structure',
+  authenticate,
+  planGenerationLimiter,
+  workoutChunkedController.generateWeeklyStructure
 );
 
 // GET /:planId/status - Get generation status for a workout plan
@@ -51,14 +57,25 @@ router.get('/:planId/status',
   workoutChunkedController.getGenerationStatus // Handle the request
 );
 
-// Legacy Routes
+// POST /:planId/generate-progressive - Progressive SSE generation
+router.post('/:planId/generate-progressive',
+  authenticate,
+  planGenerationLimiter,
+  workoutChunkedController.generateProgressiveWorkout
+);
+
+// Legacy Routes (DEPRECATED)
 
 // POST / - Generate a new workout plan (legacy endpoint)
+// DEPRECATED: POST /api/v1/workouts/ - Monolithic generation. Use /structure then /:planId/mesocycles/:mesocycleNumber
 router.post('/',
   authenticate,              
   planGenerationLimiter,     
   validateWorkoutGeneration, 
-  workoutController.generateWorkoutPlan 
+  (req, res, next) => {
+    logger.warn('[DEPRECATION] POST /api/v1/workouts/ called. Please migrate to /api/v1/workouts/structure and mesocycle endpoints.');
+    return workoutController.generateWorkoutPlan(req, res, next);
+  } 
 );
 
 // GET / - Retrieve a list of workout plans for the user
@@ -79,6 +96,13 @@ router.post('/:planId',
   authenticate,              
   validateWorkoutAdjustment, 
   workoutController.adjustWorkoutPlan 
+);
+
+// POST /:planId/adjust - Adjust plan via AdjustmentAgent
+router.post('/:planId/adjust',
+  authenticate,
+  validateWorkoutAdjustment,
+  workoutChunkedController.adjustPlan
 );
 
 // DELETE /:planId - Delete a specific workout plan

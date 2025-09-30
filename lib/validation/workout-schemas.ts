@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { exerciseTypesSchema } from './profile-schemas';
 
 // Fitness level validation - matches backend enum constraint
 export const fitnessLevelSchema = z.enum([
@@ -37,14 +38,7 @@ export const restrictionsSchema = z.array(z.string().min(1))
     'Restrictions cannot be empty strings'
   );
 
-// Exercise types validation - backend requires min 1 item
-export const exerciseTypesSchema = z.array(z.string().min(1))
-  .min(1, 'At least one exercise type is required')
-  .max(10, 'Maximum 10 exercise types allowed')
-  .refine(
-    (types) => types.every(type => type.trim().length > 0),
-    'Exercise types cannot be empty strings'
-  );
+// Exercise types validation - imported from profile-schemas as it's fundamentally user preference data
 
 // Workout frequency validation - backend allows optional string
 export const workoutFrequencySchema = z.string()

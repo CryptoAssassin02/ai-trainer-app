@@ -41,8 +41,10 @@ class AnalyticsAgent extends BaseAgent {
     // Agent-specific configuration
     this.config = {
       maxTokens: 6000,
-      temperature: 0.3, // Lower temperature for more consistent analytical insights
-      model: 'gpt-4o-mini', // Cost-effective model for analytics
+      temperature: 0.4, // Slightly higher for creative insights
+      model: 'gpt-5-nano', // Cost-effective model for analytics
+      reasoning_effort: 'low', // NEW: Fast insights generation
+      verbosity: 'high', // NEW: Detailed analytics explanations
       insightCategories: ['performance', 'adherence', 'progression', 'recommendations'],
       ...config
     };
@@ -253,7 +255,9 @@ class AnalyticsAgent extends BaseAgent {
       ], {
         model: this.config.model,
         max_tokens: this.config.maxTokens,
-        temperature: this.config.temperature
+        temperature: this.config.temperature,
+        reasoning_effort: 'minimal', // Fast pattern detection
+        verbosity: 'high' // Detailed analytics explanations
       });
       
       // Parse AI response to extract patterns
@@ -305,7 +309,9 @@ class AnalyticsAgent extends BaseAgent {
       ], {
         model: this.config.model,
         max_tokens: this.config.maxTokens,
-        temperature: this.config.temperature
+        temperature: this.config.temperature,
+        reasoning_effort: 'low', // Basic reasoning for insights
+        verbosity: 'high' // Detailed actionable recommendations
       });
       
       // Parse AI response to extract insights

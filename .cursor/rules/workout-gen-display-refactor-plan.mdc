@@ -1,0 +1,58 @@
+---
+alwaysApply: false
+---
+## **Workout Generation Display Refactoring Implementation Plan**
+
+### **Task 1. Stage state and persistence** **✅ COMPLETED**
+  - Introduce `activeStage` in `components/workout/chunked-generation-display.tsx`. ✅
+  - Persist `activeStage` in localStorage guarded by a ref to avoid hydration mismatches; derive from `getGenerationStatus` after first paint. ✅
+  - Avoid putting entire status object in effect dependencies; depend on minimal stable keys. ✅
+  - Restore it by reconciling with `workoutService.getGenerationStatus` on mount. ✅
+
+### **Task 2. Single-card rendering** **✅ COMPLETED**
+  - In `components/workout/chunked-generation-display.tsx`, render exactly one card based on `activeStage`: structure → weekly → daily. ✅
+  - Wrap stage cards with `next/dynamic` to code-split non-active cards. ✅
+  - Use a small skeleton per-stage to avoid blank flashes. ✅
+  - Reset reasoning panel per stage switch. ✅
+
+### **Task 3. Structure stage wiring** **✅ COMPLETED**
+  - On structure success, set `activeStage='structure'` and render the structure card immediately. ✅
+  - In automatic mode, kick off weekly generation and set `activeStage='weekly'` as soon as the request starts. ✅
+
+### **Task 4. Weekly structure handling** **✅ COMPLETED**
+  - Update `handleWeeklyStructureGeneration` in `components/workout/chunked-generation-display.tsx` to capture and store the response locally (don’t rely solely on `invalidateQueries(['workoutPlans'])`). ✅
+  - After success, set `activeStage='weekly'` and render the weekly structure card. ✅
+  - After successful mutation, set local state and also update cache via `queryClient.setQueryData` for the relevant `workoutPlans` key; still invalidate afterwards to reconcile. ✅
+  - In automatic mode, start daily workouts generation and set `activeStage='daily'` when that request begins. ✅
+
+### **Task 5. Daily workouts handling** **✅ COMPLETED**
+  - On daily success, store the workouts locally and set `activeStage='daily'` to render the workouts card. ✅
+
+### **Task 6. Optimistic state + server reconciliation** **✅ COMPLETED**
+  - Always render from local state first after each stage completes, then reconcile with fresh data via query invalidation in the background. ✅
+
+### **Task 7. UX and accessibility improvements** **✅ COMPLETED**
+  - Add loading placeholders for each stage in `components/workout/chunked-generation-display.tsx`. ✅
+  - Add a “Back to previous stage” display-only link. ✅
+  - Add sticky progress header with stage and percentage. ✅
+  - Manage focus on stage switch; add ARIA labels to stage headers. ✅
+  - On stage switch, programmatically focus the stage heading and use `aria-live="polite" in the sticky status header. ✅
+
+### **Task 8. Safety and error handling** **✅ COMPLETED**
+  - Disable stage action buttons while a request for that stage is in flight to prevent race conditions. ✅
+  - Use per-stage error boundaries or localized error UI rather than a global boundary; map 400/404/409/503 as planned and include retry actions when safe. ✅
+  - Cancel in-flight queries for the same key before optimistic updates with `queryClient.cancelQueries({ queryKey })` to prevent overwrite. ✅
+
+### **Task 9. Mode control** **✅ COMPLETED**
+  - In `components/workout/single-step-workout-form.tsx`, wire the toggle for “Step-by-Step Mode” to pause between stages and show a “Continue” button at each stage. Default path runs automatically. ✅
+  - Avoid effects that auto-trigger next stage using broad object dependencies; trigger via explicit event or pending-state change with stable scalar dependencies. ✅
+
+### **Task 10. Weekly structure display and edits** **✅ COMPLETED**
+  - In `components/workout/mesocycle-generation-card.tsx`, add a weekly calendar/table for `weekly_structures` and an Edit button. ✅
+  - Implement `components/workout/adjustment-form.tsx` to submit edits; call `workoutService.adjustPlan` and update local state, then reconcile with server. ✅
+
+### **Task 11. Service alignment** **✅ COMPLETED**
+  - In `lib/api/services/workout-service.ts`, expose status helpers (if needed) so `getGenerationStatus` aligns with stage derivation used by the display. ✅
+
+### **Task 12. Tests**
+  - Add tests covering stage transitions, optimistic updates, error mapping, and automatic vs step-by-step flow.

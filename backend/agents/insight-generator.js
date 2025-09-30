@@ -24,10 +24,11 @@ class InsightGenerator {
     
     this.config = {
       // AI model configuration
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-nano',
       maxTokens: 3000,
-      temperature: 0.4, // Balanced creativity for insights
-      
+      temperature: 0.5, // Balanced creativity for insights
+      reasoning_effort: 'low', // NEW: Basic reasoning for insights
+      verbosity: 'medium', // NEW: Moderate detail level
       // Insight configuration
       maxInsightsPerCategory: 3,
       minConfidence: 0.6,

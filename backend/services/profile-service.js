@@ -645,7 +645,8 @@ function prepareProfileDataForStorage(profileData, existingProfile = {}) {
   const dbFields = [
     'id', 'user_id', 'unit_preference', 'fitness_goals', 'gym_category', 
     'workout_frequency', 'gender', 'age', 'name', 'experience_level', 
-    'medical_conditions', 'height', 'weight', 'created_at', 'updated_at'
+    'medical_conditions', 'height', 'weight', 'primary_goal', 'exercise_types', 'additional_notes',
+    'created_at', 'updated_at'
   ];
   
   // Copy existing database fields
@@ -670,6 +671,24 @@ function prepareProfileDataForStorage(profileData, existingProfile = {}) {
   if (profileData.gymCategory !== undefined) {
     result.gym_category = profileData.gymCategory;
     console.log('Gym category field mapping: gymCategory →', profileData.gymCategory);
+  }
+  
+  // Handle primary goal field mapping
+  if (profileData.primaryGoal !== undefined) {
+    result.primary_goal = profileData.primaryGoal;
+    console.log('Primary goal field mapping: primaryGoal →', profileData.primaryGoal);
+  }
+  
+  // Handle exercise types field mapping
+  if (profileData.exerciseTypes !== undefined) {
+    result.exercise_types = profileData.exerciseTypes;
+    console.log('Exercise types field mapping: exerciseTypes →', profileData.exerciseTypes);
+  }
+  // Handle additional notes mapping (camelCase → snake_case)
+  if (profileData.additionalNotes !== undefined) {
+    result.additional_notes = profileData.additionalNotes === null
+      ? null
+      : String(profileData.additionalNotes).slice(0, 300);
   }
   
   // Handle height conversion if provided
@@ -765,6 +784,7 @@ function convertProfileUnitsForResponse(profileData) {
     medicalConditions: profileData.medical_conditions,
     goals: profileData.fitness_goals, // Map from fitness_goals
     workoutFrequency: profileData.workout_frequency,
+    additionalNotes: profileData.additional_notes,
     createdAt: profileData.created_at,
     updatedAt: profileData.updated_at
   };
@@ -774,6 +794,16 @@ function convertProfileUnitsForResponse(profileData) {
   // and returns it as 'gymCategory' in API responses (camelCase)
   if (profileData.gym_category !== undefined) {
     response.gymCategory = profileData.gym_category;
+  }
+  
+  // Handle primary goal field mapping (snake_case to camelCase)
+  if (profileData.primary_goal !== undefined) {
+    response.primaryGoal = profileData.primary_goal;
+  }
+  
+  // Handle exercise types field mapping (snake_case to camelCase)
+  if (profileData.exercise_types !== undefined) {
+    response.exerciseTypes = profileData.exercise_types;
   }
   
   // Convert height from cm to imperial if needed

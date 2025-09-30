@@ -29,9 +29,11 @@ type AIOperationStatus =
   // NEW: Chunked generation states
   | { status: 'generating_structure'; progress: number; message: 'Generating program structure...' }
   | { status: 'structure_complete'; structure: ProgramStructure; message: 'Program structure generated successfully' }
-  | { status: 'generating_mesocycle'; mesocycleNumber: number; totalMesocycles: number; progress: number; message: string }
-  | { status: 'mesocycle_complete'; mesocycleNumber: number; totalMesocycles: number; message: string }
-  | { status: 'chunked_complete'; result: any; message: 'Complete workout program generated!' }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  | { status: 'generating_weekly'; progress: number; message: 'Generating weekly structure...' }
+  | { status: 'weekly_complete'; message: 'Weekly structure generated successfully' }
+  | { status: 'generating_daily'; mesocycleNumber: number; totalMesocycles: number; progress: number; message: string }
+  | { status: 'daily_complete'; mesocycleNumber: number; totalMesocycles: number; message: string }
+  | { status: 'phase_complete'; result: any; message: 'Complete workout program generated!' }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 interface AIOperationProgressProps {
   status: AIOperationStatus;
@@ -63,11 +65,15 @@ export function AIOperationProgress({ status }: AIOperationProgressProps) {
         return <Brain className="h-4 w-4 animate-pulse text-blue-600" />;
       case 'structure_complete':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'generating_mesocycle':
+      case 'generating_weekly':
         return <Cpu className="h-4 w-4 animate-pulse text-blue-600" />;
-      case 'mesocycle_complete':
+      case 'weekly_complete':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'chunked_complete':
+      case 'generating_daily':
+        return <Cpu className="h-4 w-4 animate-pulse text-blue-600" />;
+      case 'daily_complete':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'phase_complete':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       default:
         return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -86,12 +92,19 @@ export function AIOperationProgress({ status }: AIOperationProgressProps) {
   };
 
   const getProgressValue = () => {
-    if ('progress' in status) {
-      return status.progress;
-    }
+    // Prefer explicit progress value when provided
+    if ('progress' in status) return status.progress as number;
+    // Snap progress to three milestones only: 33 / 66 / 100
     switch (status.status) {
       case 'validating':
         return 10;
+      case 'structure_complete':
+        return 33;
+      case 'weekly_complete':
+        return 66;
+      case 'daily_complete':
+        return 66;
+      case 'phase_complete':
       case 'complete':
         return 100;
       case 'error':
@@ -129,11 +142,15 @@ export function AIOperationProgress({ status }: AIOperationProgressProps) {
         return 'Creating your personalized program structure with mesocycle planning...';
       case 'structure_complete':
         return `Program structure ready! ${status.structure.totalMesocycles} mesocycles planned.`;
-      case 'generating_mesocycle':
+      case 'generating_weekly':
+        return 'Weekly structure in progress for the first mesocycle...';
+      case 'weekly_complete':
+        return 'Weekly structure completed. Moving on to daily workout details...';
+      case 'generating_daily':
         return `Generating detailed exercises for mesocycle ${status.mesocycleNumber} of ${status.totalMesocycles}...`;
-      case 'mesocycle_complete':
+      case 'daily_complete':
         return `Mesocycle ${status.mesocycleNumber} completed. ${status.totalMesocycles - status.mesocycleNumber} remaining.`;
-      case 'chunked_complete':
+      case 'phase_complete':
         return 'Your complete workout program has been successfully generated!';
       default:
         return 'Processing your request...';

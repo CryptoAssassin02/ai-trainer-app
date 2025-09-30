@@ -214,12 +214,13 @@ class HypertrophyStrategy extends BaseGoalStrategy {
 ## HYPERTROPHY FOCUS:
 • Primary: Muscle protein synthesis via volume, mechanical tension & metabolic stress
 • Frequency: 4-5 days/week, higher volume
-• Exercises: 60% compound, 40% isolation, full ROM, multiple angles
-• Methods: Volume overload, intensity techniques (drop sets, supersets), tempo manipulation
-• Reps: 8-15 primary, 6-8 strength, 15-20 metabolic
+• Exercises: 60% compound, 40% isolation, full ROM, multiple angles, ensure mix of dumbbells, machines, and barbells unless otherwise indicated
+• Methods: Volume overload, intensity techniques (drop sets, supersets, cluster sets, rest-pause sets), tempo manipulation
+• Reps: 8-15 primary, 6-8 strength, 15-20 metabolic, vary rep ranges within and between sessions
 • Rest: 60-120s (longer for compounds)
 • Volume: 12-22 sets/muscle group, progressive weekly increases
-• Tempo: 2-4s eccentric, 1s pause, explosive concentric
+• Techniques: Drop sets, supersets, cluster sets, rest-pause sets, tempo manipulation
+• Tempo: 2-4s eccentric, 1s pause, explosive concentric, focus on muscle contraction and mind-muscle connection
 • Recovery: 24-48h between muscle groups, protein 1.6-2.2g/kg, sleep 7-9h
         `;
     }

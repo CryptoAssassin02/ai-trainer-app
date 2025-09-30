@@ -12,7 +12,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { NativeCheckbox } from '@/components/ui/native-checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 // Use dynamic import for lucide-react to handle Jest environment issues
@@ -62,7 +62,7 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
       {/* Experience Level */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">📊 Fitness Experience Level</CardTitle>
+          <CardTitle className="text-lg">Fitness Experience Level</CardTitle>
         </CardHeader>
         <CardContent>
           <FormField
@@ -97,7 +97,7 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
       {/* Fitness Goals */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">🎯 Fitness Goals</CardTitle>
+          <CardTitle className="text-lg">Fitness Goals</CardTitle>
           <div className="space-y-2">
             <FormDescription>
               Select up to {VALIDATION_CONSTANTS.GOALS_MAX} goals that are most important to you
@@ -171,10 +171,55 @@ export function FitnessInfoStep({ form, unitPreference, isLoading }: FitnessInfo
         </CardContent>
       </Card>
 
+      {/* Primary Goal Selection - Show when 2+ goals selected */}
+      {selectedGoals.length > 1 && (
+        <Card className="border-cornflower-blue/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              Primary Goal Selection
+              <Badge variant="outline">Optional</Badge>
+            </CardTitle>
+            <CardDescription>
+              Choose your main focus. This goal gets 60% priority in your workout plan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="primaryGoal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Primary Goal</FormLabel>
+                  <FormControl>
+                    <NativeSelect
+                      value={field.value || selectedGoals[0]}
+                      onValueChange={field.onChange}
+                      disabled={isLoading}
+                      placeholder="Select your primary goal"
+                      options={selectedGoals.map((goalId: string) => {
+                        const goal = fitnessGoals.find(g => g.id === goalId);
+                        return {
+                          value: goalId,
+                          label: `${goal?.icon} ${goal?.label}`
+                        };
+                      })}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Your primary goal will receive the most focus in the workout plan
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Medical Conditions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">🏥 Medical Considerations</CardTitle>
+          <CardTitle className="text-lg">Medical Considerations</CardTitle>
           <FormDescription>
             Help us provide safer workout recommendations by sharing any medical conditions or physical limitations
           </FormDescription>

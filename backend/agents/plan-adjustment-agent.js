@@ -51,9 +51,11 @@ class PlanAdjustmentAgent extends BaseAgent {
                 maxRetries: config.maxRetries || 2,
                 initialDelay: config.baseDelay || 1000, // ms
                 timeoutLimit: config.timeoutLimit || 60000, // ms for OpenAI
-                model: config.model || 'gpt-4o', // Default model
-                temperature: config.temperature || 0.7,
-                max_tokens: config.max_tokens || 4096,
+                model: config.model || 'gpt-5-mini', // Default model
+                temperature: config.temperature || 0.5,
+                max_tokens: config.max_tokens || 32768,
+                reasoning_effort: config.reasoning_effort || 'medium',
+                verbosity: config.verbosity || 'low',
                 ...config
             }
         });

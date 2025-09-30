@@ -23,32 +23,32 @@ export function DashboardNavigation() {
 
   const navigationItems = [
     {
-      name: 'Workout Generation',
-      href: '#',
+      name: 'Workout Programs',
+      href: '/workouts',
       icon: Dumbbell,
-      isPlaceholder: true,
-      description: 'Generate AI-powered workout plans'
+      isPlaceholder: false,
+      description: 'View and manage your workouts'
     },
     {
-      name: 'Workout Logging',
-      href: '#',
+      name: 'Workout Program Generation',
+      href: '/workouts/generate',
       icon: ClipboardList,
-      isPlaceholder: true,
-      description: 'Log and track your workouts'
+      isPlaceholder: false,
+      description: 'Generate AI-powered workout programs'
     },
     {
-      name: 'Nutrition Generation',
-      href: '#',
-      icon: Apple,
-      isPlaceholder: true,
-      description: 'Generate personalized nutrition plans'
-    },
-    {
-      name: 'Nutrition & Macro Tracking',
-      href: '#',
+      name: 'View & Log Plans',
+      href: '/workouts/plans',
       icon: TrendingUp,
-      isPlaceholder: true,
-      description: 'Track your nutrition and macros'
+      isPlaceholder: false,
+      description: 'View your workout programs'
+    },
+    {
+      name: 'Features Coming Soon',
+      href: '/roadmap',
+      icon: Apple,
+      isPlaceholder: false,
+      description: 'See upcoming features and roadmap'
     }
   ]
 
