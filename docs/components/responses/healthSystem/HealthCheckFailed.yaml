@@ -1,0 +1,52 @@
+description: Health check failed due to system issues
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-Response-Time:
+    schema:
+      type: string
+      pattern: '^\d+ms$'
+    description: Time taken to process the failed health check request
+    example: "2345ms"
+
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/healthSystem/HealthCheckError.yaml'
+    
+    examples:
+      resource_exhaustion:
+        summary: System resource exhaustion
+        description: Health check failed due to high memory or CPU usage
+        value:
+          status: "error"
+          message: "Health check failed due to system resource exhaustion"
+          timestamp: "2024-01-15T10:30:45.123Z"
+          details:
+            component: "system-health"
+            errorCode: "RESOURCE_ERROR"
+            retryable: true
+      
+      configuration_error:
+        summary: System configuration issue
+        description: Health check failed due to misconfiguration
+        value:
+          status: "error"
+          message: "Health check failed due to configuration issue"
+          timestamp: "2024-01-15T10:30:45.123Z"
+          details:
+            component: "system-health"
+            errorCode: "CONFIGURATION_ERROR"
+            retryable: false
+      
+      external_service_failure:
+        summary: External service dependency failure
+        description: Health check failed due to external service unavailability
+        value:
+          status: "error"
+          message: "Health check failed due to external service unavailability"
+          timestamp: "2024-01-15T10:30:45.123Z"
+          details:
+            component: "external-dependency"
+            errorCode: "EXTERNAL_SERVICE_ERROR"
+            retryable: true 

@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Authentication & User Management
+  summary: Verify email address
+  description: |
+    Verify user email address using verification token received via email.
+    Marks the email as confirmed in the user record.
+  operationId: verifyEmail
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/auth/VerifyEmailRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/auth/EmailVerified.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+  security: []  # Public endpoint 

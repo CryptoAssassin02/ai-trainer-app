@@ -1,0 +1,96 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+    - AI-Powered Analytics
+  summary: Get AI-powered pattern analysis
+  description: |
+    Retrieve AI-generated pattern analysis that identifies recurring behaviors, trends, and correlations in fitness data.
+    
+    **Pattern Analysis Includes:**
+    - Workout timing and frequency patterns
+    - Performance correlation analysis
+    - Seasonal and cyclical trend identification
+    - Behavior trigger pattern recognition
+    - Success factor pattern analysis
+    
+    **AI Capabilities:**
+    - Advanced statistical pattern recognition
+    - Machine learning correlation analysis
+    - Predictive behavior modeling
+    - Anomaly and deviation detection
+    
+    **Pattern Types:**
+    - Temporal patterns (time-based behaviors)
+    - Performance patterns (strength/endurance cycles)
+    - Adherence patterns (consistency behaviors)
+    - Wellness patterns (mood, sleep, energy correlations)
+  operationId: getPatternAnalysis
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - $ref: '../../components/parameters/TimeframeFilter.yaml'
+    
+    - name: patternTypes
+      in: query
+      description: Specific pattern types to analyze (comma-separated)
+      schema:
+        type: string
+        example: "temporal,performance,adherence,wellness"
+    
+    - name: minConfidence
+      in: query
+      description: Minimum confidence threshold for pattern recognition
+      schema:
+        type: number
+        minimum: 0.1
+        maximum: 1.0
+        default: 0.7
+        example: 0.8
+    
+    - name: includeCorrelations
+      in: query
+      description: Include correlation analysis between different metrics
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: analysisDepth
+      in: query
+      description: Depth of pattern analysis
+      schema:
+        type: string
+        enum: [surface, detailed, deep]
+        default: "detailed"
+        example: "deep"
+    
+    - name: maxPatterns
+      in: query
+      description: Maximum number of patterns to identify
+      schema:
+        type: integer
+        minimum: 5
+        maximum: 50
+        default: 20
+        example: 25
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/PatternAnalysisRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/analytics/AnalyticsDatabaseFailed.yaml'
+    
+    '502':
+      $ref: '../../components/responses/analytics/AIAnalyticsFailed.yaml' 

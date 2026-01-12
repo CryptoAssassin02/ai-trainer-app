@@ -1,0 +1,102 @@
+type: object
+required: [adjustedPlan, appliedChanges, feedbackSummary]
+properties:
+  adjustedPlan:
+    type: object
+    description: The modified workout plan data
+    properties:
+      planName:
+        type: string
+        description: Updated plan name
+      exercises:
+        type: array
+        items:
+          $ref: './Exercise.yaml'
+        description: Modified exercise list
+      weeklySchedule:
+        type: object
+        description: Updated schedule if modified
+      reasoning:
+        type: string
+        description: AI reasoning for the adjustments made
+  appliedChanges:
+    type: array
+    items:
+      type: object
+      required: [type, description, reason]
+      properties:
+        changeId:
+          type: string
+          format: uuid
+          description: Unique change identifier
+        type:
+          type: string
+          enum: [exercise_added, exercise_removed, exercise_modified, sets_changed, reps_changed, weight_adjusted, rest_modified, order_changed, intensity_increased, intensity_decreased]
+          description: Type of modification made
+        description:
+          type: string
+          description: Human-readable description of the change
+        exerciseAffected:
+          type: string
+          nullable: true
+          description: Name of exercise that was changed
+        oldValue:
+          type: string
+          nullable: true
+          description: Previous value before change
+        newValue:
+          type: string
+          nullable: true
+          description: New value after change
+        reason:
+          type: string
+          description: AI reasoning for this specific change
+        priority:
+          type: string
+          enum: [low, medium, high]
+          description: Priority level of this change
+    description: List of successfully applied modifications
+  skippedChanges:
+    type: array
+    items:
+      type: object
+      required: [requestedChange, reason]
+      properties:
+        requestedChange:
+          type: string
+          description: Change that was requested but not applied
+        reason:
+          type: string
+          description: Why the change was skipped
+        suggestion:
+          type: string
+          nullable: true
+          description: Alternative suggestion if applicable
+    description: Changes that couldn't be applied with reasons
+  feedbackSummary:
+    type: string
+    description: AI interpretation of the user's feedback
+    example: "User requested increased difficulty and more compound movements"
+  adjustmentReasoning:
+    type: string
+    description: Overall AI reasoning for the adjustment decisions
+  conflictsResolved:
+    type: array
+    items:
+      type: object
+      properties:
+        conflict:
+          type: string
+          description: Description of the conflict
+        resolution:
+          type: string
+          description: How the conflict was resolved
+    nullable: true
+    description: Any conflicts that were identified and resolved
+  safetyWarnings:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Safety concerns identified during adjustment
+    example: ["Increased volume may require additional rest days"] 

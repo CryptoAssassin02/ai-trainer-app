@@ -1,0 +1,113 @@
+type: object
+required: [name, sets, reps]
+properties:
+  exerciseId:
+    type: string
+    format: uuid
+    nullable: true
+    description: Reference to exercise database entry
+  name:
+    type: string
+    description: Exercise name
+    example: "Barbell Bench Press"
+  category:
+    type: string
+    nullable: true
+    description: Exercise category
+    example: "compound"
+  primaryMuscles:
+    type: array
+    items:
+      type: string
+    description: Primary muscle groups targeted
+    example: ["chest", "triceps", "shoulders"]
+  secondaryMuscles:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Secondary muscle groups worked
+  sets:
+    type: integer
+    minimum: 1
+    maximum: 10
+    description: Number of sets to perform
+    example: 4
+  reps:
+    oneOf:
+      - type: integer
+        minimum: 1
+        maximum: 100
+        description: Fixed number of repetitions
+        example: 8
+      - type: string
+        pattern: "^\\d+-\\d+$"
+        description: Range of repetitions
+        example: "6-8"
+    description: Repetitions per set (fixed number or range)
+  weight:
+    type: object
+    nullable: true
+    properties:
+      value:
+        type: number
+        minimum: 0
+        description: Weight amount
+      unit:
+        type: string
+        enum: [kg, lbs]
+        description: Weight unit
+      percentage:
+        type: number
+        minimum: 0
+        maximum: 200
+        description: Percentage of 1RM (if applicable)
+    description: Weight specifications for the exercise
+  restTime:
+    oneOf:
+      - type: integer
+        minimum: 0
+        description: Rest time in seconds
+        example: 120
+      - type: string
+        description: Rest time recommendation
+        example: "2-3 minutes between sets"
+    nullable: true
+    description: Rest period between sets
+  tempo:
+    type: string
+    pattern: "^\\d+-\\d+-\\d+-\\d+$"
+    nullable: true
+    description: Exercise tempo (eccentric-pause-concentric-pause)
+    example: "3-1-2-1"
+  notes:
+    type: string
+    nullable: true
+    description: Exercise-specific instructions or modifications
+    example: "Focus on controlled movement and full range of motion"
+  equipment:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Equipment required for this exercise
+    example: ["barbell", "bench"]
+  difficulty:
+    type: string
+    enum: [beginner, intermediate, advanced]
+    nullable: true
+    description: Exercise difficulty level
+  instructions:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Step-by-step exercise instructions
+    example: ["Lie on bench with feet flat on floor", "Grip bar with hands slightly wider than shoulders"]
+  safetyNotes:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Safety considerations and warnings
+    example: ["Always use a spotter for heavy weights", "Keep core engaged throughout movement"] 

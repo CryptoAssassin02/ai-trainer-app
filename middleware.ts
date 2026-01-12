@@ -1,29 +1,20 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest } from 'next/server'
+import { updateSession } from './utils/supabase/middleware'
 
-// Default Next.js middleware to allow all requests
-export function middleware(request: NextRequest) {
-  return NextResponse.next()
+export async function middleware(request: NextRequest) {
+  // Official Supabase middleware pattern for session management and redirects
+  return await updateSession(request)
 }
-
-/**
- * Uncomment the following code to enable authentication with Clerk
- */
-
-// const isProtectedRoute = createRouteMatcher(['/protected'])
-
-// export default clerkMiddleware(async (auth, req) => {
-//     if (isProtectedRoute(req)) {
-//       // Handle protected routes check here
-//       return NextResponse.redirect(req.nextUrl.origin)
-//     }
-
-//     return NextResponse.next()
-// })  
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|api/webhooks).*)",
-  ],
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this pattern to include more paths.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'
+  ]
 }

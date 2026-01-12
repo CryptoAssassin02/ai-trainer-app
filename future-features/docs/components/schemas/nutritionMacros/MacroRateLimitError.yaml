@@ -1,0 +1,61 @@
+type: object
+description: Rate limit exceeded error for macro endpoints
+required:
+  - status
+  - error
+  - message
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+    example: "error"
+  
+  error:
+    type: string
+    enum: [MACRO_RATE_LIMIT_EXCEEDED]
+    description: Error type identifier
+    example: "MACRO_RATE_LIMIT_EXCEEDED"
+  
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Rate limit exceeded for macro operations"
+  
+  details:
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: Rate limit threshold
+        example: 20
+      
+      window:
+        type: string
+        description: Rate limit time window
+        example: "15 minutes"
+      
+      retryAfter:
+        type: integer
+        description: Seconds until rate limit resets
+        example: 900
+    additionalProperties: false
+    description: Rate limit details
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: When the error occurred
+    example: "2024-01-15T10:30:00Z"
+
+additionalProperties: false
+
+example:
+  status: "error"
+  error: "MACRO_RATE_LIMIT_EXCEEDED"
+  message: "Too many macro requests. Please try again later."
+  details:
+    limit: 20
+    window: "15 minutes"
+    retryAfter: 900
+  timestamp: "2024-01-15T10:30:00Z" 

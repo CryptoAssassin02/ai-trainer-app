@@ -1,0 +1,21 @@
+type: object
+required: [status, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Authentication error message
+  error:
+    type: string
+    description: Detailed error information
+  code:
+    type: string
+    enum: [TOKEN_EXPIRED]
+    description: Specific error code
+example:
+  status: error
+  message: Invalid email or password
+  error: Authentication failed 

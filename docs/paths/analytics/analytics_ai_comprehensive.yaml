@@ -1,0 +1,121 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+    - AI-Powered Analytics
+  summary: Get comprehensive AI analytics report
+  description: |
+    Retrieve a comprehensive AI-powered analytics report that combines insights, patterns, recommendations, and predictions into a single unified analysis.
+    
+    **Comprehensive Report Includes:**
+    - Complete fitness progress assessment and analysis
+    - Pattern recognition across all metrics and behaviors
+    - Personalized recommendations prioritized by impact
+    - Goal achievement predictions and success probability
+    - Health and wellness correlation insights
+    - Motivation and adherence optimization strategies
+    
+    **AI Integration Features:**
+    - Multi-modal analysis combining all data sources
+    - Cross-metric correlation and causation analysis
+    - Predictive modeling for future performance
+    - Natural language insights and explanations
+    - Actionable priority-ranked recommendations
+    
+    **Report Sections:**
+    1. Executive Summary with key insights
+    2. Progress Analysis with trends and patterns
+    3. Performance Optimization recommendations
+    4. Goal Achievement predictions and strategies
+    5. Health and Wellness insights
+    6. Action Plan with prioritized next steps
+    
+    **Processing Time:**
+    This endpoint may take 30-60 seconds due to comprehensive AI analysis
+  operationId: getComprehensiveAIAnalytics
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - $ref: '../../components/parameters/TimeframeFilter.yaml'
+    
+    - name: reportDepth
+      in: query
+      description: Depth and detail level of the comprehensive report
+      schema:
+        type: string
+        enum: [standard, detailed, premium]
+        default: "detailed"
+        example: "premium"
+    
+    - name: focusAreas
+      in: query
+      description: Primary focus areas for analysis (comma-separated)
+      schema:
+        type: string
+        example: "performance,adherence,progression,health_optimization"
+    
+    - name: includeComparisons
+      in: query
+      description: Include peer comparisons and benchmarking
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: includePredictions
+      in: query
+      description: Include future performance and goal predictions
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: maxRecommendations
+      in: query
+      description: Maximum number of recommendations to include
+      schema:
+        type: integer
+        minimum: 5
+        maximum: 100
+        default: 25
+        example: 50
+    
+    - name: includeActionPlan
+      in: query
+      description: Include structured action plan with timelines
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: reportFormat
+      in: query
+      description: Format style for the comprehensive report
+      schema:
+        type: string
+        enum: [structured, narrative, hybrid]
+        default: "hybrid"
+        example: "narrative"
+  responses:
+    '200':
+      $ref: '../../components/responses/analytics/ComprehensiveAIAnalyticsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/analytics/AnalyticsNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+    
+    '502':
+      $ref: '../../components/responses/analytics/AIAnalyticsFailed.yaml'
+    
+    '504':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

@@ -1,0 +1,26 @@
+post:
+  tags:
+    - Authentication & User Management
+  summary: Authenticate user credentials
+  description: |
+    Authenticate user with email and password. Returns JWT access token and refresh token
+    for subsequent API requests.
+  operationId: login
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/auth/LoginRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/auth/LoginSuccess.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+  security: []  # Public endpoint 

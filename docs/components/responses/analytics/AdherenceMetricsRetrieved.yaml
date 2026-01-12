@@ -1,0 +1,131 @@
+description: Adherence metrics successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/AdherenceMetricsResponse.yaml'
+    examples:
+      high_adherence:
+        summary: User with excellent adherence across all categories
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            timeframe: "30 days"
+            hasData: true
+            adherenceMetrics:
+              overall:
+                score: 0.87
+                grade: "A"
+                trend: "improving"
+                streaks:
+                  current: 14
+                  longest: 21
+                  total: 26
+              workout:
+                planned: 24
+                completed: 21
+                adherenceRate: 0.875
+                missedSessions: 3
+                consistencyScore: 0.85
+                weeklyPattern: [0.86, 0.92, 0.78, 0.91]
+                reasons:
+                  - reason: "scheduling_conflict"
+                    count: 2
+                  - reason: "illness"
+                    count: 1
+              nutrition:
+                plannedMeals: 90
+                loggedMeals: 78
+                adherenceRate: 0.867
+                macroAdherence:
+                  protein: 0.92
+                  carbs: 0.83
+                  fats: 0.89
+                calorieVariance: 0.08
+                weeklyPattern: [0.89, 0.91, 0.85, 0.88]
+              sleep:
+                targetHours: 8.0
+                averageHours: 7.4
+                adherenceRate: 0.93
+                qualityScore: 8.2
+                consistencyScore: 0.88
+              hydration:
+                targetLiters: 3.0
+                averageLiters: 2.7
+                adherenceRate: 0.90
+                consistencyScore: 0.82
+            recommendations:
+              - category: "workout"
+                suggestion: "Consider scheduling backup indoor workouts for weather-related cancellations"
+                priority: "medium"
+              - category: "nutrition"
+                suggestion: "Meal prep on Sundays to improve weekday adherence"
+                priority: "high"
+            lastUpdated: "2024-01-15T13:15:00Z"
+      improving_adherence:
+        summary: User showing improvement in adherence patterns
+        value:
+          status: success
+          data:
+            userId: "user_456"
+            timeframe: "30 days"
+            hasData: true
+            adherenceMetrics:
+              overall:
+                score: 0.68
+                grade: "C+"
+                trend: "improving"
+                streaks:
+                  current: 5
+                  longest: 8
+                  total: 20
+              workout:
+                planned: 20
+                completed: 13
+                adherenceRate: 0.65
+                missedSessions: 7
+                consistencyScore: 0.58
+                weeklyPattern: [0.50, 0.75, 0.60, 0.75]
+                reasons:
+                  - reason: "motivation"
+                    count: 3
+                  - reason: "time_management"
+                    count: 2
+                  - reason: "scheduling_conflict"
+                    count: 2
+              nutrition:
+                plannedMeals: 84
+                loggedMeals: 61
+                adherenceRate: 0.726
+                macroAdherence:
+                  protein: 0.78
+                  carbs: 0.65
+                  fats: 0.82
+                calorieVariance: 0.15
+                weeklyPattern: [0.65, 0.78, 0.72, 0.75]
+              sleep:
+                targetHours: 8.0
+                averageHours: 6.8
+                adherenceRate: 0.85
+                qualityScore: 6.5
+                consistencyScore: 0.62
+            recommendations:
+              - category: "motivation"
+                suggestion: "Set smaller, achievable weekly goals to build momentum"
+                priority: "high"
+              - category: "planning"
+                suggestion: "Use calendar blocking for workout sessions"
+                priority: "high"
+              - category: "nutrition"
+                suggestion: "Start with tracking just protein intake to build habit"
+                priority: "medium"
+            lastUpdated: "2024-01-15T13:20:00Z" 

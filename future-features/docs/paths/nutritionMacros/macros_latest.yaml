@@ -1,0 +1,108 @@
+get:
+  tags:
+    - Nutrition & Macros
+  summary: Get latest macro plan
+  description: |
+    Retrieve the user's most recent macro plan.
+    
+    This endpoint returns the latest macro plan for the authenticated user, which is useful for:
+    - Quick access to current macro targets
+    - Mobile apps that need the active plan
+    - Dashboard widgets showing current nutritional goals
+    
+    **Rate Limiting**: 20 requests per 15 minutes in production, 100 requests per minute in test.
+  operationId: getLatestMacroPlan
+  security:
+    - SupabaseJWT: []
+  responses:
+    '200':
+      description: Latest macro plan retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [success]
+                example: "success"
+              data:
+                $ref: '../../components/schemas/nutritionMacros/MacroPlan.yaml'
+              message:
+                type: string
+                example: "Latest macro plan retrieved successfully"
+          examples:
+            latest_muscle_gain_plan:
+              summary: Latest muscle gain macro plan
+              description: Most recent plan optimized for muscle building
+              value:
+                status: "success"
+                data:
+                  id: "plan_abc123"
+                  userId: "user_123"
+                  calories: 2800
+                  macros:
+                    protein: 180
+                    carbs: 350
+                    fat: 93
+                  bmr: 1750
+                  tdee: 2700
+                  goalType: "muscle_gain"
+                  calorieAdjustment: 100
+                  createdAt: "2024-01-15T10:30:00Z"
+                  updatedAt: "2024-01-15T10:30:00Z"
+                  status: "active"
+                message: "Latest macro plan retrieved successfully"
+            
+            latest_weight_loss_plan:
+              summary: Latest weight loss macro plan
+              description: Most recent plan optimized for fat loss
+              value:
+                status: "success"
+                data:
+                  id: "plan_def456"
+                  userId: "user_123"
+                  calories: 1600
+                  macros:
+                    protein: 140
+                    carbs: 120
+                    fat: 62
+                  bmr: 1600
+                  tdee: 2000
+                  goalType: "weight_loss"
+                  calorieAdjustment: -400
+                  createdAt: "2024-01-10T14:20:00Z"
+                  updatedAt: "2024-01-12T09:15:00Z"
+                  status: "active"
+                message: "Latest macro plan retrieved successfully"
+
+    '401':
+      $ref: '../../components/responses/nutritionMacros/MacroAuthenticationRequired.yaml'
+    
+    '404':
+      description: No macro plans found for user
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [error]
+                example: "error"
+              message:
+                type: string
+                example: "No macro plans found for this user"
+          examples:
+            no_plans_found:
+              summary: No macro plans exist
+              description: User has not created any macro plans yet
+              value:
+                status: "error"
+                message: "No macro plans found for this user"
+
+    '429':
+      $ref: '../../components/responses/nutritionMacros/MacroRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/nutritionMacros/MacroDatabaseFailed.yaml' 

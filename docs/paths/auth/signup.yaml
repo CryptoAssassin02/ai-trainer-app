@@ -1,0 +1,26 @@
+post:
+  tags:
+    - Authentication & User Management
+  summary: Create new user account
+  description: |
+    Register a new user account with email and password. Creates both authentication record 
+    and user profile. In production, sends email verification link.
+  operationId: signup
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/auth/SignupRequest.yaml'
+  responses:
+    '201':
+      $ref: '../../components/responses/auth/SignupSuccess.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    '409':
+      $ref: '../../components/responses/auth/EmailAlreadyExists.yaml'
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+  security: []  # Public endpoint 

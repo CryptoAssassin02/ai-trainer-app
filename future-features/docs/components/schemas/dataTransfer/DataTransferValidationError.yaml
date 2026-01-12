@@ -1,0 +1,77 @@
+type: object
+description: Validation error response for data transfer operations
+required:
+  - status
+  - message
+  - errorCode
+properties:
+  status:
+    type: string
+    enum: ['error']
+    description: Error status indicator
+    example: error
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Export format is required."
+  errorCode:
+    type: string
+    enum: ['VALIDATION_ERROR']
+    description: Specific error code for validation failures
+    example: "VALIDATION_ERROR"
+  errors:
+    type: array
+    items:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Field that failed validation
+          example: "format"
+        message:
+          type: string
+          description: Specific validation error message
+          example: "Format must be one of: json, csv, xlsx, pdf"
+    description: Array of specific validation errors
+    example:
+      - field: "format"
+        message: "Format must be one of: json, csv, xlsx, pdf"
+examples:
+  missingFormat:
+    summary: Missing export format
+    value:
+      status: error
+      message: "Export format is required."
+      errorCode: "VALIDATION_ERROR"
+      errors:
+        - field: "format"
+          message: "Export format is required"
+  invalidDataTypes:
+    summary: Invalid data types specified
+    value:
+      status: error
+      message: "Invalid data types: invalid_type"
+      errorCode: "VALIDATION_ERROR"
+      errors:
+        - field: "dataTypes"
+          message: "Data types must be one of: profiles, workouts, workout_logs"
+  emptyDataTypes:
+    summary: Empty data types array
+    value:
+      status: error
+      message: "At least one data type must be specified for export."
+      errorCode: "VALIDATION_ERROR"
+      errors:
+        - field: "dataTypes"
+          message: "At least one data type must be specified"
+  multipleErrors:
+    summary: Multiple validation errors
+    value:
+      status: error
+      message: "Validation failed"
+      errorCode: "VALIDATION_ERROR"
+      errors:
+        - field: "format"
+          message: "Export format is required"
+        - field: "dataTypes"
+          message: "At least one data type must be specified" 

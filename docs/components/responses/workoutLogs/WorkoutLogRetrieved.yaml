@@ -1,0 +1,35 @@
+description: Workout log successfully retrieved
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/workoutLogs/WorkoutLogResponse.yaml'
+    example:
+      status: "success"
+      data:
+        id: "log_550e8400-e29b-41d4-a716-446655440000"
+        user_id: "123e4567-e89b-12d3-a456-426614174000"
+        plan_id: "789e1234-e89b-12d3-a456-426614174001"
+        date: "2025-01-15"
+        completed: true
+        exercises_completed:
+          - exercise_id: "bench-press"
+            exercise_name: "Bench Press"
+            sets_completed: 3
+            reps_completed: [10, 8, 6]
+            weights_used: [135, 155, 175]
+            felt_difficulty: 7
+            notes: "Good form on last set"
+          - exercise_id: "squats"
+            exercise_name: "Squats"
+            sets_completed: 3
+            reps_completed: [12, 10, 8]
+            weights_used: [185, 205, 225]
+            felt_difficulty: 8
+            notes: "Depth improved"
+        overall_difficulty: 7
+        energy_level: 8
+        satisfaction: 9
+        feedback: "Great workout, felt strong today"
+        created_at: "2025-01-15T18:30:00Z"
+        updated_at: "2025-01-15T18:30:00Z"
+      message: "Workout log retrieved successfully" 

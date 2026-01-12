@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Spec File
+
+Maintain a spec.md file in the project's root folder and update it with specifications every time you implement a new feature.
+
+# Mistakes File
+
+Maintain a mistakes.md file in the project's root folder and update it with mistakes you made and how to avoid them.

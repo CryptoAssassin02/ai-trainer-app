@@ -1,0 +1,32 @@
+description: Database error occurred during macro operation
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MacroDatabaseError.yaml'
+    examples:
+      save_macro_plan_failed:
+        summary: Failed to save macro plan
+        description: Database error when saving macro plan
+        value:
+          status: "error"
+          error: "MACRO_DATABASE_ERROR"
+          message: "Failed to save macro plan to database"
+          details:
+            operation: "INSERT"
+            table: "macro_plans"
+          timestamp: "2024-01-15T10:30:00Z"
+      
+      update_macro_plan_failed:
+        summary: Failed to update macro plan
+        description: Database error when updating macro plan
+        value:
+          status: "error"
+          error: "MACRO_DATABASE_ERROR"
+          message: "Failed to update macro plan in database"
+          details:
+            operation: "UPDATE"
+            table: "macro_plans"
+          timestamp: "2024-01-15T10:30:00Z" 

@@ -1,0 +1,117 @@
+post:
+  tags:
+    - Progress Tracking
+  summary: Calculate comprehensive progress metrics for a date range
+  description: |
+    Calculate and return comprehensive progress metrics for a specified date range, including trends, changes, and statistical analysis.
+    
+    **Metrics Calculated:**
+    - Weight progression and trends
+    - Body composition changes
+    - Wellness metric correlations and patterns
+    - Progress velocity and consistency
+    - Statistical analysis (averages, ranges, standard deviation)
+    
+    **Analysis Features:**
+    - Trend detection and trajectory analysis
+    - Correlation analysis between metrics
+    - Progress consistency scoring
+    - Milestone achievement tracking
+    - Comparative analysis with historical periods
+    
+    **Output Types:**
+    - Comprehensive statistical summary
+    - Trend indicators and patterns
+    - Progress scoring and ratings
+    - Recommendations based on patterns
+    - Data quality assessment
+    
+    **Use Cases:**
+    - Progress report generation
+    - Goal progress assessment
+    - Trend analysis for coaching
+    - Performance review preparation
+    - Data-driven decision making
+  operationId: calculateProgressMetrics
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    description: Date range and calculation parameters for metrics analysis
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/progress/MetricsCalculationRequest.yaml'
+        examples:
+          monthly_analysis:
+            summary: Monthly progress analysis
+            description: Calculate comprehensive metrics for the past month
+            value:
+              startDate: "2024-01-01"
+              endDate: "2024-01-31"
+              includeWellness: true
+              includeTrends: true
+              includeCorrelations: true
+              granularity: "daily"
+              comparisonPeriod: "previous_month"
+          
+          quarterly_review:
+            summary: Quarterly progress review
+            description: Comprehensive quarterly analysis with advanced metrics
+            value:
+              startDate: "2024-01-01"
+              endDate: "2024-03-31"
+              includeWellness: true
+              includeTrends: true
+              includeCorrelations: true
+              includeStatistics: true
+              granularity: "weekly"
+              comparisonPeriod: "previous_quarter"
+              analysisDepth: "comprehensive"
+              includeRecommendations: true
+          
+          goal_progress_check:
+            summary: Goal-focused progress analysis
+            description: Calculate metrics focused on specific goal progress
+            value:
+              startDate: "2024-01-01"
+              endDate: "2024-01-31"
+              focusMetrics: ["weight", "body_fat_percentage"]
+              includeWellness: false
+              includeTrends: true
+              includeProjections: true
+              granularity: "daily"
+              goalId: "550e8400-e29b-41d4-a716-446655440000"
+          
+          wellness_correlation:
+            summary: Wellness correlation analysis
+            description: Focus on wellness metrics and their correlations
+            value:
+              startDate: "2024-01-01"
+              endDate: "2024-01-31"
+              focusMetrics: ["mood", "sleep_quality", "energy_level", "stress_level"]
+              includeWellness: true
+              includeCorrelations: true
+              analysisType: "wellness_focused"
+              granularity: "daily"
+  responses:
+    '200':
+      $ref: '../../components/responses/progress/MetricsCalculated.yaml'
+    
+    '400':
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/common/NotFound.yaml'
+    
+    '422':
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
+    
+    '429':
+      $ref: '../../components/responses/progress/ProgressRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

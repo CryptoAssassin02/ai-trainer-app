@@ -1,0 +1,65 @@
+type: object
+description: Rate limit error response for data transfer operations
+required:
+  - status
+  - message
+  - errorCode
+properties:
+  status:
+    type: string
+    enum: ['error']
+    description: Error status indicator
+    example: error
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Too many export requests. Please try again later."
+  errorCode:
+    type: string
+    enum: ['RATE_LIMIT_EXCEEDED']
+    description: Rate limit error code
+    example: "RATE_LIMIT_EXCEEDED"
+  details:
+    type: object
+    properties:
+      retryAfter:
+        type: integer
+        description: Seconds until rate limit resets
+        example: 3600
+      limit:
+        type: integer
+        description: Maximum requests allowed in time window
+        example: 5
+      windowMs:
+        type: integer
+        description: Time window in milliseconds
+        example: 3600000
+      operation:
+        type: string
+        enum: ['export', 'import']
+        description: Operation that triggered rate limit
+        example: "export"
+    description: Rate limit details
+examples:
+  exportRateLimit:
+    summary: Export rate limit exceeded
+    value:
+      status: error
+      message: "Too many export requests. Please try again later."
+      errorCode: "RATE_LIMIT_EXCEEDED"
+      details:
+        retryAfter: 3600
+        limit: 5
+        windowMs: 3600000
+        operation: "export"
+  importRateLimit:
+    summary: Import rate limit exceeded
+    value:
+      status: error
+      message: "Too many import requests. Please try again later."
+      errorCode: "RATE_LIMIT_EXCEEDED"
+      details:
+        retryAfter: 3600
+        limit: 3
+        windowMs: 3600000
+        operation: "import" 

@@ -1,0 +1,23 @@
+get:
+  tags:
+    - Nutrition & Macros
+  summary: Get user's nutrition plan
+  description: |
+    Retrieve the user's current nutrition plan with calculations, meal plans, and food suggestions.
+    
+    Returns the most recent nutrition plan for the authenticated user.
+  operationId: getNutritionPlan
+  security:
+    - SupabaseJWT: []
+  responses:
+    '200':
+      $ref: '../../components/responses/nutritionMacros/NutritionPlanRetrieved.yaml'
+    
+    '401':
+      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/nutritionMacros/NutritionNotFound.yaml'
+    
+    '500':
+      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml' 

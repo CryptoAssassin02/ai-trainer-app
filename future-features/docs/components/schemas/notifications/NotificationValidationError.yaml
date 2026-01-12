@@ -1,0 +1,19 @@
+description: >
+  Defines the error response for validation failures in notification-related requests.
+type: object
+required:
+  - status
+  - message
+  - details
+properties:
+  status:
+    type: string
+    enum: [error]
+  message:
+    type: string
+    example: "Invalid notification preferences provided."
+  details:
+    type: array
+    items:
+      type: string
+    example: ["'quiet_hours_start' must be in HH:MM format (e.g., 22:00)"] 

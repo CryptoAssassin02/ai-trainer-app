@@ -1,0 +1,373 @@
+type: object
+description: Comprehensive adherence metrics analyzing compliance across all fitness plan components with detailed breakdowns and trend analysis
+required:
+  - userId
+  - timeframe
+  - hasData
+  - overall
+  - components
+properties:
+  userId:
+    type: string
+    format: uuid
+    description: Unique identifier for the user
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  timeframe:
+    type: string
+    description: Time period for the adherence analysis
+    pattern: '^\d+\s+(days?|weeks?|months?)$'
+    example: "30 days"
+  hasData:
+    type: boolean
+    description: Indicates whether sufficient data is available for adherence analysis
+    example: true
+  overall:
+    type: object
+    description: Overall adherence summary and assessment
+    required:
+      - adherenceScore
+      - category
+      - trend
+      - consistency
+    properties:
+      adherenceScore:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Overall adherence score (0-1)
+        example: 0.82
+      category:
+        type: string
+        description: Adherence category classification
+        enum: [excellent, good, moderate, poor, very_poor]
+        example: good
+      trend:
+        type: string
+        description: Overall adherence trend direction
+        enum: [improving, stable, declining]
+        example: improving
+      consistency:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Consistency score across all components (0-1)
+        example: 0.78
+      weeklyPattern:
+        type: array
+        description: Weekly adherence pattern (Sunday=0, Saturday=6)
+        items:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        minItems: 7
+        maxItems: 7
+        example: [0.65, 0.88, 0.92, 0.87, 0.90, 0.75, 0.60]
+  components:
+    type: object
+    description: Detailed adherence metrics for each plan component
+    required:
+      - workouts
+      - nutrition
+      - checkIns
+    properties:
+      workouts:
+        type: object
+        description: Workout adherence analysis
+        required:
+          - adherence
+          - planned
+          - completed
+          - missed
+          - streaks
+        properties:
+          adherence:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Workout adherence percentage (0-1)
+            example: 0.85
+          planned:
+            type: integer
+            minimum: 0
+            description: Total number of planned workouts
+            example: 24
+          completed:
+            type: integer
+            minimum: 0
+            description: Number of completed workouts
+            example: 20
+          missed:
+            type: integer
+            minimum: 0
+            description: Number of missed workouts
+            example: 4
+          streaks:
+            type: object
+            description: Workout streak analysis
+            required:
+              - current
+              - longest
+            properties:
+              current:
+                type: integer
+                minimum: 0
+                description: Current workout streak (consecutive days)
+                example: 5
+              longest:
+                type: integer
+                minimum: 0
+                description: Longest workout streak in timeframe
+                example: 12
+              averageBreakLength:
+                type: number
+                format: float
+                minimum: 0
+                description: Average length of breaks between streaks (days)
+                example: 2.3
+          workoutTypes:
+            type: object
+            description: Adherence breakdown by workout type
+            additionalProperties:
+              type: object
+              properties:
+                adherence:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                completed:
+                  type: integer
+                  minimum: 0
+                planned:
+                  type: integer
+                  minimum: 0
+            example:
+              strength: 
+                adherence: 0.90
+                completed: 12
+                planned: 13
+              cardio:
+                adherence: 0.78
+                completed: 7
+                planned: 9
+      nutrition:
+        type: object
+        description: Nutrition adherence analysis
+        required:
+          - adherence
+          - loggedDays
+          - totalDays
+          - macroCompliance
+          - calorieCompliance
+        properties:
+          adherence:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall nutrition adherence percentage (0-1)
+            example: 0.78
+          loggedDays:
+            type: integer
+            minimum: 0
+            description: Number of days with nutrition logging
+            example: 23
+          totalDays:
+            type: integer
+            minimum: 0
+            description: Total days in analysis period
+            example: 30
+          macroCompliance:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Macro target compliance percentage (0-1)
+            example: 0.82
+          calorieCompliance:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Calorie target compliance percentage (0-1)
+            example: 0.75
+          mealCompliance:
+            type: object
+            description: Compliance by meal type
+            additionalProperties:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+            example:
+              breakfast: 0.90
+              lunch: 0.85
+              dinner: 0.80
+              snacks: 0.65
+          hydrationCompliance:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Daily hydration goal compliance (0-1)
+            example: 0.73
+      checkIns:
+        type: object
+        description: Check-in adherence analysis
+        required:
+          - adherence
+          - completed
+          - total
+          - consistency
+        properties:
+          adherence:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Check-in adherence percentage (0-1)
+            example: 0.90
+          completed:
+            type: integer
+            minimum: 0
+            description: Number of completed check-ins
+            example: 27
+          total:
+            type: integer
+            minimum: 0
+            description: Total expected check-ins
+            example: 30
+          consistency:
+            type: string
+            description: Check-in consistency assessment
+            enum: [excellent, good, moderate, poor]
+            example: excellent
+          averageInterval:
+            type: number
+            format: float
+            minimum: 0
+            description: Average days between check-ins
+            example: 1.1
+          longestGap:
+            type: integer
+            minimum: 0
+            description: Longest gap between check-ins (days)
+            example: 3
+      sleep:
+        type: object
+        description: Sleep adherence analysis (if tracked)
+        properties:
+          targetCompliance:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Sleep duration target compliance (0-1)
+            example: 0.67
+          qualityCompliance:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Sleep quality target compliance (0-1)
+            example: 0.82
+          consistencyScore:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Sleep schedule consistency score (0-1)
+            example: 0.74
+  recommendations:
+    type: array
+    description: Personalized recommendations to improve adherence
+    items:
+      type: object
+      required:
+        - component
+        - priority
+        - suggestion
+        - expectedImpact
+      properties:
+        component:
+          type: string
+          description: Component this recommendation targets
+          enum: [workouts, nutrition, check_ins, sleep, overall]
+          example: workouts
+        priority:
+          type: string
+          description: Priority level of this recommendation
+          enum: [high, medium, low]
+          example: high
+        suggestion:
+          type: string
+          description: Specific actionable recommendation
+          example: "Schedule workouts at consistent times to improve adherence"
+        expectedImpact:
+          type: string
+          description: Expected impact on adherence
+          enum: [high, medium, low]
+          example: medium
+        category:
+          type: string
+          description: Type of recommendation
+          enum: [scheduling, motivation, planning, habit_formation, goal_adjustment]
+          example: scheduling
+examples:
+  - userId: "123e4567-e89b-12d3-a456-426614174000"
+    timeframe: "30 days"
+    hasData: true
+    overall:
+      adherenceScore: 0.82
+      category: good
+      trend: improving
+      consistency: 0.78
+      weeklyPattern: [0.65, 0.88, 0.92, 0.87, 0.90, 0.75, 0.60]
+    components:
+      workouts:
+        adherence: 0.85
+        planned: 24
+        completed: 20
+        missed: 4
+        streaks:
+          current: 5
+          longest: 12
+          averageBreakLength: 2.3
+        workoutTypes:
+          strength:
+            adherence: 0.90
+            completed: 12
+            planned: 13
+          cardio:
+            adherence: 0.78
+            completed: 7
+            planned: 9
+      nutrition:
+        adherence: 0.78
+        loggedDays: 23
+        totalDays: 30
+        macroCompliance: 0.82
+        calorieCompliance: 0.75
+        mealCompliance:
+          breakfast: 0.90
+          lunch: 0.85
+          dinner: 0.80
+          snacks: 0.65
+        hydrationCompliance: 0.73
+      checkIns:
+        adherence: 0.90
+        completed: 27
+        total: 30
+        consistency: excellent
+        averageInterval: 1.1
+        longestGap: 3
+    recommendations:
+      - component: workouts
+        priority: high
+        suggestion: "Schedule workouts at consistent times to improve adherence"
+        expectedImpact: medium
+        category: scheduling 

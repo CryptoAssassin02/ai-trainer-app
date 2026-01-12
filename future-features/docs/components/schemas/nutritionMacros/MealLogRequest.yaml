@@ -1,0 +1,102 @@
+type: object
+description: Request body for logging a meal entry
+required:
+  - mealName
+  - foods
+  - loggedAt
+properties:
+  mealName:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Name or type of the meal
+    example: "Breakfast"
+  
+  foods:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - portionSize
+        - units
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name of the food item
+          example: "Grilled chicken breast"
+        
+        portionSize:
+          type: number
+          minimum: 0
+          description: Portion size amount
+          example: 150
+        
+        units:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Units for portion size
+          example: "grams"
+        
+        protein_g:
+          type: number
+          minimum: 0
+          description: Protein content in grams
+          example: 31.0
+        
+        carbs_g:
+          type: number
+          minimum: 0
+          description: Carbohydrate content in grams
+          example: 0
+        
+        fat_g:
+          type: number
+          minimum: 0
+          description: Fat content in grams
+          example: 3.6
+        
+        calories:
+          type: number
+          minimum: 0
+          description: Calorie content
+          example: 165
+    minItems: 1
+    description: Array of food items consumed in this meal
+  
+  notes:
+    type: string
+    maxLength: 500
+    description: Optional notes about the meal
+    example: "Post-workout meal, felt satisfied"
+  
+  loggedAt:
+    type: string
+    format: date-time
+    description: Timestamp when the meal was consumed
+    example: "2024-01-15T12:30:00Z"
+
+additionalProperties: false
+
+example:
+  mealName: "Lunch"
+  foods:
+    - name: "Grilled salmon"
+      portionSize: 120
+      units: "grams"
+      protein_g: 25.4
+      carbs_g: 0
+      fat_g: 13.4
+      calories: 231
+    - name: "Brown rice"
+      portionSize: 100
+      units: "grams"
+      protein_g: 2.6
+      carbs_g: 23
+      fat_g: 0.9
+      calories: 111
+  notes: "Delicious and filling meal"
+  loggedAt: "2024-01-15T13:15:00Z" 

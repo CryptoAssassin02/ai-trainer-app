@@ -1,0 +1,44 @@
+description: >
+  Defines the complete data model for a user's notification preferences, including standard and mobile-specific settings.
+type: object
+properties:
+  email_enabled:
+    type: boolean
+    default: false
+    description: Indicates if email notifications are enabled.
+  sms_enabled:
+    type: boolean
+    default: false
+    description: Indicates if SMS notifications are enabled.
+  push_enabled:
+    type: boolean
+    default: false
+    description: Indicates if push notifications are enabled.
+  in_app_enabled:
+    type: boolean
+    default: true
+    description: Indicates if in-app notifications are enabled.
+  quiet_hours_start:
+    type: string
+    pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+    nullable: true
+    description: The start time for the quiet hours period (HH:MM format).
+    example: "22:00"
+  quiet_hours_end:
+    type: string
+    pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+    nullable: true
+    description: The end time for the quiet hours period (HH:MM format).
+    example: "08:00"
+  workout_reminders:
+    type: boolean
+    default: true
+    description: Enable/disable workout reminder notifications.
+  progress_updates:
+    type: boolean
+    default: true
+    description: Enable/disable progress update notifications.
+  goal_achievements:
+    type: boolean
+    default: true
+    description: Enable/disable goal achievement notifications. 

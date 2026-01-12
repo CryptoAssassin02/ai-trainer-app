@@ -1,0 +1,143 @@
+get:
+  tags:
+    - Mobile Analytics
+    - Goal Management
+  summary: Get mobile-optimized goal progress data with display optimization
+  description: |
+    Retrieve goal progress information optimized for mobile displays with compressed data, touch-friendly formatting, and network-conscious delivery.
+    
+    **Mobile Progress Features:**
+    - Compressed progress data under strict size limits
+    - Essential progress indicators prioritized for mobile
+    - Touch-optimized data structures for mobile interaction
+    - Network-adaptive detail levels based on connection
+    - Battery-efficient data processing and caching
+    
+    **Progress Content:**
+    - Current progress percentage and visual indicators
+    - Key milestone status and achievement highlights
+    - Simplified trend analysis for mobile charts
+    - Next action items and recommendations
+    - Quick progress insights and motivational content
+    
+    **Mobile Display Optimization:**
+    - Data structured for small screen visualization
+    - Priority-based information hierarchy
+    - Gesture-friendly interaction data
+    - Offline-capable progress indicators
+    - Background sync preparation data
+    
+    **Network Efficiency:**
+    - Adaptive compression based on connection type
+    - Cached data utilization and freshness indicators
+    - Progressive loading support for slower connections
+    - Essential vs optional data categorization
+    - Bandwidth usage optimization features
+  operationId: getMobileGoalProgress
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: goalId
+      in: path
+      required: true
+      description: Unique identifier for the goal
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    - name: displayMode
+      in: query
+      description: Mobile display mode optimization
+      schema:
+        type: string
+        enum: [compact, standard, detailed, widget]
+        default: "standard"
+        example: "compact"
+    
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/connectionType'
+    
+    - name: screenSize
+      in: query
+      description: Screen size category for layout optimization
+      schema:
+        type: string
+        enum: [small, medium, large, tablet]
+        default: "medium"
+        example: "small"
+    
+    - name: includeChart
+      in: query
+      description: Include chart data for progress visualization
+      schema:
+        type: boolean
+        default: true
+        example: false
+    
+    - name: chartResolution
+      in: query
+      description: Chart data resolution for mobile display
+      schema:
+        type: string
+        enum: [low, medium, high, adaptive]
+        default: "adaptive"
+        example: "low"
+    
+    - $ref: '../../components/parameters/IncludeOptions.yaml#/includeMilestones'
+    
+    - name: milestoneLimit
+      in: query
+      description: Maximum number of milestones to include
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 10
+        default: 5
+        example: 3
+    
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/timeRange'
+    
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/compressionLevel'
+    
+    - name: offlineReady
+      in: query
+      description: Prepare data for offline availability
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: batteryOptimized
+      in: query
+      description: Enable battery optimization features
+      schema:
+        type: boolean
+        default: false
+        example: true
+  responses:
+    '200':
+      $ref: '../../components/responses/mobile/MobileGoalProgressRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '403':
+      $ref: '../../components/responses/common/Forbidden.yaml'
+    
+    '404':
+      $ref: '../../components/responses/common/NotFound.yaml'
+    
+    '413':
+      $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
+    
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+    
+    '503':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

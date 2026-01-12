@@ -1,0 +1,82 @@
+type: object
+description: Database connection failure response with specific error details
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Error status indicator
+    example: "error"
+  
+  message:
+    type: string
+    description: Human-readable database error message
+    example: "Database connection failed"
+  
+  error:
+    type: string
+    description: Detailed database error information
+    example: "Connection timeout after 5000ms"
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: ISO timestamp when the error occurred
+    example: "2024-01-15T10:30:45.123Z"
+  
+  details:
+    type: object
+    description: Database-specific error details and context
+    properties:
+      component:
+        type: string
+        enum: [supabase, database, connection-pool]
+        description: Database component that failed
+        example: "supabase"
+      
+      errorType:
+        type: string
+        enum: [connection-timeout, authentication-failed, network-error, query-timeout, pool-exhausted]
+        description: Type of database error
+        example: "connection-timeout"
+      
+      connectionAttempted:
+        type: boolean
+        description: Whether a connection attempt was made
+        example: true
+      
+      fallbackUsed:
+        type: boolean
+        description: Whether fallback mechanism was attempted
+        example: false
+      
+      retryable:
+        type: boolean
+        description: Whether the connection can be retried
+        example: true
+    
+    required:
+      - component
+      - errorType
+      - connectionAttempted
+    
+    additionalProperties: false
+
+required:
+  - status
+  - message
+  - error
+  - timestamp
+
+additionalProperties: false
+
+example:
+  status: "error"
+  message: "Database connection failed"
+  error: "Connection timeout after 5000ms"
+  timestamp: "2024-01-15T10:30:45.123Z"
+  details:
+    component: "supabase"
+    errorType: "connection-timeout"
+    connectionAttempted: true
+    fallbackUsed: false
+    retryable: true 

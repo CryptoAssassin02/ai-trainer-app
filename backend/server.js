@@ -1,0 +1,254 @@
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const { env, logger, supabase } = require('./config');
+const routes = require('./routes');
+const { notFoundHandler, globalErrorHandler, handleFatalError } = require('./middleware/error-middleware');
+const { setupSecurityMiddleware } = require('./middleware/security');
+const { apiLimiters } = require('./middleware/rateLimit');
+// REMOVED: cleanupBlacklistedTokens import - function commented out in Phase 2 Auth Refactor
+// const { cleanupBlacklistedTokens } = require('./utils/jwt');
+
+// Initialize express app
+const app = express();
+
+// Parse cookies for CSRF and session management
+app.use(cookieParser());
+
+// Apply comprehensive security middleware
+setupSecurityMiddleware(app);
+
+// Body parsers with size limits to prevent DoS attacks
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Generate a unique request ID for tracing
+  const requestId = require('crypto').randomBytes(16).toString('hex');
+  req.requestId = requestId;
+  
+  // Add request ID to response headers for client-side debugging
+  res.setHeader('X-Request-ID', requestId);
+  
+  // Log when the request finishes
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    
+    // Determine log level based on status code
+    const logLevel = res.statusCode >= 500 ? 'error' : 
+                     res.statusCode >= 400 ? 'warn' : 
+                     'info';
+    
+    // Log request completion using requestFormat helper
+    logger[logLevel](`${req.method} ${req.originalUrl} completed in ${duration}ms`, {
+      ...logger.requestFormat(req, res),
+      requestId,
+      duration: `${duration}ms`
+    });
+  });
+  
+  next();
+});
+
+// Apply rate limiting to the entire API
+app.use('/api', apiLimiters.standard);
+
+// Health check endpoint (unprotected)
+// app.get('/health', (req, res) => { ... }); // Remove or move
+
+// Register API routes by calling the exported function
+routes(app); // Call the function instead of using it as middleware
+
+// 404 handler for undefined routes
+app.use(notFoundHandler);
+
+// Global error handler
+app.use(globalErrorHandler);
+
+// Cleanup function to run periodically
+const performCleanupTasks = async () => {
+  try {
+    // REMOVED: cleanupBlacklistedTokens call - function commented out in Phase 2 Auth Refactor
+    // const removedTokens = await cleanupBlacklistedTokens();
+    // if (removedTokens > 0) {
+    //   logger.info(`Cleaned up ${removedTokens} expired blacklisted tokens`);
+    // }
+    
+    // ADD: Chunked generation cleanup to existing function
+    await cleanupAbandonedChunkedGenerations();
+    logger.debug('Cleanup tasks completed including chunked generations');
+  } catch (error) {
+    logger.error('Error during cleanup tasks:', error);
+  }
+};
+
+// ADD: New cleanup function for chunked generations
+const cleanupAbandonedChunkedGenerations = async () => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  try {
+    // Find plans stuck in generating states for > 1 hour
+    const { data: abandonedPlans, error: fetchError } = await supabase
+      .from('workout_plans')
+      .select('id, generation_state, mesocycles_generated')
+      .in('generation_state', [
+        'mesocycle_1_generating',
+        'mesocycle_2_generating', 
+        'mesocycle_3_generating',
+        'mesocycle_4_generating'
+      ])
+      .lt('generation_started_at', oneHourAgo);
+
+    if (fetchError) {
+      logger.error('[Cleanup] Error fetching abandoned plans:', fetchError);
+      return;
+    }
+
+    if (!abandonedPlans || abandonedPlans.length === 0) {
+      logger.debug('[Cleanup] No abandoned chunked generations found');
+      return;
+    }
+
+    logger.info(`[Cleanup] Found ${abandonedPlans.length} abandoned chunked generations`);
+
+    // Reset each abandoned plan
+    for (const plan of abandonedPlans) {
+      const resetState = plan.mesocycles_generated > 0 
+        ? `mesocycle_${plan.mesocycles_generated}_complete`
+        : 'structure_generated';
+
+      const { error: updateError } = await supabase
+        .from('workout_plans')
+        .update({
+          generation_state: resetState,
+          generation_errors: supabase.raw(`generation_errors || '[{"type": "timeout", "message": "Generation timed out and was reset", "timestamp": "${new Date().toISOString()}"}]'::jsonb`)
+        })
+        .eq('id', plan.id);
+
+      if (updateError) {
+        logger.error(`[Cleanup] Error resetting plan ${plan.id}:`, updateError);
+      } else {
+        logger.info(`[Cleanup] Reset plan ${plan.id} to state: ${resetState}`);
+      }
+    }
+
+  } catch (error) {
+    logger.error('[Cleanup] Unexpected error in chunked generation cleanup:', error);
+  }
+};
+
+// Schedule periodic cleanup tasks (every hour)
+let cleanupInterval;
+const startCleanupInterval = () => {
+  // Clear existing interval if any
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  
+  // Run every hour
+  cleanupInterval = setInterval(performCleanupTasks, 60 * 60 * 1000);
+  
+  // Also run immediately on startup
+  performCleanupTasks().catch(err => {
+    logger.error('Initial cleanup task failed:', err);
+  });
+};
+
+// Function to stop the cleanup interval (for testing/shutdown)
+const stopCleanupInterval = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    logger.info('Cleanup interval stopped.');
+    cleanupInterval = null;
+  }
+};
+
+// Graceful shutdown function
+const gracefulShutdown = (signal) => {
+  logger.info(`${signal} received, starting graceful shutdown...`);
+  
+  // Clear cleanup interval
+  stopCleanupInterval();
+  
+  // Close all other resources (DB connections, etc.)
+  // ...
+  
+  // Exit process
+  process.exit(0);
+};
+
+// Start the server
+const startServer = (port) => {
+  const serverPort = port || env.port || 8000;
+  
+  const server = app.listen(serverPort, () => {
+    logger.info(`Server running in ${env.env} mode on port ${serverPort}`);
+    
+    // Store server reference globally for handleFatalError
+    global.server = server;
+    
+    // Start cleanup tasks
+    startCleanupInterval();
+  });
+  
+  // Set timeouts for keeping connections alive
+  server.keepAliveTimeout = 65000; // 65 seconds
+  server.headersTimeout = 66000; // 66 seconds (slightly more than keepAliveTimeout)
+  
+  return server;
+};
+
+// Close the server gracefully
+const closeServer = async (server) => {
+  return new Promise((resolve, reject) => {
+    if (!server) {
+      logger.warn('No server instance provided to closeServer');
+      return resolve();
+    }
+    
+    logger.info('Closing server...');
+    
+    // Stop cleanup tasks
+    stopCleanupInterval();
+    
+    // Close the server
+    server.close((err) => {
+      if (err) {
+        logger.error('Error closing server:', err);
+        return reject(err);
+      }
+      
+      logger.info('Server closed successfully');
+      resolve();
+    });
+  });
+};
+
+// Handle graceful shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle unhandled promise rejections using enhanced handler
+process.on('unhandledRejection', (err) => {
+  handleFatalError(err, 'unhandledRejection');
+});
+
+// Handle uncaught exceptions using enhanced handler
+process.on('uncaughtException', (err) => {
+  handleFatalError(err, 'uncaughtException');
+});
+
+// Call startServer to actually start the server if this file is run directly
+if (require.main === module) {
+  startServer();
+}
+
+// Export the app and start/stop functions
+module.exports = {
+  app,
+  startServer,
+  stopCleanupInterval,
+  closeServer
+}; 

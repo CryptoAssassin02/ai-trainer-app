@@ -1,0 +1,335 @@
+type: object
+description: Response containing AI-powered goal achievement predictions with analysis metadata and confidence metrics
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    $ref: './GoalPrediction.yaml'
+  metadata:
+    type: object
+    description: Response metadata including prediction model information, data quality, and analysis context
+    required:
+      - timestamp
+      - goalId
+      - modelInfo
+      - dataQuality
+      - analysisContext
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      goalId:
+        type: string
+        format: uuid
+        description: Unique identifier for the predicted goal
+        example: "456e7890-f12a-34b5-c678-def012345678"
+      modelInfo:
+        type: object
+        description: Information about the prediction model used
+        required:
+          - version
+          - type
+          - confidenceLevel
+        properties:
+          version:
+            type: string
+            description: Version of the prediction model
+            example: "v2.1.3"
+          type:
+            type: string
+            enum: [machine_learning, statistical, hybrid, expert_system]
+            description: Type of prediction model used
+            example: hybrid
+          confidenceLevel:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall model confidence level (0-1)
+            example: 0.87
+          trainingData:
+            type: object
+            description: Information about model training data
+            properties:
+              sampleSize:
+                type: integer
+                description: Number of goals used for training
+                example: 15420
+              successRate:
+                type: number
+                format: float
+                description: Success rate in training data
+                example: 0.73
+              similarGoals:
+                type: integer
+                description: Number of similar goals in training set
+                example: 2847
+          lastUpdated:
+            type: string
+            format: date-time
+            description: When the model was last updated
+            example: "2024-01-01T00:00:00Z"
+      dataQuality:
+        type: object
+        description: Assessment of input data quality for predictions
+        required:
+          - score
+          - completeness
+          - reliability
+        properties:
+          score:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall input data quality score (0-1)
+            example: 0.92
+          completeness:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Data completeness percentage (0-1)
+            example: 0.89
+          reliability:
+            type: string
+            enum: [very_high, high, medium, low]
+            description: Reliability assessment of input data
+            example: high
+          dataPoints:
+            type: integer
+            minimum: 0
+            description: Number of data points used
+            example: 127
+          timeSpan:
+            type: integer
+            description: Time span of data in days
+            example: 45
+          missingFactors:
+            type: array
+            description: Important factors not available for prediction
+            items:
+              type: string
+            example: ["Detailed sleep data", "Stress measurements"]
+      analysisContext:
+        type: object
+        description: Context and parameters used for prediction analysis
+        properties:
+          predictionHorizon:
+            type: integer
+            description: Prediction horizon in days
+            example: 89
+          scenariosAnalyzed:
+            type: integer
+            description: Number of scenarios analyzed
+            example: 5
+          comparisonGoals:
+            type: integer
+            description: Number of similar goals used for comparison
+            example: 342
+          externalFactors:
+            type: array
+            description: External factors considered in prediction
+            items:
+              type: string
+            example: ["Seasonal patterns", "Holiday impacts", "Typical plateau periods"]
+          riskFactorsIdentified:
+            type: integer
+            description: Number of risk factors identified
+            example: 4
+          accelerationFactorsIdentified:
+            type: integer
+            description: Number of acceleration factors identified
+            example: 6
+      uncertaintyAnalysis:
+        type: object
+        description: Analysis of prediction uncertainty and sensitivity
+        properties:
+          primaryUncertainties:
+            type: array
+            description: Main sources of prediction uncertainty
+            items:
+              type: string
+            example: ["Adherence variability", "External life changes", "Motivation fluctuations"]
+          sensitivityFactors:
+            type: array
+            description: Factors the prediction is most sensitive to
+            items:
+              type: object
+              required:
+                - factor
+                - sensitivity
+              properties:
+                factor:
+                  type: string
+                  description: Name of the sensitivity factor
+                  example: "Weekly workout frequency"
+                sensitivity:
+                  type: string
+                  enum: [very_high, high, medium, low]
+                  description: Sensitivity level
+                  example: high
+                impact:
+                  type: string
+                  description: Description of impact
+                  example: "10% change in frequency affects success probability by 15-20%"
+            example:
+              - factor: "Weekly workout frequency"
+                sensitivity: high
+                impact: "10% change in frequency affects success probability by 15-20%"
+          confidenceRange:
+            type: object
+            description: Confidence intervals for key predictions
+            properties:
+              achievementProbability:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                    format: float
+                    example: 0.71
+                  upper:
+                    type: number
+                    format: float
+                    example: 0.89
+              completionDate:
+                type: object
+                properties:
+                  earliest:
+                    type: string
+                    format: date-time
+                    example: "2024-04-05T00:00:00Z"
+                  latest:
+                    type: string
+                    format: date-time
+                    example: "2024-04-20T00:00:00Z"
+      benchmarking:
+        type: object
+        description: Benchmarking against similar goals and users
+        properties:
+          percentileRank:
+            type: integer
+            minimum: 0
+            maximum: 100
+            description: Percentile rank compared to similar goals
+            example: 78
+          similarUserSuccess:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Success rate of users with similar profiles
+            example: 0.71
+          categoryAverage:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Average success rate for this goal category
+            example: 0.65
+          userHistorical:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: User's historical goal success rate
+            example: 0.83
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 1247.3
+      nextPrediction:
+        type: string
+        format: date-time
+        description: Recommended date for next prediction update
+        example: "2024-01-22T10:30:00Z"
+examples:
+  - status: success
+    data:
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      achievementProbability: 0.83
+      projectedCompletion: "2024-04-10T00:00:00Z"
+      confidenceLevel: high
+      riskFactors:
+        - factor: plateau_risk
+          probability: 0.25
+          impact: medium
+          timeframe: "2-3 weeks"
+          mitigation: "Vary workout routine"
+      accelerationFactors:
+        - factor: consistency_improvement
+          probability: 0.78
+          impact: high
+          timeframe: "1-2 weeks"
+          action: "Maintain current schedule"
+      scenarios:
+        - name: baseline
+          probability: 0.83
+          completionDate: "2024-04-10T00:00:00Z"
+          description: "Current trajectory maintained"
+        - name: optimistic
+          probability: 0.91
+          completionDate: "2024-04-01T00:00:00Z"
+          description: "With increased consistency"
+      predictions:
+        probability: 0.83
+        timeframe: "89 days"
+        finalValue: 65.2
+        confidence: 0.87
+      generatedAt: "2024-01-15T10:30:00Z"
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      goalId: "456e7890-f12a-34b5-c678-def012345678"
+      modelInfo:
+        version: "v2.1.3"
+        type: hybrid
+        confidenceLevel: 0.87
+        trainingData:
+          sampleSize: 15420
+          successRate: 0.73
+          similarGoals: 2847
+        lastUpdated: "2024-01-01T00:00:00Z"
+      dataQuality:
+        score: 0.92
+        completeness: 0.89
+        reliability: high
+        dataPoints: 127
+        timeSpan: 45
+        missingFactors: ["Detailed sleep data", "Stress measurements"]
+      analysisContext:
+        predictionHorizon: 89
+        scenariosAnalyzed: 5
+        comparisonGoals: 342
+        externalFactors: ["Seasonal patterns", "Holiday impacts", "Typical plateau periods"]
+        riskFactorsIdentified: 4
+        accelerationFactorsIdentified: 6
+      uncertaintyAnalysis:
+        primaryUncertainties: ["Adherence variability", "External life changes", "Motivation fluctuations"]
+        sensitivityFactors:
+          - factor: "Weekly workout frequency"
+            sensitivity: high
+            impact: "10% change in frequency affects success probability by 15-20%"
+        confidenceRange:
+          achievementProbability:
+            lower: 0.71
+            upper: 0.89
+          completionDate:
+            earliest: "2024-04-05T00:00:00Z"
+            latest: "2024-04-20T00:00:00Z"
+      benchmarking:
+        percentileRank: 78
+        similarUserSuccess: 0.71
+        categoryAverage: 0.65
+        userHistorical: 0.83
+      processingTime: 1247.3
+      nextPrediction: "2024-01-22T10:30:00Z" 

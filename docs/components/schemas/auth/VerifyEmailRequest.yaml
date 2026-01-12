@@ -1,0 +1,9 @@
+type: object
+required: [token]
+properties:
+  token:
+    type: string
+    description: Email verification token from email
+    example: verification-token-from-email
+example:
+  token: verification-token-from-email 

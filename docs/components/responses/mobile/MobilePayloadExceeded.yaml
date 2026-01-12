@@ -1,0 +1,265 @@
+description: Mobile payload size limit exceeded
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  X-Payload-Size-Limit:
+    description: Maximum allowed payload size for mobile endpoints
+    schema:
+      type: string
+      example: "50KB"
+  X-Actual-Size:
+    description: Actual size of the requested data
+    schema:
+      type: string
+      example: "73KB"
+  Retry-After:
+    description: Suggested retry delay after optimization
+    schema:
+      type: integer
+      example: 60
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/mobile/MobilePayloadError.yaml'
+    examples:
+      analytics_payload_exceeded:
+        summary: Analytics payload exceeds mobile optimization limits
+        value:
+          error:
+            code: "MOBILE_PAYLOAD_EXCEEDED"
+            message: "Requested data exceeds mobile payload optimization limits"
+            details:
+              payloadSize:
+                requested: "73KB"
+                limit: "50KB"
+                exceeded: "23KB"
+                compressionApplied: true
+                compressionRatio: 0.68
+              dataBreakdown:
+                charts: "32KB"
+                analytics: "28KB"
+                metadata: "8KB"
+                insights: "5KB"
+              optimization:
+                currentLevel: "standard"
+                availableLevels: ["lite", "standard", "premium"]
+                estimatedReduction: "35KB"
+            mobileSpecific:
+              networkImpact:
+                estimatedLoadTime: "4.2s"
+                recommendedLoadTime: "< 2s"
+                dataUsage: "73KB"
+                batteryImpact: "medium"
+              alternatives:
+                liteEndpoint: "/v1/mobile/analytics/lite"
+                paginatedEndpoint: "/v1/mobile/analytics/paginated"
+                cachingStrategy: "aggressive"
+                compressionOptions: ["gzip", "brotli"]
+              optimization:
+                suggestions:
+                  - "Reduce time range to 1-2 weeks"
+                  - "Disable detailed charts (saves ~30KB)"
+                  - "Use summary view instead of detailed view"
+                  - "Enable aggressive compression"
+                userOptions:
+                  reduceCharts: true
+                  summaryOnly: true
+                  weeklyData: true
+                  cacheResults: true
+            suggestions:
+              immediate:
+                - "Use /v1/mobile/analytics/lite endpoint"
+                - "Reduce timeframe parameter to 'week' or 'month'"
+                - "Set includeCharts=false to save ~30KB"
+                - "Enable minimalPayload=true for essential data only"
+              longTerm:
+                - "Consider pagination for large datasets"
+                - "Use caching to reduce repeat requests"
+                - "Implement progressive loading in app"
+                - "Upgrade to premium for higher limits"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/payload-optimization"
+              errorCode: "MOBILE_PAYLOAD_001"
+              optimizationGuide: "https://docs.trainer-api.com/mobile/optimization-strategies"
+          timestamp: "2024-01-15T20:40:00Z"
+          requestId: "req_mobile_payload_abc123"
+      sync_data_exceeded:
+        summary: Mobile sync data payload exceeds processing limits
+        value:
+          error:
+            code: "MOBILE_SYNC_PAYLOAD_EXCEEDED"
+            message: "Sync data payload exceeds mobile processing limits"
+            details:
+              payloadSize:
+                requested: "156KB"
+                limit: "100KB"
+                exceeded: "56KB"
+                compressionApplied: true
+                compressionRatio: 0.72
+              dataBreakdown:
+                workoutLogs: "89KB"
+                checkIns: "34KB"
+                nutritionData: "23KB"
+                images: "10KB"
+              processing:
+                estimatedTime: "8.2s"
+                recommendedTime: "< 5s"
+                memoryRequired: "12MB"
+                memoryLimit: "8MB"
+            mobileSpecific:
+              syncStrategy:
+                current: "bulk_upload"
+                recommended: "chunked_upload"
+                chunkSize: "25KB"
+                estimatedChunks: 7
+              networkOptimization:
+                connectionType: "4G"
+                estimatedDuration: "12s"
+                dataUsage: "156KB"
+                retryRisk: "high"
+              batchingOptions:
+                workoutLogs: 
+                  recommended: 20
+                  current: 78
+                checkIns:
+                  recommended: 15
+                  current: 42
+                images:
+                  recommended: 5
+                  current: 8
+            suggestions:
+              immediate:
+                - "Use chunked sync with 25KB chunks"
+                - "Sync workout logs separately from other data"
+                - "Compress images before upload"
+                - "Use incremental sync instead of full sync"
+              optimization:
+                - "Split sync into multiple smaller requests"
+                - "Prioritize recent data in first sync"
+                - "Use background sync for large datasets"
+                - "Implement queue system for offline data"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/sync-optimization"
+              errorCode: "MOBILE_SYNC_002"
+              chunkingGuide: "https://docs.trainer-api.com/mobile/chunked-sync"
+          timestamp: "2024-01-15T20:38:00Z"
+          requestId: "req_mobile_sync_def456"
+      goal_data_exceeded:
+        summary: Goal progress data exceeds mobile display limits
+        value:
+          error:
+            code: "MOBILE_GOAL_PAYLOAD_EXCEEDED"
+            message: "Goal progress data exceeds mobile display optimization limits"
+            details:
+              payloadSize:
+                requested: "67KB"
+                limit: "40KB"
+                exceeded: "27KB"
+                compressionApplied: false
+                availableCompression: "brotli"
+              dataBreakdown:
+                progressHistory: "38KB"
+                milestones: "15KB"
+                predictions: "8KB"
+                charts: "6KB"
+              displayOptimization:
+                screenSize: "mobile"
+                renderTime: "2.8s"
+                recommendedTime: "< 1.5s"
+                memoryUsage: "15MB"
+            mobileSpecific:
+              goalComplexity:
+                type: "multi_metric"
+                timespan: "12_months"
+                dataPoints: 365
+                recommendedPoints: 90
+              uiOptimization:
+                chartsRendered: 8
+                recommendedCharts: 3
+                detailLevel: "comprehensive"
+                recommendedLevel: "summary"
+              progressiveLoading:
+                available: true
+                initialLoad: "12KB"
+                secondaryLoad: "28KB"
+                lazyLoad: "27KB"
+            suggestions:
+              immediate:
+                - "Reduce progress history to 3 months"
+                - "Load only essential milestones"
+                - "Disable AI predictions for mobile"
+                - "Use summary charts instead of detailed"
+              progressive:
+                - "Implement progressive loading"
+                - "Load additional data on user interaction"
+                - "Cache frequently accessed goal data"
+                - "Use skeleton screens during loading"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/goal-optimization"
+              errorCode: "MOBILE_GOAL_004"
+              progressiveGuide: "https://docs.trainer-api.com/mobile/progressive-loading"
+          timestamp: "2024-01-15T20:35:00Z"
+          requestId: "req_mobile_goal_ghi789"
+      premium_feature_exceeded:
+        summary: Premium feature data exceeds basic user payload limits
+        value:
+          error:
+            code: "MOBILE_PREMIUM_PAYLOAD_EXCEEDED"
+            message: "Premium feature data exceeds basic subscription payload limits"
+            details:
+              payloadSize:
+                requested: "89KB"
+                basicLimit: "50KB"
+                premiumLimit: "150KB"
+                exceeded: "39KB"
+              subscriptionInfo:
+                current: "basic"
+                required: "premium"
+                feature: "comprehensive_analytics"
+                trialAvailable: true
+              dataRestrictions:
+                aiInsights: "limited"
+                detailedCharts: "unavailable"
+                peerComparisons: "basic_only"
+                predictiveAnalytics: "unavailable"
+            mobileSpecific:
+              featureLimitations:
+                basicFeatures:
+                  - "Basic analytics overview"
+                  - "Simple progress charts"
+                  - "Goal milestones"
+                  - "Workout summaries"
+                premiumFeatures:
+                  - "AI-powered insights"
+                  - "Detailed peer comparisons"
+                  - "Predictive goal analytics"
+                  - "Comprehensive reporting"
+              optimization:
+                basicPayload: "32KB"
+                premiumPayload: "89KB"
+                reducedPayload: "45KB"
+                compressionSavings: "12KB"
+            suggestions:
+              immediate:
+                - "Use basic analytics endpoint"
+                - "Disable premium features in request"
+                - "Start free premium trial"
+                - "Reduce data scope to essentials"
+              upgrade:
+                - "Premium: $9.99/month for full features"
+                - "7-day free trial available"
+                - "Annual discount: Save 20%"
+                - "Student discount: 50% off"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/subscription-limits"
+              errorCode: "MOBILE_PREMIUM_005"
+              pricingInfo: "https://docs.trainer-api.com/pricing/mobile"
+              upgradeGuide: "https://docs.trainer-api.com/upgrade"
+          timestamp: "2024-01-15T20:32:00Z"
+          requestId: "req_mobile_premium_jkl012" 

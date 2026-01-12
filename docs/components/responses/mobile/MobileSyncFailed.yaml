@@ -1,0 +1,400 @@
+description: Mobile sync operation failed with detailed recovery guidance
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  Retry-After:
+    description: Recommended retry delay in seconds
+    schema:
+      type: integer
+      example: 120
+  X-Sync-Version:
+    description: Server sync version for conflict resolution
+    schema:
+      type: string
+      example: "v2024.01.15.2100"
+  X-Conflict-Resolution:
+    description: Conflict resolution strategy required
+    schema:
+      type: string
+      example: "manual_review"
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/mobile/MobileSyncError.yaml'
+    examples:
+      conflict_resolution_failed:
+        summary: Mobile sync failed due to unresolvable conflicts
+        value:
+          error:
+            code: "MOBILE_SYNC_CONFLICT_FAILED"
+            message: "Mobile sync failed due to unresolvable data conflicts"
+            details:
+              syncAttempts: 3
+              failureReason: "conflict_resolution_failed"
+              conflictCount: 7
+              unresolvedConflicts: 4
+              lastSyncTime: "2024-01-15T19:30:00Z"
+              serverVersion: "v2024.01.15.2100"
+              clientVersion: "v2024.01.15.1900"
+            conflictDetails:
+              - recordType: "workout_log"
+                recordId: "workout_123"
+                conflict: "timestamp_overlap"
+                serverData:
+                  startTime: "2024-01-15T18:00:00Z"
+                  duration: 75
+                  exercises: 8
+                clientData:
+                  startTime: "2024-01-15T18:30:00Z"
+                  duration: 60
+                  exercises: 6
+                resolutionRequired: "manual"
+                impact: "high"
+              - recordType: "check_in"
+                recordId: "checkin_456"
+                conflict: "measurement_variance"
+                serverData:
+                  weight: 78.2
+                  bodyFat: 18.5
+                  timestamp: "2024-01-15T07:00:00Z"
+                clientData:
+                  weight: 79.1
+                  bodyFat: 19.2
+                  timestamp: "2024-01-15T07:05:00Z"
+                resolutionRequired: "user_choice"
+                impact: "medium"
+              - recordType: "goal_progress"
+                recordId: "goal_789"
+                conflict: "progress_calculation_mismatch"
+                serverData:
+                  progress: 0.65
+                  calculation: "server_algorithm_v2"
+                clientData:
+                  progress: 0.72
+                  calculation: "client_cache_v1"
+                resolutionRequired: "algorithm_sync"
+                impact: "low"
+              - recordType: "nutrition_log"
+                recordId: "nutrition_012"
+                conflict: "data_corruption"
+                issue: "incomplete_data"
+                serverData: null
+                clientData:
+                  calories: 2450
+                  meals: 4
+                  corrupted: true
+                resolutionRequired: "data_recovery"
+                impact: "high"
+            mobileSpecific:
+              syncStrategy:
+                attemptedMethod: "full_sync"
+                recommendedMethod: "incremental_sync"
+                fallbackAvailable: true
+              offlineChanges:
+                pendingCount: 23
+                oldestChange: "2024-01-14T16:30:00Z"
+                newestChange: "2024-01-15T20:45:00Z"
+                dataIntegrity: "partial"
+              networkConditions:
+                connectionType: "4G"
+                stability: "intermittent"
+                bandwidth: "medium"
+                latency: "125ms"
+              deviceStatus:
+                batteryLevel: 23
+                storageAvailable: "1.2GB"
+                memoryUsage: "78%"
+                backgroundRestrictions: true
+            recovery:
+              options:
+                - type: "manual_conflict_resolution"
+                  description: "Review and resolve conflicts individually"
+                  timeRequired: "5-10 minutes"
+                  dataLoss: "none"
+                  recommended: true
+                - type: "server_wins_sync"
+                  description: "Accept all server data, discard client changes"
+                  timeRequired: "30 seconds"
+                  dataLoss: "high"
+                  recommended: false
+                - type: "client_wins_sync"
+                  description: "Force upload client data, overwrite server"
+                  timeRequired: "2 minutes"
+                  dataLoss: "server_data"
+                  recommended: false
+                - type: "selective_sync"
+                  description: "Sync non-conflicting data, queue conflicts"
+                  timeRequired: "1 minute"
+                  dataLoss: "none"
+                  recommended: true
+              nextSteps:
+                - "Review conflict details in app"
+                - "Choose resolution strategy"
+                - "Ensure stable network connection"
+                - "Retry sync with selected strategy"
+            suggestions:
+              immediate:
+                - "Use WiFi connection for stable sync"
+                - "Charge device to >30% battery"
+                - "Close other apps to free memory"
+                - "Enable conflict resolution mode in app"
+              longTerm:
+                - "Enable more frequent automatic syncs"
+                - "Use incremental sync for large datasets"
+                - "Set up conflict resolution preferences"
+                - "Consider premium for priority sync support"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/sync-conflicts"
+              errorCode: "MOBILE_SYNC_CONFLICT_001"
+              recoveryGuide: "https://docs.trainer-api.com/mobile/conflict-resolution"
+              contactSupport: "If conflicts persist, contact support with request ID"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_sync_conflict_abc123"
+      network_failure_sync:
+        summary: Mobile sync failed due to network connectivity issues
+        value:
+          error:
+            code: "MOBILE_SYNC_NETWORK_FAILED"
+            message: "Mobile sync failed due to network connectivity issues"
+            details:
+              syncAttempts: 5
+              failureReason: "network_timeout"
+              timeoutDuration: "30s"
+              networkErrors: ["connection_reset", "timeout", "dns_failure"]
+              lastSuccessfulSync: "2024-01-15T18:20:00Z"
+              pendingDataSize: "45KB"
+            networkDiagnostics:
+              connectionType: "cellular"
+              signalStrength: "weak"
+              bandwidth: "2G"
+              latency: "850ms"
+              packetLoss: "12%"
+              dnsResolution: "slow"
+            mobileSpecific:
+              adaptiveSync:
+                enabled: false
+                recommended: true
+                benefits: ["Retry with exponential backoff", "Adapt to network conditions"]
+              compressionOptions:
+                current: "none"
+                available: ["gzip", "brotli"]
+                estimatedSavings: "60%"
+              chunkingStrategy:
+                current: "single_request"
+                recommended: "chunked_upload"
+                chunkSize: "10KB"
+                resumability: true
+            connectivity:
+              currentNetwork: "Cellular - 2G"
+              recommendations:
+                - "Switch to WiFi if available"
+                - "Move to area with better signal"
+                - "Try sync during off-peak hours"
+                - "Enable adaptive sync mode"
+              alternatives:
+                offlineMode:
+                  available: true
+                  description: "Continue using app, sync when connected"
+                  queuedOperations: 15
+                backgroundSync:
+                  available: true
+                  description: "Sync automatically when conditions improve"
+                  smartTiming: true
+            recovery:
+              retryStrategy:
+                immediate: "Not recommended due to poor connection"
+                scheduled: "Retry in 2 hours when network may improve"
+                conditional: "Retry when WiFi detected or signal improves"
+              dataPreservation:
+                status: "all_data_preserved"
+                location: "local_storage"
+                expiryTime: "7 days"
+                autoCleanup: false
+            suggestions:
+              network:
+                - "Connect to WiFi for reliable sync"
+                - "Check cellular data permissions"
+                - "Restart network connection"
+                - "Try sync from different location"
+              app:
+                - "Enable adaptive sync in settings"
+                - "Turn on background sync"
+                - "Update app for improved connectivity"
+                - "Clear app cache if sync issues persist"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/network-troubleshooting"
+              errorCode: "MOBILE_SYNC_NETWORK_002"
+              connectivityGuide: "https://docs.trainer-api.com/mobile/connectivity-optimization"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_sync_network_def456"
+      data_corruption_sync:
+        summary: Mobile sync failed due to corrupted local data
+        value:
+          error:
+            code: "MOBILE_SYNC_DATA_CORRUPTED"
+            message: "Mobile sync failed due to corrupted local data"
+            details:
+              syncAttempts: 2
+              failureReason: "data_integrity_check_failed"
+              corruptedRecords: 12
+              totalRecords: 156
+              corruptionType: "checksum_mismatch"
+              detectedTime: "2024-01-15T20:55:00Z"
+            dataIntegrity:
+              checksumValidation: "failed"
+              expectedChecksum: "a7f4e2d9c8b1"
+              actualChecksum: "a7f4e2d9c8b2"
+              corruptionSource: "unexpected_app_termination"
+              lastKnownGoodState: "2024-01-15T16:30:00Z"
+            corruptedData:
+              workoutLogs: 5
+              checkIns: 3
+              goalProgress: 2
+              nutritionEntries: 2
+              categories:
+                recoverable: 8
+                unrecoverable: 4
+                partiallyRecoverable: 0
+            mobileSpecific:
+              deviceConditions:
+                batteryFailure: false
+                storageIssues: true
+                memoryPressure: true
+                backgroundInterruption: true
+              appState:
+                lastProperShutdown: false
+                crashDetected: true
+                crashTime: "2024-01-15T20:45:00Z"
+                recoveryAttempted: true
+              dataRecovery:
+                backupAvailable: true
+                backupAge: "4 hours"
+                backupCompleteness: "95%"
+                autoRecoveryPossible: true
+            recovery:
+              options:
+                - type: "automatic_recovery"
+                  description: "Restore from last known good backup"
+                  dataLoss: "4 hours of data"
+                  successRate: "95%"
+                  timeRequired: "2 minutes"
+                  recommended: true
+                - type: "selective_recovery"
+                  description: "Recover individual records where possible"
+                  dataLoss: "corrupted records only"
+                  successRate: "75%"
+                  timeRequired: "10 minutes"
+                  recommended: false
+                - type: "fresh_sync"
+                  description: "Download fresh data from server"
+                  dataLoss: "local changes since last sync"
+                  successRate: "100%"
+                  timeRequired: "5 minutes"
+                  recommended: false
+              recommendedAction: "automatic_recovery"
+              backupRestoration:
+                available: true
+                backupDate: "2024-01-15T16:30:00Z"
+                affectedData: "4 hours of local changes"
+            prevention:
+              causes:
+                - "App was terminated unexpectedly during sync"
+                - "Device storage running low (< 500MB)"
+                - "High memory pressure during operation"
+                - "Background app restrictions interfered with sync"
+              recommendations:
+                - "Ensure adequate storage space (>1GB recommended)"
+                - "Close other apps during sync operations"
+                - "Keep device charged during sync"
+                - "Enable automatic backups"
+                - "Update to latest app version"
+            suggestions:
+              immediate:
+                - "Accept automatic recovery from backup"
+                - "Free up device storage space"
+                - "Restart app after recovery"
+                - "Verify recovered data completeness"
+              prevention:
+                - "Enable automatic data backups"
+                - "Regularly update app to latest version"
+                - "Monitor device storage levels"
+                - "Avoid force-closing app during sync"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/data-recovery"
+              errorCode: "MOBILE_SYNC_CORRUPTION_003"
+              recoveryGuide: "https://docs.trainer-api.com/mobile/corruption-recovery"
+              dataProtection: "https://docs.trainer-api.com/mobile/data-protection"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_sync_corruption_ghi789"
+      server_overload_sync:
+        summary: Mobile sync failed due to server overload
+        value:
+          error:
+            code: "MOBILE_SYNC_SERVER_OVERLOADED"
+            message: "Mobile sync temporarily unavailable due to high server load"
+            details:
+              syncAttempts: 1
+              failureReason: "server_capacity_exceeded"
+              serverLoad: "95%"
+              estimatedWaitTime: "15 minutes"
+              peakTrafficHours: "20:00-22:00"
+              currentTime: "2024-01-15T21:00:00Z"
+            serverStatus:
+              overallHealth: "degraded"
+              syncServiceStatus: "overloaded"
+              analyticsServiceStatus: "normal"
+              authServiceStatus: "normal"
+              estimatedRecovery: "2024-01-15T21:15:00Z"
+            mobileSpecific:
+              prioritySync:
+                available: false
+                premiumFeature: true
+                description: "Premium users get priority during high load"
+              queuePosition:
+                current: 1247
+                estimated: "12-18 minutes"
+                premiumQueue: 23
+              alternativeActions:
+                offlineMode: true
+                cacheRefresh: true
+                basicFunctions: true
+                premiumFeatures: false
+            loadManagement:
+              trafficShaping: "active"
+              requestThrottling: "enabled"
+              queueingStrategy: "fair"
+              userImpact: "sync_delays_only"
+            recovery:
+              autoRetry:
+                enabled: true
+                nextAttempt: "2024-01-15T21:15:00Z"
+                backoffStrategy: "exponential"
+                maxAttempts: 5
+              notification:
+                available: true
+                description: "Get notified when sync service recovers"
+                channels: ["push", "in_app"]
+            suggestions:
+              immediate:
+                - "Try again in 15-20 minutes"
+                - "Use offline mode for continued app usage"
+                - "Enable retry notifications"
+                - "Avoid multiple sync attempts"
+              scheduling:
+                - "Schedule syncs during off-peak hours (6:00-18:00)"
+                - "Enable background sync for automatic retry"
+                - "Consider premium for priority access"
+                - "Use incremental sync to reduce load"
+            support:
+              documentation: "https://docs.trainer-api.com/mobile/server-status"
+              errorCode: "MOBILE_SYNC_SERVER_004"
+              statusPage: "https://status.trainer-api.com"
+              loadOptimization: "https://docs.trainer-api.com/mobile/peak-hours"
+          timestamp: "2024-01-15T21:00:00Z"
+          requestId: "req_mobile_sync_server_jkl012" 

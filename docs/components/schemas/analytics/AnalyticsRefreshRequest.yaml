@@ -1,0 +1,43 @@
+type: object
+properties:
+  scope:
+    type: string
+    enum: [all, workouts, nutrition, progress, goals, specific]
+    default: all
+    description: Scope of data to refresh
+  priority:
+    type: string
+    enum: [low, normal, high, urgent]
+    default: normal
+    description: Processing priority for refresh request
+  forceRecalculation:
+    type: boolean
+    default: false
+    description: Whether to force complete recalculation of analytics
+  timeframe:
+    type: string
+    enum: [1week, 2weeks, 1month, 3months, 6months, 1year, all]
+    default: 3months
+    description: Time period to refresh analytics for
+  specificMetrics:
+    type: array
+    items:
+      type: string
+      enum: [consistency, progress, strength, adherence, trends, patterns]
+    description: Specific metrics to refresh (only if scope is 'specific')
+  includeAIAnalysis:
+    type: boolean
+    default: true
+    description: Whether to refresh AI-powered analytics as well
+  asyncProcessing:
+    type: boolean
+    default: true
+    description: Whether to process refresh asynchronously
+  notifyOnCompletion:
+    type: boolean
+    default: false
+    description: Whether to send notification when refresh completes
+  reason:
+    type: string
+    maxLength: 500
+    description: Optional reason for manual refresh request 

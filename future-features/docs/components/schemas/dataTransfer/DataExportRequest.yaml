@@ -1,0 +1,40 @@
+type: object
+description: Request body for exporting user data in specified format
+required:
+  - format
+  - dataTypes
+properties:
+  format:
+    type: string
+    enum: ['json', 'csv', 'xlsx', 'pdf']
+    description: Export format for the data
+    example: json
+  dataTypes:
+    type: array
+    items:
+      type: string
+      enum: ['profiles', 'workouts', 'workout_logs']
+    minItems: 1
+    description: Array of data types to include in export
+    example: ['profiles', 'workouts']
+examples:
+  jsonExport:
+    summary: Export profiles and workouts as JSON
+    value:
+      format: json
+      dataTypes: ['profiles', 'workouts']
+  csvExport:
+    summary: Export all data as CSV
+    value:
+      format: csv
+      dataTypes: ['profiles', 'workouts', 'workout_logs']
+  xlsxExport:
+    summary: Export workout logs as Excel
+    value:
+      format: xlsx
+      dataTypes: ['workout_logs']
+  pdfExport:
+    summary: Export user profile as PDF
+    value:
+      format: pdf
+      dataTypes: ['profiles'] 

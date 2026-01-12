@@ -1,0 +1,71 @@
+description: Progress trends successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/ProgressTrendsResponse.yaml'
+    examples:
+      weight_loss_trend:
+        summary: Weight loss progress trends over 12 weeks
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            timeframe: "12 weeks"
+            groupBy: "week"
+            hasData: true
+            trends:
+              weight:
+                trend: "decreasing"
+                change: -5.2
+                percentChange: -6.8
+                values: [76.5, 76.1, 75.8, 75.2, 74.9, 74.5, 73.8, 73.2, 72.8, 72.1, 71.7, 71.3]
+                firstValue: 76.5
+                lastValue: 71.3
+              workouts:
+                completed: [2, 3, 3, 4, 4, 3, 4, 4, 5, 4, 4, 5]
+                difficulty: [6.5, 6.8, 7.0, 7.2, 7.5, 7.3, 7.8, 8.0, 8.2, 8.0, 8.5, 8.3]
+                satisfaction: [7.5, 8.0, 8.2, 8.5, 8.3, 8.0, 8.7, 8.5, 9.0, 8.8, 9.2, 9.0]
+              wellness:
+                mood: [7.0, 7.5, 7.8, 8.0, 8.2, 8.0, 8.5, 8.3, 8.7, 8.5, 8.8, 9.0]
+                sleep: [6.5, 7.0, 7.2, 7.5, 7.8, 7.5, 8.0, 7.8, 8.2, 8.0, 8.3, 8.5]
+                energy: [7.2, 7.8, 8.0, 8.3, 8.5, 8.2, 8.7, 8.5, 9.0, 8.8, 9.2, 9.0]
+                stress: [5.5, 5.0, 4.8, 4.2, 3.8, 4.0, 3.5, 3.2, 2.8, 3.0, 2.5, 2.2]
+            dataPoints: 12
+            lastUpdated: "2024-01-15T11:20:00Z"
+      muscle_gain_trend:
+        summary: Muscle gain progress trends with strength improvements
+        value:
+          status: success
+          data:
+            userId: "user_456"
+            timeframe: "16 weeks"
+            groupBy: "week"
+            hasData: true
+            trends:
+              weight:
+                trend: "increasing"
+                change: 3.8
+                percentChange: 5.2
+                values: [72.0, 72.2, 72.5, 72.8, 73.1, 73.4, 73.7, 74.0, 74.3, 74.6, 74.9, 75.2, 75.5, 75.7, 75.9, 75.8]
+                firstValue: 72.0
+                lastValue: 75.8
+              workouts:
+                completed: [4, 4, 5, 5, 4, 5, 5, 6, 5, 5, 6, 6, 5, 6, 6, 5]
+                difficulty: [7.0, 7.2, 7.5, 7.8, 8.0, 8.2, 8.5, 8.3, 8.7, 8.5, 8.8, 9.0, 8.8, 9.2, 9.0, 9.3]
+                satisfaction: [8.0, 8.2, 8.5, 8.7, 8.5, 8.8, 9.0, 8.8, 9.2, 9.0, 9.3, 9.5, 9.2, 9.7, 9.5, 9.8]
+              wellness:
+                mood: [8.0, 8.2, 8.5, 8.3, 8.7, 8.5, 8.8, 9.0, 8.8, 9.2, 9.0, 9.3, 9.1, 9.5, 9.3, 9.7]
+                sleep: [7.5, 7.8, 8.0, 7.8, 8.2, 8.0, 8.3, 8.5, 8.3, 8.7, 8.5, 8.8, 8.6, 9.0, 8.8, 9.2]
+                energy: [8.2, 8.5, 8.7, 8.5, 8.8, 9.0, 8.8, 9.2, 9.0, 9.3, 9.1, 9.5, 9.3, 9.7, 9.5, 9.8]
+                stress: [3.5, 3.2, 2.8, 3.0, 2.5, 2.2, 2.0, 2.3, 1.8, 2.0, 1.5, 1.2, 1.5, 1.0, 1.2, 0.8]
+            dataPoints: 16
+            lastUpdated: "2024-01-15T11:25:00Z" 

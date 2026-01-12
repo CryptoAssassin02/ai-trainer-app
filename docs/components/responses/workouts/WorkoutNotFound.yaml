@@ -1,0 +1,5 @@
+description: Workout plan not found
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/workouts/WorkoutNotFoundError.yaml' 

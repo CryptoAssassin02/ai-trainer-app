@@ -1,0 +1,123 @@
+description: Strength progression analytics successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/StrengthProgressionResponse.yaml'
+    examples:
+      comprehensive_strength:
+        summary: Comprehensive strength progression across all major lifts
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            timeframe: "6 months"
+            hasData: true
+            strengthProgression:
+              overall:
+                totalGain: 185.5
+                percentIncrease: 28.7
+                consistencyScore: 0.89
+                plateauPeriods: 2
+                breakthroughCount: 4
+              exercises:
+                - exerciseName: "Bench Press"
+                  currentMax: 95.0
+                  startingMax: 75.0
+                  totalGain: 20.0
+                  percentIncrease: 26.7
+                  sessions: 24
+                  lastImprovement: "2024-01-10T00:00:00Z"
+                  trend: "increasing"
+                  plateauDays: 0
+                - exerciseName: "Squat"
+                  currentMax: 120.0
+                  startingMax: 90.0
+                  totalGain: 30.0
+                  percentIncrease: 33.3
+                  sessions: 26
+                  lastImprovement: "2024-01-12T00:00:00Z"
+                  trend: "increasing"
+                  plateauDays: 0
+                - exerciseName: "Deadlift"
+                  currentMax: 140.0
+                  startingMax: 105.0
+                  totalGain: 35.0
+                  percentIncrease: 33.3
+                  sessions: 22
+                  lastImprovement: "2024-01-08T00:00:00Z"
+                  trend: "stable"
+                  plateauDays: 7
+              milestones:
+                - description: "First 100kg squat"
+                  achievedDate: "2023-11-15T00:00:00Z"
+                  significance: "major"
+                - description: "Bench press bodyweight"
+                  achievedDate: "2023-12-20T00:00:00Z"
+                  significance: "major"
+                - description: "200lb deadlift"
+                  achievedDate: "2024-01-05T00:00:00Z"
+                  significance: "minor"
+            lastUpdated: "2024-01-15T12:00:00Z"
+      beginner_progression:
+        summary: Beginner strength progression showing rapid initial gains
+        value:
+          status: success
+          data:
+            userId: "user_789"
+            timeframe: "3 months"
+            hasData: true
+            strengthProgression:
+              overall:
+                totalGain: 95.0
+                percentIncrease: 45.2
+                consistencyScore: 0.92
+                plateauPeriods: 0
+                breakthroughCount: 6
+              exercises:
+                - exerciseName: "Bench Press"
+                  currentMax: 60.0
+                  startingMax: 40.0
+                  totalGain: 20.0
+                  percentIncrease: 50.0
+                  sessions: 18
+                  lastImprovement: "2024-01-13T00:00:00Z"
+                  trend: "increasing"
+                  plateauDays: 0
+                - exerciseName: "Squat"
+                  currentMax: 80.0
+                  startingMax: 50.0
+                  totalGain: 30.0
+                  percentIncrease: 60.0
+                  sessions: 20
+                  lastImprovement: "2024-01-14T00:00:00Z"
+                  trend: "increasing"
+                  plateauDays: 0
+                - exerciseName: "Deadlift"
+                  currentMax: 100.0
+                  startingMax: 55.0
+                  totalGain: 45.0
+                  percentIncrease: 81.8
+                  sessions: 16
+                  lastImprovement: "2024-01-11T00:00:00Z"
+                  trend: "increasing"
+                  plateauDays: 0
+              milestones:
+                - description: "First month consistency"
+                  achievedDate: "2023-11-01T00:00:00Z"
+                  significance: "minor"
+                - description: "Doubled squat weight"
+                  achievedDate: "2023-12-15T00:00:00Z"
+                  significance: "major"
+                - description: "100kg deadlift"
+                  achievedDate: "2024-01-11T00:00:00Z"
+                  significance: "major"
+            lastUpdated: "2024-01-15T12:05:00Z" 

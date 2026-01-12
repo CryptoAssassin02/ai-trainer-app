@@ -1,0 +1,23 @@
+get:
+  tags:
+    - Analytics & Progress Tracking
+  summary: Analytics service health check
+  description: |
+    Health check endpoint for the analytics service to verify service availability and dependencies.
+    
+    **Public Endpoint:**
+    This endpoint does not require authentication and is used for monitoring service health.
+    
+    **Health Checks Include:**
+    - Database connectivity
+    - Redis cache availability
+    - AI service connectivity
+    - Background job queue status
+  operationId: getAnalyticsHealth
+  parameters: []
+  responses:
+    '200':
+      $ref: '../../components/responses/healthSystem/SystemHealthOK.yaml'
+    
+    '503':
+      $ref: '../../components/responses/healthSystem/HealthCheckFailed.yaml' 

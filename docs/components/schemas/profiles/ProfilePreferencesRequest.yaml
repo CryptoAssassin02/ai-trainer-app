@@ -1,0 +1,31 @@
+type: object
+minProperties: 1
+properties:
+  unitPreference:
+    type: string
+    enum: [metric, imperial]
+    description: Preferred unit system for measurements
+  goals:
+    type: array
+    items:
+      type: string
+    description: User's fitness objectives
+  equipment:
+    type: array
+    items:
+      type: string
+    description: Available fitness equipment
+  experienceLevel:
+    type: string
+    enum: [beginner, intermediate, advanced]
+    nullable: true
+    description: User's fitness experience level
+  workoutFrequency:
+    type: string
+    nullable: true
+    description: Preferred workout frequency
+description: Update user profile preferences - at least one field required
+example:
+  unitPreference: imperial
+  goals: ["weight_loss", "strength"]
+  workoutFrequency: "4x per week" 

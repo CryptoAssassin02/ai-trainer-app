@@ -1,0 +1,94 @@
+type: object
+description: Request body for storing a custom macro plan
+required:
+  - calories
+  - macros
+properties:
+  calories:
+    type: number
+    minimum: 800
+    maximum: 6000
+    description: Total daily calorie target
+    example: 2200
+  
+  macros:
+    type: object
+    required:
+      - protein
+      - carbs
+      - fat
+    properties:
+      protein:
+        type: number
+        minimum: 0
+        maximum: 400
+        description: Daily protein target in grams
+        example: 150
+      
+      carbs:
+        type: number
+        minimum: 0
+        maximum: 800
+        description: Daily carbohydrate target in grams
+        example: 220
+      
+      fat:
+        type: number
+        minimum: 0
+        maximum: 200
+        description: Daily fat target in grams
+        example: 73
+    additionalProperties: false
+    description: Macronutrient breakdown in grams
+  
+  bmr:
+    type: number
+    minimum: 800
+    maximum: 4000
+    description: Basal Metabolic Rate if known
+    example: 1680
+  
+  tdee:
+    type: number
+    minimum: 1000
+    maximum: 6000
+    description: Total Daily Energy Expenditure if known
+    example: 2604
+  
+  goalType:
+    type: string
+    enum:
+      - weight_loss
+      - maintenance
+      - muscle_gain
+      - performance
+      - custom
+    description: Goal associated with this macro plan
+    example: "muscle_gain"
+  
+  calorieAdjustment:
+    type: integer
+    minimum: -1000
+    maximum: 1000
+    description: Calorie adjustment from maintenance level
+    example: 300
+  
+  notes:
+    type: string
+    maxLength: 500
+    description: Optional notes about this macro plan
+    example: "Custom plan based on nutritionist recommendations"
+
+additionalProperties: false
+
+example:
+  calories: 2500
+  macros:
+    protein: 180
+    carbs: 250
+    fat: 83
+  bmr: 1750
+  tdee: 2700
+  goalType: "muscle_gain"
+  calorieAdjustment: 200
+  notes: "Bulking phase macro targets" 

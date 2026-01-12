@@ -1,0 +1,106 @@
+# E2E Testing Docker Compose Configuration
+# Extends the existing backend Docker setup for full-stack E2E testing
+# Usage: docker-compose -f docker-compose.e2e.yml up
+
+version: '3.8'
+
+services:
+  # Frontend service for E2E testing
+  frontend-e2e:
+    container_name: trainer_frontend_e2e
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "3000:3000"
+    environment:
+      # Point to local Supabase instance
+      - NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-your-local-anon-key}
+      - NODE_ENV=test
+    volumes:
+      # Mount source for hot-reloading during E2E development
+      - .:/app
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - e2e-network
+    depends_on:
+      - backend-e2e
+    command: >
+      sh -c '
+        echo "Waiting for backend to be ready..." &&
+        sleep 10 &&
+        echo "Starting frontend for E2E testing..." &&
+        npm run dev
+      '
+
+  # Backend service (extends existing backend setup)
+  backend-e2e:
+    container_name: trainer_backend_e2e
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "3001:3001"
+    environment:
+      # Use local Supabase for E2E tests
+      - NODE_ENV=test
+      - PORT=3001
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-your-local-anon-key}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-your-local-service-key}
+      # Database connection to local Supabase
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      # Other environment variables
+      - JWT_SECRET=${JWT_SECRET:-test-jwt-secret-for-e2e}
+      - CORS_ORIGIN=http://localhost:3000
+      # Disable external API calls for faster E2E tests (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    networks:
+      - e2e-network
+    extra_hosts:
+      # Allow container to reach host services (Supabase local)
+      - "host.docker.internal:host-gateway"
+
+  # Playwright test runner
+  playwright-e2e:
+    container_name: trainer_playwright_e2e
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    environment:
+      - NODE_ENV=test
+      - BASE_URL=http://frontend-e2e:3000
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-your-local-anon-key}
+    volumes:
+      - .:/app
+      - playwright_node_modules:/app/node_modules
+      # Mount test results and artifacts
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+    networks:
+      - e2e-network
+    depends_on:
+      - frontend-e2e
+      - backend-e2e
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles:
+      # Only start when explicitly requested
+      - e2e-test
+
+networks:
+  e2e-network:
+    driver: bridge
+
+volumes:
+  frontend_node_modules:
+  backend_node_modules:
+  playwright_node_modules:

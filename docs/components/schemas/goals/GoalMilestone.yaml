@@ -1,0 +1,365 @@
+type: object
+description: Goal milestone with detailed tracking, completion status, and progress metrics for intermediate goal achievements
+required:
+  - id
+  - goalId
+  - title
+  - targetValue
+  - targetDate
+  - status
+  - createdAt
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Unique identifier for this milestone
+    example: "milestone_001"
+  goalId:
+    type: string
+    format: uuid
+    description: Unique identifier for the parent goal
+    example: "456e7890-f12a-34b5-c678-def012345678"
+  title:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: Short, descriptive title for the milestone
+    example: "First 2.5kg"
+  description:
+    type: string
+    maxLength: 300
+    description: Detailed description of what this milestone represents
+    example: "Achieve the first quarter of weight loss goal to build momentum and confidence"
+  targetValue:
+    type: number
+    format: float
+    description: Target value for this milestone
+    example: 72.5
+  currentValue:
+    type: number
+    format: float
+    description: Current value towards this milestone
+    example: 72.5
+  targetDate:
+    type: string
+    format: date-time
+    description: Target completion date for this milestone
+    example: "2024-02-15T00:00:00Z"
+  status:
+    type: string
+    enum: [pending, active, completed, overdue, skipped, cancelled]
+    description: Current status of the milestone
+    example: completed
+  priority:
+    type: string
+    enum: [low, medium, high, critical]
+    description: Priority level of this milestone
+    default: medium
+    example: high
+  order:
+    type: integer
+    minimum: 1
+    description: Sequential order of this milestone within the goal
+    example: 1
+  progress:
+    type: object
+    description: Progress tracking for this milestone
+    properties:
+      percentage:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Progress percentage towards milestone (0-1)
+        example: 1.0
+      onTrack:
+        type: boolean
+        description: Whether milestone is on track for completion
+        example: true
+      daysRemaining:
+        type: integer
+        description: Days remaining until target date (negative if overdue)
+        example: 0
+      velocity:
+        type: number
+        format: float
+        description: Current progress velocity towards milestone
+        example: 0.15
+  completion:
+    type: object
+    description: Completion details (only present if status is completed)
+    properties:
+      completedDate:
+        type: string
+        format: date-time
+        description: Date when milestone was completed
+        example: "2024-01-15T00:00:00Z"
+      actualValue:
+        type: number
+        format: float
+        description: Actual value achieved at completion
+        example: 72.5
+      daysAheadOrBehind:
+        type: integer
+        description: Days completed ahead (positive) or behind (negative) schedule
+        example: 2
+      completionMethod:
+        type: string
+        enum: [automatic, manual, verified]
+        description: How completion was recorded
+        example: automatic
+      notes:
+        type: string
+        maxLength: 500
+        description: Completion notes or observations
+        example: "Achieved through consistent daily workouts and portion control"
+      celebration:
+        type: boolean
+        description: Whether milestone achievement was celebrated
+        example: true
+      celebrationMethod:
+        type: string
+        description: How the milestone was celebrated
+        example: "Treated myself to a healthy restaurant meal"
+  dependencies:
+    type: array
+    description: Other milestones that must be completed before this one
+    items:
+      type: string
+      format: uuid
+      description: ID of prerequisite milestone
+    example: []
+  rewards:
+    type: array
+    description: Rewards associated with completing this milestone
+    items:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          enum: [material, experience, social, achievement, health, financial]
+          description: Type of reward
+          example: material
+        description:
+          type: string
+          description: Description of the reward
+          example: "New workout outfit"
+        value:
+          type: number
+          format: float
+          description: Monetary value of reward (if applicable)
+          example: 50.0
+        claimed:
+          type: boolean
+          description: Whether reward has been claimed
+          example: true
+        claimedDate:
+          type: string
+          format: date-time
+          description: Date when reward was claimed
+          example: "2024-01-16T00:00:00Z"
+    example:
+      - type: material
+        description: "New workout outfit"
+        value: 50.0
+        claimed: true
+        claimedDate: "2024-01-16T00:00:00Z"
+  difficulty:
+    type: string
+    enum: [very_easy, easy, moderate, challenging, very_challenging]
+    description: Assessed difficulty level of this milestone
+    example: moderate
+  importance:
+    type: string
+    enum: [low, medium, high, critical]
+    description: Importance of this milestone to overall goal success
+    example: high
+  tags:
+    type: array
+    description: Tags for categorizing and filtering milestones
+    items:
+      type: string
+    example: ["weight-loss", "quarter-goal", "momentum-builder"]
+  reminders:
+    type: array
+    description: Reminder settings for this milestone
+    items:
+      type: object
+      required:
+        - type
+        - timing
+        - active
+      properties:
+        type:
+          type: string
+          enum: [deadline_approaching, progress_check, motivation, celebration]
+          description: Type of reminder
+          example: deadline_approaching
+        timing:
+          type: string
+          description: When to send the reminder
+          example: "3 days before target date"
+        message:
+          type: string
+          description: Custom reminder message
+          example: "You're almost at your first milestone! Keep pushing!"
+        active:
+          type: boolean
+          description: Whether reminder is active
+          example: true
+        channels:
+          type: array
+          description: Channels to send reminder through
+          items:
+            type: string
+            enum: [app_notification, email, sms, calendar]
+          example: ["app_notification", "email"]
+    example:
+      - type: deadline_approaching
+        timing: "3 days before target date"
+        message: "You're almost at your first milestone! Keep pushing!"
+        active: true
+        channels: ["app_notification", "email"]
+  metrics:
+    type: object
+    description: Detailed metrics and analytics for this milestone
+    properties:
+      timeToComplete:
+        type: integer
+        description: Days taken to complete milestone (if completed)
+        example: 43
+      averageDaily:
+        type: number
+        format: float
+        description: Average daily progress towards milestone
+        example: 0.055
+      efficiency:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Efficiency score for milestone achievement (0-1)
+        example: 0.89
+      consistency:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 1
+        description: Consistency score for milestone pursuit (0-1)
+        example: 0.82
+      motivationImpact:
+        type: string
+        enum: [very_negative, negative, neutral, positive, very_positive]
+        description: Impact of milestone completion on overall motivation
+        example: very_positive
+  adjustments:
+    type: array
+    description: Historical adjustments made to this milestone
+    items:
+      type: object
+      required:
+        - date
+        - type
+        - description
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date when adjustment was made
+          example: "2024-01-10T00:00:00Z"
+        type:
+          type: string
+          enum: [target_value, target_date, description, priority]
+          description: Type of adjustment
+          example: target_date
+        description:
+          type: string
+          description: Description of the adjustment and reason
+          example: "Extended target date by 1 week due to holiday travel"
+        previousValue:
+          type: string
+          description: Previous value before adjustment
+          example: "2024-02-08T00:00:00Z"
+        newValue:
+          type: string
+          description: New value after adjustment
+          example: "2024-02-15T00:00:00Z"
+        reason:
+          type: string
+          description: Reason for the adjustment
+          example: "Holiday travel disrupted routine"
+    example:
+      - date: "2024-01-10T00:00:00Z"
+        type: target_date
+        description: "Extended target date by 1 week due to holiday travel"
+        previousValue: "2024-02-08T00:00:00Z"
+        newValue: "2024-02-15T00:00:00Z"
+        reason: "Holiday travel disrupted routine"
+  createdAt:
+    type: string
+    format: date-time
+    description: Timestamp when milestone was created
+    example: "2024-01-01T10:00:00Z"
+  updatedAt:
+    type: string
+    format: date-time
+    description: Timestamp when milestone was last updated
+    example: "2024-01-15T10:30:00Z"
+examples:
+  - id: "milestone_001"
+    goalId: "456e7890-f12a-34b5-c678-def012345678"
+    title: "First 2.5kg"
+    description: "Achieve the first quarter of weight loss goal to build momentum and confidence"
+    targetValue: 72.5
+    currentValue: 72.5
+    targetDate: "2024-02-15T00:00:00Z"
+    status: completed
+    priority: high
+    order: 1
+    progress:
+      percentage: 1.0
+      onTrack: true
+      daysRemaining: 0
+      velocity: 0.15
+    completion:
+      completedDate: "2024-01-15T00:00:00Z"
+      actualValue: 72.5
+      daysAheadOrBehind: 2
+      completionMethod: automatic
+      notes: "Achieved through consistent daily workouts and portion control"
+      celebration: true
+      celebrationMethod: "Treated myself to a healthy restaurant meal"
+    dependencies: []
+    rewards:
+      - type: material
+        description: "New workout outfit"
+        value: 50.0
+        claimed: true
+        claimedDate: "2024-01-16T00:00:00Z"
+    difficulty: moderate
+    importance: high
+    tags: ["weight-loss", "quarter-goal", "momentum-builder"]
+    reminders:
+      - type: deadline_approaching
+        timing: "3 days before target date"
+        message: "You're almost at your first milestone! Keep pushing!"
+        active: true
+        channels: ["app_notification", "email"]
+    metrics:
+      timeToComplete: 43
+      averageDaily: 0.055
+      efficiency: 0.89
+      consistency: 0.82
+      motivationImpact: very_positive
+    adjustments:
+      - date: "2024-01-10T00:00:00Z"
+        type: target_date
+        description: "Extended target date by 1 week due to holiday travel"
+        previousValue: "2024-02-08T00:00:00Z"
+        newValue: "2024-02-15T00:00:00Z"
+        reason: "Holiday travel disrupted routine"
+    createdAt: "2024-01-01T10:00:00Z"
+    updatedAt: "2024-01-15T10:30:00Z" 

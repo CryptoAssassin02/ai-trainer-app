@@ -1,0 +1,117 @@
+get:
+  tags:
+    - Workout Management
+  summary: Get specific workout plan
+  description: |
+    Retrieve detailed information about a specific workout plan including all exercises,
+    AI reasoning, and generation metadata. Only the plan owner can access the plan.
+  operationId: getWorkoutPlan
+  parameters:
+    - name: planId
+      in: path
+      description: Unique workout plan identifier
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+  responses:
+    '200':
+      $ref: '../../components/responses/workouts/WorkoutPlanRetrieved.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '403':
+      $ref: '../../components/responses/workouts/WorkoutPermissionDenied.yaml'
+    '404':
+      $ref: '../../components/responses/workouts/WorkoutNotFound.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+post:
+  tags:
+    - Workout Management
+  summary: Adjust workout plan with AI
+  description: |
+    Modify an existing workout plan using AI-powered adjustment. Provide natural language
+    feedback or structured adjustment instructions. The AI will analyze the feedback and
+    apply appropriate modifications while maintaining safety and effectiveness.
+    Rate limited to 20 requests per hour per user.
+  operationId: adjustWorkoutPlan
+  parameters:
+    - name: planId
+      in: path
+      description: Unique workout plan identifier
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/workouts/WorkoutAdjustmentRequest.yaml'
+        examples:
+          natural_language:
+            summary: Natural language adjustment
+            value:
+              adjustments: "Make the workout more challenging and add more compound movements"
+              userContext:
+                recentPerformance: "Workouts have been feeling too easy"
+                energyLevels: high
+          structured_adjustment:
+            summary: Structured adjustment request
+            value:
+              adjustments:
+                exercisesToAdd: ["deadlifts", "pull-ups"]
+                exercisesToRemove: ["leg extensions"]
+                notesOrPreferences: "Focus more on functional movements"
+                intensityAdjustment: increase
+  responses:
+    '200':
+      $ref: '../../components/responses/workouts/WorkoutPlanAdjusted.yaml'
+    '400':
+      $ref: '../../components/responses/workouts/WorkoutValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '403':
+      $ref: '../../components/responses/workouts/WorkoutPermissionDenied.yaml'
+    '404':
+      $ref: '../../components/responses/workouts/WorkoutNotFound.yaml'
+    '422':
+      $ref: '../../components/responses/workouts/WorkoutAdjustmentFailed.yaml'
+    '429':
+      $ref: '../../components/responses/workouts/WorkoutRateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+delete:
+  tags:
+    - Workout Management
+  summary: Delete workout plan
+  description: |
+    Permanently delete a workout plan. This action cannot be undone. The plan
+    will be soft deleted to maintain data integrity for any associated workout logs.
+    Only the plan owner can delete the plan.
+  operationId: deleteWorkoutPlan
+  parameters:
+    - name: planId
+      in: path
+      description: Unique workout plan identifier
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+  responses:
+    '204':
+      description: Workout plan deleted successfully (no content)
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '403':
+      $ref: '../../components/responses/workouts/WorkoutPermissionDenied.yaml'
+    '404':
+      $ref: '../../components/responses/workouts/WorkoutNotFound.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

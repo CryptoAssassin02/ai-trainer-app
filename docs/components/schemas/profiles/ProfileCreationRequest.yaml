@@ -1,0 +1,119 @@
+type: object
+required: [unitPreference]
+properties:
+  name:
+    type: string
+    minLength: 2
+    maxLength: 100
+    nullable: true
+    description: User's display name
+    example: John Doe
+  age:
+    type: integer
+    minimum: 13
+    maximum: 120
+    nullable: true
+    description: User's age in years
+    example: 30
+  gender:
+    type: string
+    enum: [male, female, other, prefer_not_to_say, non-binary, ""]
+    nullable: true
+    description: User's gender identity
+    example: male
+  height:
+    oneOf:
+      - type: number
+        minimum: 0
+        description: Height in centimeters (metric)
+        example: 175.5
+      - type: object
+        required: [feet, inches]
+        properties:
+          feet:
+            type: integer
+            minimum: 0
+            description: Height in feet
+            example: 5
+          inches:
+            type: integer
+            minimum: 0
+            maximum: 11
+            description: Height in inches
+            example: 9
+        description: Height in feet and inches (imperial)
+    nullable: true
+    description: User's height (format depends on unit preference)
+  weight:
+    type: number
+    minimum: 0
+    nullable: true
+    description: User's weight (kg for metric, lbs for imperial)
+    example: 75.0
+  unitPreference:
+    type: string
+    enum: [metric, imperial]
+    description: Preferred unit system for measurements
+    example: metric
+  experienceLevel:
+    type: string
+    enum: [beginner, intermediate, advanced]
+    nullable: true
+    description: User's fitness experience level
+    example: intermediate
+  goals:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: User's fitness objectives
+    example: ["weight_loss", "muscle_gain"]
+  equipment:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Available fitness equipment
+    example: ["dumbbells", "resistance_bands"]
+  exercisePreferences:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Preferred exercise types (mapped to equipment field in storage)
+    example: ["cardio", "strength"]
+  equipmentPreferences:
+    type: array
+    items:
+      type: string
+    nullable: true
+    description: Preferred equipment types (mapped to equipment field in storage)
+    example: ["dumbbells", "resistance_bands"]
+  medicalConditions:
+    type: array
+    items:
+      type: string
+      minLength: 1
+      maxLength: 200
+      pattern: "^[a-zA-Z0-9\\s\\-.,()_]+$"
+    maxItems: 10
+    nullable: true
+    description: Medical conditions or limitations (healthcare data with sanitization)
+    example: ["lower back pain", "knee injury"]
+  workoutFrequency:
+    type: string
+    nullable: true
+    description: Preferred workout frequency
+    example: "3x per week"
+example:
+  name: John Doe
+  age: 30
+  gender: male
+  height: 175.5
+  weight: 75.0
+  unitPreference: metric
+  experienceLevel: intermediate
+  goals: ["weight_loss", "muscle_gain"]
+  equipment: ["dumbbells", "resistance_bands"]
+  medicalConditions: ["lower back pain"]
+  workoutFrequency: "3x per week" 

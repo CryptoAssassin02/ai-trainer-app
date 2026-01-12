@@ -1,0 +1,248 @@
+---
+alwaysApply: false
+---
+# Frontend-Backend Integration Rules
+
+This document contains essential rules and guidelines for implementing frontend-backend integration across all phases of the trAIner app development. These rules are based on proven patterns from comprehensive testing and debugging experience.
+
+## 🚨 Critical Foundation Rules
+
+### Rule #1: NEVER Call React Hooks Conditionally
+**React Hooks must be called at the top level of components in the exact same order every render.**
+
+This is React's most fundamental rule. Violations cause immediate runtime crashes and "Something went wrong" error pages.
+
+**Critical Rules:**
+- Never call hooks inside if statements, loops, or after early returns
+- All hooks (useState, useEffect, useCallback, useMemo, custom hooks) must be at the top level
+- Hooks must execute in the same order on every render
+- No conditional hook calls based on props, state, or any runtime values
+
+**Example:**
+```typescript
+// ❌ NEVER DO THIS - Causes runtime crashes
+function Component({ condition }) {
+  if (condition) {
+    const [state, setState] = useState(0); // FATAL ERROR
+  }
+  
+  if (!data) return null;
+  const [loading, setLoading] = useState(false); // FATAL ERROR - after early return
+}
+
+// ✅ CORRECT - All hooks at top level
+function Component({ condition }) {
+  const [state, setState] = useState(0); // Always called
+  const [loading, setLoading] = useState(false); // Always called
+  
+  if (!data) return null; // Early returns AFTER all hooks
+  
+  // Use conditional logic INSIDE hooks or after them
+  useEffect(() => {
+    if (condition) {
+      // Conditional logic inside hook is fine
+    }
+  }, [condition]);
+}
+```
+
+### Rule #2: Always Investigate Before Implementing
+**Never assume interfaces, APIs, or behaviors without explicit verification.**
+
+- Read actual implementation files before writing integration code
+- Use IDE navigation to examine real hook/component interfaces
+- Verify API response structures through testing or documentation
+- Document interface discoveries for team reference
+
+**Example:**
+```typescript
+// ❌ Don't assume interface structure
+const { state, actions } = useErrorRecovery(operation);
+
+// ✅ Verify actual interface first
+const recovery = useErrorRecovery(operation);
+// Hook actually returns: { isLoading, error, execute, retry, reset, clearError }
+```
+
+### Rule #2: Fix Foundation Issues First
+**TypeScript and linter errors are system blockers that must be resolved before debugging logic.**
+
+- Resolve all linter/TypeScript errors before testing integration logic
+- These errors often cascade and hide real issues
+- Treat compilation errors as blockers, not warnings
+- Clean foundations enable clear problem identification
+
+**Priority Order:**
+1. Compilation/TypeScript errors
+2. Import/export issues
+3. Component logic
+4. Edge cases
+5. Environment-specific issues
+
+### Rule #3: Test Environment Limitations Are Real
+**Plan for test environment constraints and implement fallback strategies.**
+
+- Browser APIs behave differently in test environments
+- Event listeners may not trigger reliably in Jest
+- Some UI library components have inconsistent Jest module resolution
+- Plan polling mechanisms as fallbacks for unreliable event-driven features
+
+**Example:**
+```typescript
+// ❌ Relying only on event listeners in tests
+window.addEventListener('online', handleOnline);
+
+// ✅ Include polling fallback for test reliability
+useEffect(() => {
+  const interval = setInterval(() => {
+    if (navigator.onLine !== isOnline) {
+      setIsOnline(navigator.onLine);
+    }
+  }, 100);
+  return () => clearInterval(interval);
+}, [isOnline]);
+```
+
+## 🔧 Implementation Guidelines
+
+### Authentication & API Client
+- Use Supabase Auth exclusively - no custom auth endpoints
+- Implement automatic token refresh in API client interceptors
+- Configure operation-specific timeouts (45s for AI operations, 15s for CRUD)
+- Always include proper error handling and retry logic
+
+### Error Handling Patterns
+- Mock complex dependencies early in testing
+- Test user-visible behavior, not internal state
+- Embrace error boundary behavior - they replace components during errors
+- Implement comprehensive error classification (retryable vs non-retryable)
+
+### State Management
+- Use React Query for server state management
+- Implement proper caching strategies (5-10 minute stale times)
+- Handle loading states appropriately for long AI operations
+- Manage optimistic updates for better user experience
+
+### Component Architecture
+- Create specialized components for AI reasoning visualization
+- Implement proper loading states for all async operations
+- Build reusable error display components
+- Use consistent patterns for form validation and submission
+
+## 🧪 Testing Approach
+
+### Test Strategy Rules
+1. **Read test requirements completely before implementation**
+2. **Verify all mocks exist and are complete before running tests**
+3. **Use progressive debugging: compilation → imports → logic → edge cases**
+4. **Focus on user experience over implementation details**
+5. **Create comprehensive mock checklists for UI dependencies**
+
+### Mock Management
+- Mock external dependencies with complex side effects
+- Verify icon imports individually (some Lucide React icons fail in Jest)
+- Use strategic replacement with known working components
+- Create stable test environments through proper isolation
+
+### Async Testing Patterns
+- Use Jest fake timers with specific time advances
+- Avoid `jest.runAllTimers()` with complex timeout chains
+- Implement proper Promise wrapping for setTimeout operations
+- Test network reconnection scenarios with specialized retry logic
+
+## 🚦 Development Process
+
+### Pre-Implementation Checklist
+- [ ] Review API documentation and response structures
+- [ ] Verify authentication requirements and token handling
+- [ ] Check for required environment variables and configuration
+- [ ] Identify complex dependencies that need mocking
+- [ ] Plan for operation-specific timeout requirements
+
+### During Implementation
+- [ ] Fix compilation errors before logic implementation
+- [ ] Test API connectivity early and often
+- [ ] Implement proper loading and error states
+- [ ] Add comprehensive logging for debugging
+- [ ] Validate user experience at each integration point
+
+### Post-Implementation Validation
+- [ ] Test end-to-end user workflows
+- [ ] Verify error handling across all failure scenarios
+- [ ] Confirm performance meets targets (LCP < 2.5s, API < 500ms)
+- [ ] Validate accessibility and responsive design
+- [ ] Document any workarounds or environment-specific adaptations
+
+## 🚧 Critical Anti-Patterns to Avoid
+
+### Never Do These:
+1. **Mock AI services when testing actual intelligence** - Use real API calls for validation
+2. **Assume response structures without verification** - Always check actual API responses
+3. **Ignore Jest environment limitations** - Plan for module resolution issues
+4. **Test internal state instead of user behavior** - Focus on UI interactions
+5. **Skip progressive debugging phases** - Fix issues systematically
+6. **Use production rate limits in tests** - Configure test-friendly timeouts
+7. **Fight error boundary behavior** - Design tests around error replacement
+8. **Assume all external library components work in Jest** - Test individually
+
+### Architecture Mistakes:
+- Don't mix authentication patterns across endpoints
+- Don't hardcode AI response formats - implement flexible parsing
+- Don't ignore network error scenarios in user flows
+- Don't skip real-time feature testing with proper cleanup
+
+## 📊 Success Metrics
+
+### Performance Targets
+- **API Response Times**: < 500ms for standard operations
+- **AI Operations**: < 45s for workout generation
+- **Core Web Vitals**: LCP < 2.5s, INP < 200ms, CLS < 0.1
+- **Test Coverage**: > 80% for critical integration paths
+
+### Quality Indicators
+- All authentication flows work end-to-end
+- AI integrations provide meaningful user feedback
+- Error handling provides clear, actionable guidance
+- Real-time features update reliably
+- Data persistence works across sessions
+
+## 🎯 Quick Reference for Common Scenarios
+
+### When API Integration Fails:
+1. Check authentication token validity
+2. Verify environment variable configuration
+3. Confirm API endpoint accessibility
+4. Review request/response structure matching
+5. Test with simplified request first
+
+### When Tests Are Failing:
+1. Fix linter errors first
+2. Verify mock completeness
+3. Check interface assumptions
+4. Use progressive debugging approach
+5. Focus on user behavior validation
+
+### When Performance Issues Arise:
+1. Check API timeout configurations
+2. Verify caching strategy implementation
+3. Review bundle size and code splitting
+4. Test with production-like data volumes
+5. Monitor real user metrics
+
+## 📚 Reference Documentation
+
+For deeper implementation details, refer to:
+- `/docs/frontend-integration/` - Comprehensive integration guides
+- `/docs/components/` - OpenAPI schema definitions
+- `/__tests__/error-handling/docs/` - Testing pattern examples
+- Backend API documentation for endpoint specifications
+
+## 🔄 Continuous Improvement
+
+This document evolves based on discovered patterns and challenges. Add new rules when:
+- Identifying recurring debugging patterns
+- Discovering test environment limitations
+- Finding new integration anti-patterns
+- Establishing successful architectural patterns
+
+Remember: These rules exist to prevent known issues and accelerate development. When in doubt, prioritize user experience and systematic problem-solving over quick fixes.

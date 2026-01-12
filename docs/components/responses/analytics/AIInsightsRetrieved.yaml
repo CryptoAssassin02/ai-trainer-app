@@ -1,0 +1,114 @@
+description: AI-powered insights successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/AIInsightsResponse.yaml'
+    examples:
+      comprehensive_insights:
+        summary: Comprehensive AI insights covering multiple focus areas
+        value:
+          status: success
+          data:
+            insights:
+              - category: "performance"
+                type: "strength_progression"
+                title: "Exceptional Upper Body Progress"
+                description: "Your bench press has improved 18% over the last month, outpacing the typical 8-12% monthly improvement for your experience level."
+                confidence: 0.92
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Continue current progressive overload strategy"
+                  - "Consider adding accessory exercises for triceps"
+                supportingData:
+                  currentMax: 85
+                  previousMax: 72
+                  percentIncrease: 18.1
+                  peerComparison: "95th percentile"
+              - category: "adherence"
+                type: "consistency_pattern"
+                title: "Strong Weekend Adherence"
+                description: "You maintain 95% workout adherence on weekends compared to 78% on weekdays, suggesting scheduling flexibility improves consistency."
+                confidence: 0.88
+                priority: "medium"
+                actionable: true
+                recommendations:
+                  - "Schedule more flexible weekday workout times"
+                  - "Prepare contingency plans for busy weekdays"
+                supportingData:
+                  weekendAdherence: 0.95
+                  weekdayAdherence: 0.78
+                  difference: 0.17
+              - category: "wellness"
+                type: "recovery_optimization"
+                title: "Sleep Quality Correlation"
+                description: "Your workout performance increases by 15% following nights with 8+ hours of sleep, indicating recovery is crucial for your training."
+                confidence: 0.85
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Prioritize 8+ hours of sleep before heavy training days"
+                  - "Consider sleep hygiene optimization"
+                supportingData:
+                  performanceWithGoodSleep: 8.2
+                  performanceWithPoorSleep: 7.1
+                  correlation: 0.73
+            metadata:
+              aiGenerated: true
+              model: "gpt-4-turbo"
+              generatedAt: "2024-01-15T16:00:00Z"
+              focusAreas: ["performance", "adherence", "wellness"]
+              confidence: 0.88
+              dataPointsAnalyzed: 342
+            processingTime: 2.8
+      focused_motivation:
+        summary: AI insights focused on motivation and habit formation
+        value:
+          status: success
+          data:
+            insights:
+              - category: "motivation"
+                type: "habit_formation"
+                title: "21-Day Streak Achievement"
+                description: "You've maintained consistent logging for 21 days, indicating strong habit formation. Research shows this is a critical milestone for sustainable behavior change."
+                confidence: 0.95
+                priority: "high"
+                actionable: true
+                recommendations:
+                  - "Celebrate this milestone to reinforce positive behavior"
+                  - "Set next goal of 90 days for long-term habit solidification"
+                supportingData:
+                  currentStreak: 21
+                  longestStreak: 21
+                  habitStrength: "strong"
+              - category: "motivation"
+                type: "progress_recognition"
+                title: "Undervalued Progress"
+                description: "Your satisfaction scores (6.8/10) don't reflect your actual progress metrics, which show you're in the top 25% of users with similar goals."
+                confidence: 0.82
+                priority: "medium"
+                actionable: true
+                recommendations:
+                  - "Review your progress metrics weekly"
+                  - "Adjust expectations to match realistic timelines"
+                supportingData:
+                  satisfactionScore: 6.8
+                  objectiveProgress: 0.78
+                  peerPercentile: 75
+            metadata:
+              aiGenerated: true
+              model: "gpt-4-turbo"
+              generatedAt: "2024-01-15T16:05:00Z"
+              focusAreas: ["motivation"]
+              confidence: 0.89
+              dataPointsAnalyzed: 189
+            processingTime: 1.9 

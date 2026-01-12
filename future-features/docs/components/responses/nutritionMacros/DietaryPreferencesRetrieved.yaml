@@ -1,0 +1,29 @@
+description: Dietary preferences retrieved successfully
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/DietaryPreferencesResponse.yaml'
+    examples:
+      vegetarian_preferences:
+        summary: Vegetarian dietary preferences
+        description: User's vegetarian dietary preferences with restrictions
+        value:
+          status: "success"
+          message: "Dietary preferences retrieved successfully"
+          data:
+            id: "550e8400-e29b-41d4-a716-446655440000"
+            userId: "123e4567-e89b-12d3-a456-426614174000"
+            dietType: "vegetarian"
+            mealFrequency: 4
+            mealTimingPrefs: "Small breakfast, large lunch"
+            timeConstraints: "Quick prep meals on weekdays"
+            restrictions: ["dairy-free"]
+            allergies: ["shellfish"]
+            dislikedFoods: ["spinach"]
+            preferredCuisine: "Mediterranean"
+            performanceGoals: "Better recovery after workouts"
+            updatedAt: "2024-01-15T10:30:00Z"
+            createdAt: "2024-01-10T09:15:00Z" 

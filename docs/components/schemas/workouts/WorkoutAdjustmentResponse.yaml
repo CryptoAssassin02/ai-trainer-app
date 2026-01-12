@@ -1,0 +1,23 @@
+type: object
+required: [status, data]
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+  data:
+    $ref: './WorkoutAdjustmentResult.yaml'
+example:
+  status: success
+  data:
+    adjustedPlan:
+      planName: "Enhanced Upper Body Strength"
+      exercises:
+        - name: "Barbell Bench Press"
+          sets: 5
+          reps: "5-6"
+    appliedChanges:
+      - type: "sets_increased"
+        description: "Increased bench press sets from 4 to 5"
+        reason: "User requested more challenging workout"
+    feedbackSummary: "User wants more challenging upper body workout" 

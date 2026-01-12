@@ -1,0 +1,25 @@
+type: object
+required: [status, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Workout not found error message
+    example: "Workout plan not found"
+  planId:
+    type: string
+    format: uuid
+    nullable: true
+    description: The plan ID that was requested
+  userId:
+    type: string
+    format: uuid
+    nullable: true
+    description: The user ID making the request
+example:
+  status: error
+  message: Workout plan not found
+  planId: 550e8400-e29b-41d4-a716-446655440000 

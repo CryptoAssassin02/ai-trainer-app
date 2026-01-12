@@ -1,0 +1,61 @@
+description: Meal logs retrieved successfully with pagination
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MealLogsListResponse.yaml'
+    examples:
+      daily_meal_logs:
+        summary: Daily meal logs
+        description: List of meal logs for a specific day with pagination
+        value:
+          status: "success"
+          message: "Meal logs retrieved successfully"
+          data:
+            - id: "550e8400-e29b-41d4-a716-446655440000"
+              userId: "123e4567-e89b-12d3-a456-426614174000"
+              mealName: "Breakfast"
+              mealType: "breakfast"
+              foods:
+                - name: "Oatmeal"
+                  portionSize: 100
+                  units: "grams"
+                  protein_g: 13.2
+                  carbs_g: 67
+                  fat_g: 7
+                  calories: 389
+              macrosConsumed:
+                protein_g: 13.2
+                carbs_g: 67
+                fat_g: 7
+                calories: 389
+              loggedAt: "2024-01-15T07:30:00Z"
+              createdAt: "2024-01-15T07:35:00Z"
+            - id: "660e8400-e29b-41d4-a716-446655440000"
+              userId: "123e4567-e89b-12d3-a456-426614174000"
+              mealName: "Lunch"
+              mealType: "lunch"
+              foods:
+                - name: "Grilled chicken"
+                  portionSize: 150
+                  units: "grams"
+                  protein_g: 31
+                  carbs_g: 0
+                  fat_g: 3.6
+                  calories: 165
+              macrosConsumed:
+                protein_g: 31
+                carbs_g: 0
+                fat_g: 3.6
+                calories: 165
+              loggedAt: "2024-01-15T12:30:00Z"
+              createdAt: "2024-01-15T12:35:00Z"
+          pagination:
+            total: 15
+            page: 1
+            pageSize: 10
+            totalPages: 2
+            hasNextPage: true
+            hasPreviousPage: false 

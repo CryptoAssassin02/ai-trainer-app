@@ -1,0 +1,55 @@
+type: object
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: success
+  data:
+              $ref: './MobileNotificationPreferences.yaml' 
+  metadata:
+    type: object
+    required:
+      - lastUpdated
+      - optimizedForMobile
+      - payloadSize
+    properties:
+      lastUpdated:
+        type: string
+        format: date-time
+        description: When notification preferences were last modified
+        example: "2024-01-01T10:00:00Z"
+      optimizedForMobile:
+        type: boolean
+        description: Indicates mobile optimization applied
+        example: true
+      payloadSize:
+        type: integer
+        description: Response payload size in bytes
+        example: 2500
+      deviceCapabilities:
+        type: object
+        description: Device-specific notification capabilities detected
+        properties:
+          pushNotifications:
+            type: boolean
+            example: true
+          richNotifications:
+            type: boolean
+            example: true
+          scheduledNotifications:
+            type: boolean
+            example: true
+          badgeCount:
+            type: boolean
+            example: true
+      syncStatus:
+        type: string
+        enum: [synced, pending_sync, sync_failed]
+        description: Synchronization status of preferences across devices
+        example: synced
+description: Response containing mobile notification preferences with device capability metadata 

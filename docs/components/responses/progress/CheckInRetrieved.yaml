@@ -1,0 +1,110 @@
+description: Specific check-in successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/progress/CheckInResponse.yaml'
+    examples:
+      detailed_check_in:
+        summary: Complete check-in with full measurement history
+        value:
+          status: success
+          data:
+            checkInId: "ci_789abc123"
+            userId: "user_123"
+            date: "2024-01-15"
+            weight: 77.5
+            bodyFatPercentage: 18.2
+            measurements:
+              waist: 85.5
+              chest: 102.0
+              arms: 35.8
+              legs: 58.2
+              hips: 95.0
+              shoulders: 118.5
+              neck: 38.0
+            wellnessMetrics:
+              mood: 8
+              sleepQuality: 7
+              energyLevel: 8
+              stressLevel: 3
+            notes: "Great progress this week! Feeling stronger and more energetic."
+            createdAt: "2024-01-15T08:30:00Z"
+            updatedAt: "2024-01-15T08:30:00Z"
+            progressSummary:
+              weightChange: -0.8
+              bodyFatChange: -0.5
+              overallTrend: "positive"
+              comparedToPrevious:
+                days: 7
+                weightDifference: -0.8
+                bodyFatDifference: -0.5
+                moodImprovement: 1
+              comparedToBaseline:
+                weightDifference: -4.5
+                bodyFatDifference: -3.8
+                daysSinceStart: 45
+            contextData:
+              previousCheckIn:
+                date: "2024-01-08"
+                weight: 78.3
+                bodyFatPercentage: 18.7
+              nextScheduledCheckIn: "2024-01-22"
+              checkInFrequency: "weekly"
+          metadata:
+            dataQuality: 0.95
+            completeness: "full"
+            lastUpdated: "2024-01-15T08:30:00Z"
+            editable: true
+      milestone_check_in:
+        summary: Check-in marking a significant milestone
+        value:
+          status: success
+          data:
+            checkInId: "ci_milestone_001"
+            userId: "user_456"
+            date: "2024-01-15"
+            weight: 75.0
+            bodyFatPercentage: 15.0
+            measurements:
+              waist: 80.0
+              chest: 105.0
+            wellnessMetrics:
+              mood: 10
+              sleepQuality: 9
+              energyLevel: 9
+              stressLevel: 2
+            notes: "Hit my goal weight! 25 pounds lost in 6 months. Feeling amazing!"
+            createdAt: "2024-01-15T07:00:00Z"
+            progressSummary:
+              weightChange: -0.5
+              bodyFatChange: -0.8
+              overallTrend: "positive"
+              milestone: true
+              goalAchieved: "weight_loss_goal"
+              comparedToBaseline:
+                weightDifference: -25.0
+                bodyFatDifference: -8.5
+                daysSinceStart: 180
+            achievements:
+              - type: "weight_goal"
+                title: "Goal Weight Achieved"
+                description: "Reached target weight of 75kg"
+                unlockedAt: "2024-01-15T07:00:00Z"
+              - type: "consistency"
+                title: "6-Month Consistency"
+                description: "Maintained regular check-ins for 6 months"
+                unlockedAt: "2024-01-15T07:00:00Z"
+          metadata:
+            dataQuality: 0.98
+            completeness: "full"
+            milestone: true
+            lastUpdated: "2024-01-15T07:00:00Z" 

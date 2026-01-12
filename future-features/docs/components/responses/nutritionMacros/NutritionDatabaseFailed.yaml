@@ -1,0 +1,32 @@
+description: Database error occurred during nutrition operation
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/NutritionDatabaseError.yaml'
+    examples:
+      save_nutrition_plan_failed:
+        summary: Failed to save nutrition plan
+        description: Database error when saving nutrition plan
+        value:
+          status: "error"
+          error: "NUTRITION_DATABASE_ERROR"
+          message: "Failed to save nutrition plan to database"
+          details:
+            operation: "INSERT"
+            table: "nutrition_plans"
+          timestamp: "2024-01-15T10:30:00Z"
+      
+      meal_log_save_failed:
+        summary: Failed to save meal log
+        description: Database error when saving meal log
+        value:
+          status: "error"
+          error: "NUTRITION_DATABASE_ERROR"
+          message: "Failed to save meal log to database"
+          details:
+            operation: "INSERT"
+            table: "meal_logs"
+          timestamp: "2024-01-15T10:30:00Z" 

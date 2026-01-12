@@ -1,0 +1,11 @@
+name: page
+in: query
+description: Page number for pagination (1-based)
+schema:
+  type: integer
+  minimum: 1
+  default: 1
+  example: 1
+required: false
+style: form
+explode: false 

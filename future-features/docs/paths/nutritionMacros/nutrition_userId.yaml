@@ -1,0 +1,33 @@
+get:
+  tags:
+    - Nutrition & Macros
+  summary: Get nutrition plan for specific user
+  description: |
+    Retrieve nutrition plan for a specific user by user ID.
+    
+    **Note:** Currently has same access permissions as regular user endpoint.
+    May be enhanced with admin-only access in future versions.
+  operationId: getNutritionPlanByUserId
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      description: ID of the user whose nutrition plan to retrieve
+      schema:
+        type: string
+        format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+  responses:
+    '200':
+      $ref: '../../components/responses/nutritionMacros/NutritionPlanRetrieved.yaml'
+    
+    '401':
+      $ref: '../../components/responses/nutritionMacros/NutritionAuthenticationRequired.yaml'
+    
+    '404':
+      $ref: '../../components/responses/nutritionMacros/NutritionNotFound.yaml'
+    
+    '500':
+      $ref: '../../components/responses/nutritionMacros/NutritionDatabaseFailed.yaml' 

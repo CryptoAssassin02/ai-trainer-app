@@ -1,0 +1,61 @@
+type: object
+description: Rate limit exceeded error for nutrition endpoints
+required:
+  - status
+  - error
+  - message
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+    example: "error"
+  
+  error:
+    type: string
+    enum: [NUTRITION_RATE_LIMIT_EXCEEDED]
+    description: Error type identifier
+    example: "NUTRITION_RATE_LIMIT_EXCEEDED"
+  
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Rate limit exceeded for nutrition operations"
+  
+  details:
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: Rate limit threshold
+        example: 5
+      
+      window:
+        type: string
+        description: Rate limit time window
+        example: "1 hour"
+      
+      retryAfter:
+        type: integer
+        description: Seconds until rate limit resets
+        example: 3600
+    additionalProperties: false
+    description: Rate limit details
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: When the error occurred
+    example: "2024-01-15T10:30:00Z"
+
+additionalProperties: false
+
+example:
+  status: "error"
+  error: "NUTRITION_RATE_LIMIT_EXCEEDED"
+  message: "Too many nutrition calculation requests. Please try again later."
+  details:
+    limit: 5
+    window: "1 hour"
+    retryAfter: 3600
+  timestamp: "2024-01-15T10:30:00Z" 

@@ -1,0 +1,19 @@
+description: Validation failed for workout log data
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/workoutLogs/WorkoutLogValidationError.yaml'
+    example:
+      status: "error"
+      message: "Validation failed for workout log data"
+      errors:
+        - field: "exercises_completed"
+          message: "Must contain at least one exercise"
+          value: []
+        - field: "overall_difficulty"
+          message: "Must be between 1 and 10"
+          value: 15
+        - field: "date"
+          message: "Invalid date format"
+          value: "2025-13-40"
+      timestamp: "2025-01-15T18:30:00Z" 

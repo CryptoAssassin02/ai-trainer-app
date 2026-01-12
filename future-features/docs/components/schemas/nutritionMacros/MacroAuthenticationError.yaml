@@ -1,0 +1,50 @@
+type: object
+description: Authentication error for macro endpoints
+required:
+  - status
+  - error
+  - message
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+    example: "error"
+  
+  error:
+    type: string
+    enum: [MACRO_AUTHENTICATION_ERROR]
+    description: Error type identifier
+    example: "MACRO_AUTHENTICATION_ERROR"
+  
+  message:
+    type: string
+    description: Human-readable error message
+    example: "Authentication required to access macro data"
+  
+  details:
+    type: object
+    properties:
+      reason:
+        type: string
+        enum: [missing_token, invalid_token, expired_token, insufficient_permissions]
+        description: Specific authentication failure reason
+        example: "invalid_token"
+    additionalProperties: false
+    description: Authentication error details
+  
+  timestamp:
+    type: string
+    format: date-time
+    description: When the error occurred
+    example: "2024-01-15T10:30:00Z"
+
+additionalProperties: false
+
+example:
+  status: "error"
+  error: "MACRO_AUTHENTICATION_ERROR"
+  message: "Invalid or expired authentication token"
+  details:
+    reason: "expired_token"
+  timestamp: "2024-01-15T10:30:00Z" 

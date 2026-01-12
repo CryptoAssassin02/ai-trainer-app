@@ -1,0 +1,94 @@
+type: object
+required: [goalId]
+properties:
+  goalId:
+    type: string
+    format: uuid
+    description: ID of the goal to predict
+  predictionType:
+    type: string
+    enum: [completion_probability, timeline_estimate, milestone_prediction, risk_assessment, adjustment_recommendations]
+    default: completion_probability
+    description: Type of prediction to generate
+  timeHorizon:
+    type: string
+    enum: [1week, 2weeks, 1month, 3months, 6months, 1year, goal_completion]
+    default: goal_completion
+    description: Time horizon for predictions
+  includeScenarios:
+    type: boolean
+    default: false
+    description: Whether to include best/worst case scenarios
+  scenarioFactors:
+    type: array
+    items:
+      type: string
+      enum: [motivation_change, consistency_improvement, external_support, life_changes, health_issues]
+    description: Factors to consider in scenario analysis
+  contextualFactors:
+    type: object
+    properties:
+      currentTrend:
+        type: string
+        enum: [improving, stable, declining, irregular]
+        description: Current progress trend
+      recentChanges:
+        type: array
+        items:
+          type: string
+        description: Recent life or routine changes
+      supportSystem:
+        type: string
+        enum: [strong, moderate, weak, none]
+        description: Level of support system
+      previousExperience:
+        type: string
+        enum: [beginner, some_experience, experienced, expert]
+        description: User's experience level with this goal type
+    description: Additional context for more accurate predictions
+  confidenceLevel:
+    type: string
+    enum: [low, medium, high]
+    default: medium
+    description: Desired confidence level for predictions
+  includeRecommendations:
+    type: boolean
+    default: true
+    description: Whether to include actionable recommendations
+  riskTolerance:
+    type: string
+    enum: [conservative, moderate, aggressive]
+    default: moderate
+    description: Risk tolerance for goal adjustments
+  includeAlternatives:
+    type: boolean
+    default: false
+    description: Whether to suggest alternative goals if current goal seems unrealistic
+  dataQualityThreshold:
+    type: string
+    enum: [low, medium, high]
+    default: medium
+    description: Minimum data quality required for predictions
+  modelPreference:
+    type: string
+    enum: [statistical, ml_based, hybrid, ai_enhanced]
+    default: hybrid
+    description: Preferred prediction model type
+  includeUncertainty:
+    type: boolean
+    default: true
+    description: Whether to include uncertainty bounds in predictions
+  personalizeFactors:
+    type: array
+    items:
+      type: string
+      enum: [age, gender, fitness_level, medical_history, lifestyle, preferences]
+    description: Personal factors to weight more heavily in predictions
+  compareToSimilarUsers:
+    type: boolean
+    default: false
+    description: Whether to include comparisons with similar users (anonymized)
+  includeMotivationalInsights:
+    type: boolean
+    default: true
+    description: Whether to include motivational insights and tips 

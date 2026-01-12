@@ -1,0 +1,58 @@
+type: object
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: success
+  data:
+              $ref: './MobilePeerComparison.yaml'
+  metadata:
+    type: object
+    required:
+      - optimizedForMobile
+      - payloadSize
+      - cacheUntil
+      - anonymizationLevel
+    properties:
+      optimizedForMobile:
+        type: boolean
+        description: Indicates mobile optimization applied
+        example: true
+      payloadSize:
+        type: integer
+        description: Response payload size in bytes
+        maximum: 50000
+        example: 18000
+      cacheUntil:
+        type: string
+        format: date-time
+        description: Cache expiration timestamp
+        example: "2024-01-01T12:10:00Z"
+      anonymizationLevel:
+        type: string
+        enum: [basic, enhanced, full]
+        description: Level of user data anonymization applied
+        example: enhanced
+      peerGroupSize:
+        type: integer
+        description: Total number of users in peer comparison group
+        minimum: 10
+        example: 150
+      comparisonAccuracy:
+        type: number
+        format: float
+        description: Accuracy score of peer comparison (0.0-1.0)
+        minimum: 0.0
+        maximum: 1.0
+        example: 0.85
+      lastRefreshed:
+        type: string
+        format: date-time
+        description: When peer comparison data was last refreshed
+        example: "2024-01-01T10:30:00Z"
+description: Response containing mobile-optimized peer comparison analytics with anonymization and caching metadata 

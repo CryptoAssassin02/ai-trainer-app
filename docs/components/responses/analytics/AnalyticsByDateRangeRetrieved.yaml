@@ -1,0 +1,85 @@
+description: Analytics data for specified date range successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/AnalyticsOverviewResponse.yaml'
+    examples:
+      custom_date_range:
+        summary: Analytics for custom 6-week date range
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            timeframe: "custom"
+            dateRange:
+              startDate: "2023-12-01T00:00:00Z"
+              endDate: "2024-01-12T23:59:59Z"
+            hasData: true
+            overview:
+              workouts:
+                completed: 18
+                totalExercises: 135
+                avgDifficulty: 7.8
+                avgSatisfaction: 8.2
+                consistency: 0.78
+              physical:
+                currentWeight: 73.5
+                weightChange: -1.8
+                currentBodyFat: 17.2
+                bodyFatChange: -0.9
+              wellness:
+                overallScore: 8.0
+                mood: 7.8
+                sleep: 7.5
+                energy: 8.2
+                stress: 3.5
+              adherence:
+                workout: 0.82
+                nutrition: 0.76
+                overall: 0.79
+            dataQuality: 0.88
+            lastUpdated: "2024-01-15T15:00:00Z"
+      holiday_period:
+        summary: Analytics during holiday period showing reduced activity
+        value:
+          status: success
+          data:
+            userId: "user_456"
+            timeframe: "custom"
+            dateRange:
+              startDate: "2023-12-20T00:00:00Z"
+              endDate: "2024-01-05T23:59:59Z"
+            hasData: true
+            overview:
+              workouts:
+                completed: 8
+                totalExercises: 60
+                avgDifficulty: 6.5
+                avgSatisfaction: 7.8
+                consistency: 0.47
+              physical:
+                currentWeight: 76.2
+                weightChange: 1.2
+                currentBodyFat: 19.8
+                bodyFatChange: 0.5
+              wellness:
+                overallScore: 7.2
+                mood: 8.5
+                sleep: 6.8
+                energy: 7.0
+                stress: 4.2
+              adherence:
+                workout: 0.53
+                nutrition: 0.68
+                overall: 0.61
+            dataQuality: 0.72
+            lastUpdated: "2024-01-15T15:05:00Z" 

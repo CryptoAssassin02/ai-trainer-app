@@ -1,0 +1,358 @@
+type: object
+description: Comprehensive goal target specification with value, units, measurement type, and achievement criteria
+required:
+  - value
+  - unit
+  - metric
+  - direction
+  - targetType
+properties:
+  value:
+    type: number
+    format: float
+    description: Target value to be achieved
+    example: 65.0
+  unit:
+    type: string
+    enum: [kg, lbs, cm, inches, percentage, minutes, seconds, hours, reps, sets, watts, bpm, calories, grams, ml, liters, steps, miles, kilometers, points, score]
+    description: Unit of measurement for the target value
+    example: kg
+  metric:
+    type: string
+    enum: [weight, body_fat_percentage, muscle_mass, waist_circumference, chest_circumference, arm_circumference, thigh_circumference, bench_press_1rm, squat_1rm, deadlift_1rm, running_5k_time, running_10k_time, marathon_time, vo2_max, resting_heart_rate, flexibility_score, balance_score, endurance_time, strength_score, workout_frequency, consistency_percentage, habit_completion, sleep_hours, water_intake, protein_intake, calorie_intake, steps_per_day, distance_per_week, body_composition_score, functional_movement_score]
+    description: Specific metric being measured
+    example: weight
+  direction:
+    type: string
+    enum: [increase, decrease, maintain, achieve]
+    description: Direction of target achievement
+    example: decrease
+  targetType:
+    type: string
+    enum: [absolute, relative, percentage_change, time_based, frequency_based, threshold]
+    description: Type of target specification
+    example: absolute
+  baselineValue:
+    type: number
+    format: float
+    description: Starting/baseline value for comparison (if applicable)
+    example: 75.0
+  thresholds:
+    type: object
+    description: Performance thresholds for target achievement
+    properties:
+      minimum:
+        type: number
+        format: float
+        description: Minimum acceptable value for goal completion
+        example: 65.5
+      ideal:
+        type: number
+        format: float
+        description: Ideal target value
+        example: 65.0
+      stretch:
+        type: number
+        format: float
+        description: Stretch goal value
+        example: 64.0
+      warning:
+        type: number
+        format: float
+        description: Warning threshold indicating potential issues
+        example: 67.0
+  measurementCriteria:
+    type: object
+    description: Specific criteria for measuring target achievement
+    properties:
+      measurementMethod:
+        type: string
+        enum: [scale_weight, bioimpedance, dexa_scan, bod_pod, caliper_measurement, tape_measure, performance_test, time_trial, rep_max_test, endurance_test, flexibility_test, self_assessment, app_tracking, device_sync, manual_entry]
+        description: Method used to measure progress towards target
+        example: scale_weight
+      measurementFrequency:
+        type: string
+        enum: [daily, every_other_day, weekly, bi_weekly, monthly, as_needed, event_based]
+        description: How often measurements should be taken
+        example: weekly
+      measurementConditions:
+        type: array
+        description: Specific conditions for accurate measurement
+        items:
+          type: string
+        example: ["Morning measurement", "After bathroom", "Before eating", "Minimal clothing"]
+      validationRules:
+        type: array
+        description: Rules for validating measurement accuracy
+        items:
+          type: object
+          required:
+            - rule
+            - description
+          properties:
+            rule:
+              type: string
+              description: Validation rule
+              example: "measurement_within_range"
+            description:
+              type: string
+              description: Description of the validation rule
+              example: "Measurement must be within 5% of previous reading unless explicitely justified"
+            parameters:
+              type: object
+              description: Parameters for the validation rule
+              example:
+                maxVariation: 0.05
+                timeWindow: 7
+        example:
+          - rule: "measurement_within_range"
+            description: "Measurement must be within 5% of previous reading unless explicitly justified"
+            parameters:
+              maxVariation: 0.05
+              timeWindow: 7
+  achievementCriteria:
+    type: object
+    description: Criteria that define successful target achievement
+    required:
+      - primary
+    properties:
+      primary:
+        type: object
+        description: Primary achievement criterion
+        required:
+          - type
+          - requirement
+        properties:
+          type:
+            type: string
+            enum: [single_measurement, average_over_period, consecutive_measurements, percentage_of_measurements, sustained_period, improvement_rate]
+            description: Type of achievement criterion
+            example: single_measurement
+          requirement:
+            type: string
+            description: Specific requirement for achievement
+            example: "Single measurement at or below target value"
+          parameters:
+            type: object
+            description: Parameters specific to the criterion type
+            example:
+              tolerance: 0.2
+              duration: 7
+      secondary:
+        type: array
+        description: Secondary achievement criteria (optional)
+        items:
+          type: object
+          required:
+            - type
+            - requirement
+          properties:
+            type:
+              type: string
+              enum: [consistency, maintenance, improvement_sustainability, health_markers, subjective_satisfaction]
+              description: Type of secondary criterion
+              example: consistency
+            requirement:
+              type: string
+              description: Specific secondary requirement
+              example: "Maintain weight within 1kg range for 2 weeks"
+            weight:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              description: Weight of this criterion in overall achievement (0-1)
+              example: 0.3
+        example:
+          - type: consistency
+            requirement: "Maintain weight within 1kg range for 2 weeks"
+            weight: 0.3
+  context:
+    type: object
+    description: Additional context for target understanding and achievement
+    properties:
+      category:
+        type: string
+        enum: [health, performance, aesthetic, functional, competitive, rehabilitative, preventive, lifestyle]
+        description: Category context for the target
+        example: health
+      priority:
+        type: string
+        enum: [low, medium, high, critical]
+        description: Priority level of achieving this target
+        example: high
+      healthConsiderations:
+        type: array
+        description: Health considerations related to this target
+        items:
+          type: string
+        example: ["Ensure adequate nutrition during weight loss", "Monitor for rapid weight loss"]
+      constraints:
+        type: array
+        description: Constraints that may affect target achievement
+        items:
+          type: object
+          required:
+            - type
+            - description
+          properties:
+            type:
+              type: string
+              enum: [time, resource, physical, medical, lifestyle, equipment, environmental]
+              description: Type of constraint
+              example: time
+            description:
+              type: string
+              description: Description of the constraint
+              example: "Limited to 1 hour workouts due to schedule"
+            impact:
+              type: string
+              enum: [low, medium, high]
+              description: Impact level of the constraint
+              example: medium
+        example:
+          - type: time
+            description: "Limited to 1 hour workouts due to schedule"
+            impact: medium
+      motivationalFactors:
+        type: array
+        description: Factors that motivate achievement of this target
+        items:
+          type: string
+        example: ["Improved confidence", "Better health markers", "Wedding preparation"]
+  adjustmentRules:
+    type: object
+    description: Rules for adjusting target based on progress and circumstances
+    properties:
+      allowAdjustments:
+        type: boolean
+        description: Whether target adjustments are permitted
+        example: true
+      adjustmentTriggers:
+        type: array
+        description: Conditions that may trigger target adjustments
+        items:
+          type: object
+          required:
+            - trigger
+            - condition
+            - action
+          properties:
+            trigger:
+              type: string
+              enum: [progress_deviation, health_concern, life_change, plateau, external_factor, expert_recommendation]
+              description: Type of adjustment trigger
+              example: progress_deviation
+            condition:
+              type: string
+              description: Specific condition for trigger
+              example: "Progress stalled for more than 2 weeks"
+            action:
+              type: string
+              enum: [extend_timeline, adjust_target_value, modify_approach, reassess_feasibility, add_intermediate_targets]
+              description: Recommended action when triggered
+              example: extend_timeline
+        example:
+          - trigger: progress_deviation
+            condition: "Progress stalled for more than 2 weeks"
+            action: extend_timeline
+      maxAdjustments:
+        type: integer
+        minimum: 0
+        description: Maximum number of adjustments allowed
+        example: 3
+      adjustmentHistory:
+        type: array
+        description: History of target adjustments
+        items:
+          type: object
+          required:
+            - date
+            - type
+            - previousValue
+            - newValue
+            - reason
+          properties:
+            date:
+              type: string
+              format: date-time
+              description: Date of adjustment
+              example: "2024-01-20T00:00:00Z"
+            type:
+              type: string
+              enum: [value_change, timeline_extension, criteria_modification, threshold_adjustment]
+              description: Type of adjustment made
+              example: timeline_extension
+            previousValue:
+              type: string
+              description: Previous target specification
+              example: "65.0 kg by 2024-04-01"
+            newValue:
+              type: string
+              description: New target specification
+              example: "65.0 kg by 2024-04-15"
+            reason:
+              type: string
+              description: Reason for the adjustment
+              example: "Extended timeline due to holiday travel period"
+        example:
+          - date: "2024-01-20T00:00:00Z"
+            type: timeline_extension
+            previousValue: "65.0 kg by 2024-04-01"
+            newValue: "65.0 kg by 2024-04-15"
+            reason: "Extended timeline due to holiday travel period"
+examples:
+  - value: 65.0
+    unit: kg
+    metric: weight
+    direction: decrease
+    targetType: absolute
+    baselineValue: 75.0
+    thresholds:
+      minimum: 65.5
+      ideal: 65.0
+      stretch: 64.0
+      warning: 67.0
+    measurementCriteria:
+      measurementMethod: scale_weight
+      measurementFrequency: weekly
+      measurementConditions: ["Morning measurement", "After bathroom", "Before eating", "Minimal clothing"]
+      validationRules:
+        - rule: "measurement_within_range"
+          description: "Measurement must be within 5% of previous reading unless explicitly justified"
+          parameters:
+            maxVariation: 0.05
+            timeWindow: 7
+    achievementCriteria:
+      primary:
+        type: single_measurement
+        requirement: "Single measurement at or below target value"
+        parameters:
+          tolerance: 0.2
+          duration: 7
+      secondary:
+        - type: consistency
+          requirement: "Maintain weight within 1kg range for 2 weeks"
+          weight: 0.3
+    context:
+      category: health
+      priority: high
+      healthConsiderations: ["Ensure adequate nutrition during weight loss", "Monitor for rapid weight loss"]
+      constraints:
+        - type: time
+          description: "Limited to 1 hour workouts due to schedule"
+          impact: medium
+      motivationalFactors: ["Improved confidence", "Better health markers", "Wedding preparation"]
+    adjustmentRules:
+      allowAdjustments: true
+      adjustmentTriggers:
+        - trigger: progress_deviation
+          condition: "Progress stalled for more than 2 weeks"
+          action: extend_timeline
+      maxAdjustments: 3
+      adjustmentHistory:
+        - date: "2024-01-20T00:00:00Z"
+          type: timeline_extension
+          previousValue: "65.0 kg by 2024-04-01"
+          newValue: "65.0 kg by 2024-04-15"
+          reason: "Extended timeline due to holiday travel period" 

@@ -1,0 +1,32 @@
+description: Macro resource not found
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MacroNotFoundError.yaml'
+    examples:
+      macro_plan_not_found:
+        summary: Macro plan not found
+        description: Requested macro plan could not be found
+        value:
+          status: "error"
+          error: "MACRO_NOT_FOUND"
+          message: "Macro plan not found for this user"
+          details:
+            resource: "macro_plan"
+            id: "550e8400-e29b-41d4-a716-446655440000"
+          timestamp: "2024-01-15T10:30:00Z"
+      
+      latest_macro_not_found:
+        summary: No active macro plan
+        description: User has no active macro plans
+        value:
+          status: "error"
+          error: "MACRO_NOT_FOUND"
+          message: "No active macro plan found for this user"
+          details:
+            resource: "macro_plan"
+            id: "latest"
+          timestamp: "2024-01-15T10:30:00Z" 

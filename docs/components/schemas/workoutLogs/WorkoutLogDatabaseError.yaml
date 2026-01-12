@@ -1,0 +1,36 @@
+type: object
+description: Error response for database-related failures in workout log operations
+required:
+  - status
+  - message
+properties:
+  status:
+    type: string
+    enum: ["error"]
+    description: Status indicating a database error
+    example: "error"
+  message:
+    type: string
+    description: Error message indicating database failure
+    example: "Database error occurred while processing workout log"
+  error_type:
+    type: string
+    enum: ["connection_failed", "query_timeout", "constraint_violation", "data_integrity", "unknown"]
+    description: Specific type of database error
+    example: "constraint_violation"
+  details:
+    type: string
+    description: Additional details about the database error (when available)
+    example: "Foreign key constraint violation: plan_id does not exist"
+  timestamp:
+    type: string
+    format: date-time
+    description: Timestamp when the error occurred
+    example: "2025-01-15T18:30:00Z"
+
+example:
+  status: "error"
+  message: "Database error occurred while processing workout log"
+  error_type: "constraint_violation"
+  details: "Foreign key constraint violation: plan_id does not exist"
+  timestamp: "2025-01-15T18:30:00Z" 

@@ -1,0 +1,170 @@
+get:
+  tags:
+    - Progress Tracking
+  summary: Get filtered check-ins with pagination and sorting
+  description: |
+    Retrieve a paginated list of check-ins with flexible filtering and sorting options.
+    
+    **Filtering Options:**
+    - Date range filtering (startDate/endDate)
+    - Metric-based filtering (weight, body fat, wellness metrics)
+    - Data completeness filtering (complete vs partial check-ins)
+    - Custom search within notes
+    
+    **Sorting & Pagination:**
+    - Sort by date, weight, any wellness metric
+    - Ascending or descending order
+    - Configurable page size (default 20, max 100)
+    - Cursor-based pagination for large datasets
+    
+    **Data Optimization:**
+    - Response includes summary statistics
+    - Trend indicators for key metrics
+    - Data quality indicators
+    - Metadata for analytics integration
+    
+    **Use Cases:**
+    - Progress tracking dashboards
+    - Trend analysis preparation
+    - Data export and reporting
+    - Historical data review
+  operationId: getCheckIns
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - name: startDate
+      in: query
+      description: Start date for check-in range (inclusive)
+      schema:
+        type: string
+        format: date
+        example: "2024-01-01"
+    
+    - name: endDate
+      in: query
+      description: End date for check-in range (inclusive)
+      schema:
+        type: string
+        format: date
+        example: "2024-01-31"
+    
+    - name: sortBy
+      in: query
+      description: Field to sort results by
+      schema:
+        type: string
+        enum: [date, weight, body_fat_percentage, mood, sleep_quality, energy_level, stress_level]
+        default: "date"
+        example: "date"
+    
+    - name: sortOrder
+      in: query
+      description: Sort order direction
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: "desc"
+        example: "desc"
+    
+    - name: page
+      in: query
+      description: Page number for pagination (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+    
+    - name: limit
+      in: query
+      description: Number of check-ins per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+    
+    - name: includeMetrics
+      in: query
+      description: Include calculated metrics and trends
+      schema:
+        type: boolean
+        default: true
+        example: true
+    
+    - name: includeNotes
+      in: query
+      description: Include check-in notes in response
+      schema:
+        type: boolean
+        default: true
+        example: false
+    
+    - name: dataCompleteness
+      in: query
+      description: Filter by data completeness level
+      schema:
+        type: string
+        enum: [all, complete, partial, minimal]
+        default: "all"
+        example: "complete"
+    
+    - name: weightRange
+      in: query
+      description: Filter by weight range (format min-max)
+      schema:
+        type: string
+        pattern: '^\d+(\.\d+)?-\d+(\.\d+)?$'
+        example: "70.0-85.0"
+    
+    - name: bodyFatRange
+      in: query
+      description: Filter by body fat percentage range (format min-max)
+      schema:
+        type: string
+        pattern: '^\d+(\.\d+)?-\d+(\.\d+)?$'
+        example: "15.0-25.0"
+    
+    - name: moodRange
+      in: query
+      description: Filter by mood range (1-10 scale, format min-max)
+      schema:
+        type: string
+        pattern: '^([1-9]|10)-([1-9]|10)$'
+        example: "7-10"
+    
+    - name: searchNotes
+      in: query
+      description: Search within check-in notes (case-insensitive)
+      schema:
+        type: string
+        maxLength: 100
+        example: "workout"
+    
+    - name: format
+      in: query
+      description: Response format for data export
+      schema:
+        type: string
+        enum: [json, summary, export]
+        default: "json"
+        example: "json"
+  responses:
+    '200':
+      $ref: '../../components/responses/progress/CheckInsRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/progress/ProgressValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/progress/ProgressNotFound.yaml'
+    
+    '429':
+      $ref: '../../components/responses/progress/ProgressRateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

@@ -1,0 +1,131 @@
+# OpenAPI Generator Configuration for trAIner API SDKs
+# https://openapi-generator.tech/
+
+generatorName: openapi-generator-cli
+openapiSpec: ../openapi.yaml
+outputBasePath: ./generated-sdks
+
+# Global configuration applied to all SDKs
+globalProperties:
+  apiPackage: com.trainerapp.api
+  modelPackage: com.trainerapp.models
+  invokerPackage: com.trainerapp.client
+  apiDocumentationPackage: com.trainerapp.docs
+  modelDocumentationPackage: com.trainerapp.models.docs
+  generateApiTests: true
+  generateModelTests: true
+  generateApiDocumentation: true
+  generateModelDocumentation: true
+
+# Language-specific SDK configurations
+sdks:
+  # TypeScript/JavaScript SDK
+  typescript:
+    generator: typescript-axios
+    outputDir: ${outputBasePath}/typescript
+    additionalProperties:
+      npmName: "@trainerapp/api-client"
+      npmVersion: "1.0.0"
+      supportsES6: true
+      withInterfaces: true
+      withSeparateModelsAndApi: true
+      modelPropertyNaming: camelCase
+      enumPropertyNaming: PascalCase
+      npmRepository: "https://github.com/trainerapp/typescript-sdk"
+    
+  # Python SDK
+  python:
+    generator: python
+    outputDir: ${outputBasePath}/python
+    additionalProperties:
+      packageName: trainerapp_client
+      projectName: trainerapp-python-sdk
+      packageVersion: "1.0.0"
+      packageUrl: "https://github.com/trainerapp/python-sdk"
+      hideGenerationTimestamp: true
+      generateSourceCodeOnly: false
+      library: asyncio
+    
+  # Java SDK
+  java:
+    generator: java
+    outputDir: ${outputBasePath}/java
+    additionalProperties:
+      groupId: com.trainerapp
+      artifactId: trainerapp-java-sdk
+      artifactVersion: "1.0.0"
+      library: okhttp-gson
+      dateLibrary: java8
+      useRuntimeException: true
+      hideGenerationTimestamp: true
+      
+  # C# SDK
+  csharp:
+    generator: csharp-netcore
+    outputDir: ${outputBasePath}/csharp
+    additionalProperties:
+      packageName: TrainerApp.Client
+      packageVersion: "1.0.0"
+      targetFramework: "6.0"
+      packageCompany: TrainerApp
+      packageAuthors: TrainerApp Team
+      packageDescription: "Official C# SDK for trAIner API"
+      
+  # Ruby SDK
+  ruby:
+    generator: ruby
+    outputDir: ${outputBasePath}/ruby
+    additionalProperties:
+      gemName: trainerapp
+      moduleName: TrainerApp
+      gemVersion: "1.0.0"
+      gemHomepage: "https://github.com/trainerapp/ruby-sdk"
+      gemDescription: "Official Ruby SDK for trAIner API"
+      
+  # Go SDK
+  go:
+    generator: go
+    outputDir: ${outputBasePath}/go
+    additionalProperties:
+      packageName: trainerapp
+      packageVersion: "1.0.0"
+      withGoCodegenComment: true
+      generateInterfaces: true
+      structPrefix: true
+      
+  # PHP SDK
+  php:
+    generator: php
+    outputDir: ${outputBasePath}/php
+    additionalProperties:
+      packageName: TrainerApp
+      invokerPackage: TrainerApp\\Client
+      composerPackageName: trainerapp/php-sdk
+      gitUserId: trainerapp
+      gitRepoId: php-sdk
+      artifactVersion: "1.0.0"
+
+# Custom templates directory (for overriding default templates)
+templateDirectory: ./custom-templates
+
+# Post-processing scripts
+postProcessing:
+  - script: ./scripts/add-custom-headers.sh
+  - script: ./scripts/update-readme.sh
+  - script: ./scripts/run-tests.sh
+
+# Validation settings
+validation:
+  validateSpec: true
+  strictMode: true
+  
+# Feature flags
+features:
+  useOneOfDiscriminatorLookup: true
+  useSchemaNameAsDefault: true
+  
+# Custom generator extensions
+extensions:
+  x-generator-extra-params:
+    - "--enable-post-process-file"
+    - "--reserve-model-keywords" 

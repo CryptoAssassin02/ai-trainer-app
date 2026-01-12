@@ -1,0 +1,99 @@
+post:
+  tags:
+    - Workout Management
+  summary: Generate AI-powered workout plan
+  description: |
+    Generate a personalized workout plan using AI agents. The system combines user profile data,
+    exercise research from multiple sources, and AI-powered plan generation to create customized
+    workout plans. Rate limited to 10 requests per hour per user.
+  operationId: generateWorkoutPlan
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/workouts/WorkoutGenerationRequest.yaml'
+        examples:
+          beginner_strength:
+            summary: Beginner strength training
+            value:
+              fitnessLevel: beginner
+              goals: ["muscle_gain", "strength"]
+              equipment: ["dumbbells", "resistance_bands"]
+              exerciseTypes: ["strength"]
+              workoutFrequency: "3x per week"
+              targetDuration: 45
+          intermediate_mixed:
+            summary: Intermediate mixed training
+            value:
+              fitnessLevel: intermediate
+              goals: ["endurance", "weight_loss"]
+              equipment: ["bodyweight", "cardio_machines"]
+              exerciseTypes: ["cardio", "strength"]
+              restrictions: ["knee_injury"]
+              workoutFrequency: "4x per week"
+              targetDuration: 60
+  responses:
+    '201':
+      $ref: '../../components/responses/workouts/WorkoutPlanGenerated.yaml'
+    '400':
+      $ref: '../../components/responses/workouts/WorkoutValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '429':
+      $ref: '../../components/responses/workouts/WorkoutRateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/workouts/WorkoutGenerationFailed.yaml'
+
+get:
+  tags:
+    - Workout Management
+  summary: List user's workout plans
+  description: |
+    Retrieve a paginated list of workout plans for the authenticated user.
+    Supports filtering by status, difficulty, and search terms. Plans are sorted
+    by creation date (newest first) by default.
+  operationId: listWorkoutPlans
+  parameters:
+    - $ref: '../../components/parameters/PaginationLimit.yaml'
+    - $ref: '../../components/parameters/PaginationOffset.yaml'
+    - name: searchTerm
+      in: query
+      description: Search term for plan names or descriptions
+      required: false
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 100
+    - name: status
+      in: query
+      description: Filter by plan status
+      required: false
+      schema:
+        type: string
+        enum: [draft, active, archived]
+    - name: difficulty
+      in: query
+      description: Filter by difficulty level
+      required: false
+      schema:
+        type: string
+        enum: [beginner, intermediate, advanced]
+    - name: sortBy
+      in: query
+      description: Field to sort results by
+      required: false
+      schema:
+        type: string
+        enum: [created_at, updated_at, name]
+        default: created_at
+    - $ref: '../../components/parameters/SortOrder.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/workouts/WorkoutPlansListed.yaml'
+    '400':
+      $ref: '../../components/responses/common/ValidationFailed.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

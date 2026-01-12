@@ -1,0 +1,19 @@
+type: object
+required: [status, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status indicator
+  message:
+    type: string
+    description: Unit conversion error message
+  details:
+    type: object
+    description: Additional error details
+example:
+  status: error
+  message: Failed to convert height
+  details:
+    field: height
+    originalValue: {feet: 5, inches: 15} 

@@ -1,0 +1,43 @@
+type: object
+description: Formatted server uptime breakdown for human-readable display
+properties:
+  days:
+    type: integer
+    description: Number of complete days the server has been running
+    minimum: 0
+    example: 5
+  
+  hours:
+    type: integer
+    description: Number of complete hours (0-23) the server has been running
+    minimum: 0
+    maximum: 23
+    example: 12
+  
+  minutes:
+    type: integer
+    description: Number of complete minutes (0-59) the server has been running
+    minimum: 0
+    maximum: 59
+    example: 34
+  
+  seconds:
+    type: integer
+    description: Number of complete seconds (0-59) the server has been running
+    minimum: 0
+    maximum: 59
+    example: 28
+
+required:
+  - days
+  - hours
+  - minutes
+  - seconds
+
+additionalProperties: false
+
+example:
+  days: 5
+  hours: 12
+  minutes: 34
+  seconds: 28 

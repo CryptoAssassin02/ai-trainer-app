@@ -1,0 +1,80 @@
+type: object
+required: [metrics]
+properties:
+  metrics:
+    type: array
+    items:
+      type: string
+      enum: [
+        weight_trend, measurement_trend, body_fat_trend, 
+        progress_rate, goal_velocity, consistency_score,
+        improvement_rate, plateau_detection, regression_analysis,
+        comparative_analysis, milestone_projection, habit_tracking
+      ]
+    minItems: 1
+    description: List of metrics to calculate
+  timeframe:
+    type: string
+    enum: [1week, 2weeks, 1month, 3months, 6months, 1year, all, custom]
+    default: 3months
+    description: Time period for metrics calculation
+  customTimeframe:
+    type: object
+    properties:
+      startDate:
+        type: string
+        format: date
+      endDate:
+        type: string
+        format: date
+    description: Custom date range (required if timeframe is 'custom')
+  includeProjections:
+    type: boolean
+    default: false
+    description: Whether to include future projections
+  projectionPeriod:
+    type: string
+    enum: [1week, 2weeks, 1month, 3months, 6months]
+    default: 1month
+    description: Period for future projections (if includeProjections is true)
+  goals:
+    type: array
+    items:
+      type: string
+      format: uuid
+    description: Specific goals to calculate metrics for (if not provided, calculates for all)
+  baselineDate:
+    type: string
+    format: date
+    description: Reference date for comparison metrics
+  includeComparisons:
+    type: boolean
+    default: true
+    description: Whether to include comparison with previous periods
+  granularity:
+    type: string
+    enum: [daily, weekly, monthly]
+    default: weekly
+    description: Data granularity for trend analysis
+  smoothing:
+    type: boolean
+    default: false
+    description: Whether to apply smoothing to reduce noise in trends
+  confidenceInterval:
+    type: number
+    minimum: 0.5
+    maximum: 0.99
+    default: 0.95
+    description: Confidence interval for statistical calculations
+  excludeOutliers:
+    type: boolean
+    default: false
+    description: Whether to exclude statistical outliers from calculations
+  weightedAnalysis:
+    type: boolean
+    default: false
+    description: Whether to weight recent data more heavily in analysis
+  includeCorrelations:
+    type: boolean
+    default: false
+    description: Whether to include correlation analysis between different metrics 

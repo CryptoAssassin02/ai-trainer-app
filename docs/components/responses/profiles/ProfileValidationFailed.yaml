@@ -1,0 +1,5 @@
+description: Profile data validation failed
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/profiles/ProfileValidationError.yaml' 

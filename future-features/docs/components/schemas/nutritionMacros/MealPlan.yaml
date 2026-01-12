@@ -1,0 +1,133 @@
+type: object
+description: Structured meal plan with recommended meals and macro distribution
+properties:
+  meals:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - target_macros
+      properties:
+        name:
+          type: string
+          description: Name or type of the meal
+          example: "Breakfast"
+        
+        target_macros:
+          type: object
+          required:
+            - protein_g
+            - carbs_g
+            - fat_g
+          properties:
+            protein_g:
+              type: number
+              minimum: 0
+              description: Target protein for this meal in grams
+              example: 30
+            
+            carbs_g:
+              type: number
+              minimum: 0
+              description: Target carbohydrates for this meal in grams
+              example: 65
+            
+            fat_g:
+              type: number
+              minimum: 0
+              description: Target fat for this meal in grams
+              example: 22
+          additionalProperties: false
+          description: Macro targets for this specific meal
+        
+        example:
+          type: string
+          description: Example of what this meal could contain
+          example: "Oatmeal with protein powder, banana, and almond butter"
+        
+        timing:
+          type: string
+          description: Recommended timing for this meal
+          example: "7:00-8:00 AM"
+      additionalProperties: false
+    description: Array of planned meals for the day
+  
+  snacks:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - target_macros
+      properties:
+        name:
+          type: string
+          description: Name or type of the snack
+          example: "Pre-workout snack"
+        
+        target_macros:
+          type: object
+          required:
+            - protein_g
+            - carbs_g
+            - fat_g
+          properties:
+            protein_g:
+              type: number
+              minimum: 0
+              description: Target protein for this snack in grams
+              example: 10
+            
+            carbs_g:
+              type: number
+              minimum: 0
+              description: Target carbohydrates for this snack in grams
+              example: 20
+            
+            fat_g:
+              type: number
+              minimum: 0
+              description: Target fat for this snack in grams
+              example: 5
+          additionalProperties: false
+          description: Macro targets for this specific snack
+        
+        example:
+          type: string
+          description: Example of what this snack could contain
+          example: "Greek yogurt with berries"
+        
+        timing:
+          type: string
+          description: Recommended timing for this snack
+          example: "2:00-3:00 PM"
+      additionalProperties: false
+    description: Array of planned snacks for the day
+
+additionalProperties: false
+
+example:
+  meals:
+    - name: "Breakfast"
+      target_macros:
+        protein_g: 30
+        carbs_g: 65
+        fat_g: 22
+      example: "Oatmeal with protein powder and berries"
+      timing: "7:00-8:00 AM"
+    - name: "Lunch"
+      target_macros:
+        protein_g: 40
+        carbs_g: 80
+        fat_g: 25
+      example: "Grilled chicken with quinoa and vegetables"
+      timing: "12:00-1:00 PM"
+  snacks:
+    - name: "Pre-workout"
+      target_macros:
+        protein_g: 15
+        carbs_g: 30
+        fat_g: 5
+      example: "Banana with protein shake"
+      timing: "4:00 PM" 

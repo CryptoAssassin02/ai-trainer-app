@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="50" failures="0" errors="0" time="0.485">
+  <testsuite name="Profile Service - Implementation Tests" errors="0" failures="0" skipped="0" timestamp="2025-04-28T19:20:34" time="0.47" tests="50">
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should not throw for valid profile data (metric)" name="Profile Service - Implementation Tests Internal validateProfileData function should not throw for valid profile data (metric)" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should not throw for valid profile data (imperial)" name="Profile Service - Implementation Tests Internal validateProfileData function should not throw for valid profile data (imperial)" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError if userId is missing for create" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError if userId is missing for create" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should NOT throw ValidationError if userId is missing for update" name="Profile Service - Implementation Tests Internal validateProfileData function should NOT throw ValidationError if userId is missing for update" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError if unitPreference is missing for create" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError if unitPreference is missing for create" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid unitPreference" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid unitPreference" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid metric height (not number)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid metric height (not number)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid imperial height (missing feet)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid imperial height (missing feet)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid imperial height (missing inches)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid imperial height (missing inches)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid weight (not number)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid weight (not number)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid weight (negative)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid weight (negative)" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid age (not integer)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid age (not integer)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid age (negative)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid age (negative)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid goals (not array)" name="Profile Service - Implementation Tests Internal validateProfileData function should throw ValidationError for invalid goals (not array)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validatePreferenceData function should not throw for valid preference data" name="Profile Service - Implementation Tests Internal validatePreferenceData function should not throw for valid preference data" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid unitPreference" name="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid unitPreference" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid goals (not array)" name="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid goals (not array)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid exercisePreferences (not array)" name="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid exercisePreferences (not array)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid equipmentPreferences (not array)" name="Profile Service - Implementation Tests Internal validatePreferenceData function should throw ValidationError for invalid equipmentPreferences (not array)" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert camelCase to snake_case and add timestamps" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert camelCase to snake_case and add timestamps" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should preserve existing created_at timestamp" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should preserve existing created_at timestamp" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should store height as cm when input is metric" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should store height as cm when input is metric" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert imperial height (ft/in) to cm for storage" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert imperial height (ft/in) to cm for storage" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should store weight as kg when input is metric" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should store weight as kg when input is metric" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert imperial weight (lbs) to kg for storage" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should convert imperial weight (lbs) to kg for storage" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should use existing unit preference for conversion if not provided in input" name="Profile Service - Implementation Tests Internal prepareProfileDataForStorage function should use existing unit preference for conversion if not provided in input" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert snake_case to camelCase" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert snake_case to camelCase" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should return height as cm when preference is metric" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should return height as cm when preference is metric" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert height from cm to imperial when preference is imperial" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert height from cm to imperial when preference is imperial" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should return weight as kg when preference is metric" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should return weight as kg when preference is metric" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert weight from kg to imperial when preference is imperial" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should convert weight from kg to imperial when preference is imperial" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should default to metric if unit_preference is missing" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should default to metric if unit_preference is missing" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should handle missing version by defaulting to 1" name="Profile Service - Implementation Tests Internal convertProfileUnitsForResponse function should handle missing version by defaulting to 1" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should return profile data when found (metric)" name="Profile Service - Implementation Tests getProfileByUserId method should return profile data when found (metric)" time="0.012">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should return profile data when found (imperial)" name="Profile Service - Implementation Tests getProfileByUserId method should return profile data when found (imperial)" time="0.004">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should throw NotFoundError when profile does not exist" name="Profile Service - Implementation Tests getProfileByUserId method should throw NotFoundError when profile does not exist" time="0.012">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should throw NotFoundError when data is null" name="Profile Service - Implementation Tests getProfileByUserId method should throw NotFoundError when data is null" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should throw InternalError for other database errors" name="Profile Service - Implementation Tests getProfileByUserId method should throw InternalError for other database errors" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests getProfileByUserId method should re-throw NotFoundError if caught internally" name="Profile Service - Implementation Tests getProfileByUserId method should re-throw NotFoundError if caught internally" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests createProfile method should create a profile successfully" name="Profile Service - Implementation Tests createProfile method should create a profile successfully" time="0.003">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests createProfile method should throw ConflictError if profile already exists (duplicate user_id)" name="Profile Service - Implementation Tests createProfile method should throw ConflictError if profile already exists (duplicate user_id)" time="0.009">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests createProfile method should throw ValidationError for invalid input data" name="Profile Service - Implementation Tests createProfile method should throw ValidationError for invalid input data" time="0">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests createProfile method should throw InternalError for other database insert errors" name="Profile Service - Implementation Tests createProfile method should throw InternalError for other database insert errors" time="0.003">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should update profile successfully on first attempt" name="Profile Service - Implementation Tests updateProfile method should update profile successfully on first attempt" time="0.003">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should throw NotFoundError if initial profile fetch fails" name="Profile Service - Implementation Tests updateProfile method should throw NotFoundError if initial profile fetch fails" time="0.005">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should throw NotFoundError if initial profile fetch returns null data" name="Profile Service - Implementation Tests updateProfile method should throw NotFoundError if initial profile fetch returns null data" time="0.003">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should throw ValidationError for invalid update data" name="Profile Service - Implementation Tests updateProfile method should throw ValidationError for invalid update data" time="0.001">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should throw InternalError if the update operation fails (non-conflict)" name="Profile Service - Implementation Tests updateProfile method should throw InternalError if the update operation fails (non-conflict)" time="0.004">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should retry and succeed if a version conflict occurs once" name="Profile Service - Implementation Tests updateProfile method should retry and succeed if a version conflict occurs once" time="0.005">
+    </testcase>
+    <testcase classname="Profile Service - Implementation Tests updateProfile method should throw ConflictError if version conflicts exceed max retries" name="Profile Service - Implementation Tests updateProfile method should throw ConflictError if version conflicts exceed max retries" time="0.064">
+    </testcase>
+  </testsuite>
+</testsuites>

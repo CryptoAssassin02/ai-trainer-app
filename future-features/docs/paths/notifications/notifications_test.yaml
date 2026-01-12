@@ -1,0 +1,27 @@
+post:
+  tags:
+    - Notifications
+  summary: Send a test notification
+  description: >
+    Sends a test notification to the specified channel for the authenticated user.
+    In the MVP, this endpoint only logs the request and does not send an actual notification.
+  operationId: sendTestNotification
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/notifications/TestNotificationRequest.yaml'
+  responses:
+    '200':
+      $ref: '../../components/responses/notifications/TestNotificationSent.yaml'
+    '400':
+      $ref: '../../components/responses/notifications/NotificationChannelInvalid.yaml'
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

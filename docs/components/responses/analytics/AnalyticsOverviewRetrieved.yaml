@@ -1,0 +1,76 @@
+description: Analytics overview successfully retrieved
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/analytics/AnalyticsOverviewResponse.yaml'
+    examples:
+      comprehensive_overview:
+        summary: Complete analytics overview with all metrics
+        value:
+          status: success
+          data:
+            userId: "user_123"
+            timeframe: "30 days"
+            hasData: true
+            overview:
+              workouts:
+                completed: 24
+                totalExercises: 180
+                avgDifficulty: 7.2
+                avgSatisfaction: 8.5
+                consistency: 0.85
+              physical:
+                currentWeight: 75.2
+                weightChange: -2.1
+                currentBodyFat: 18.5
+                bodyFatChange: -1.8
+              wellness:
+                overallScore: 8.2
+                mood: 8.0
+                sleep: 7.8
+                energy: 8.5
+                stress: 3.2
+              adherence:
+                workout: 0.89
+                nutrition: 0.82
+                overall: 0.85
+            dataQuality: 0.95
+            lastUpdated: "2024-01-15T10:30:00Z"
+      limited_data:
+        summary: Analytics overview with limited data availability
+        value:
+          status: success
+          data:
+            userId: "user_456"
+            timeframe: "7 days"
+            hasData: true
+            overview:
+              workouts:
+                completed: 3
+                totalExercises: 22
+                avgDifficulty: 6.5
+                avgSatisfaction: 8.0
+                consistency: 0.43
+              physical:
+                currentWeight: 68.5
+                weightChange: -0.3
+              wellness:
+                overallScore: 7.5
+                mood: 7.5
+                sleep: 7.0
+                energy: 8.0
+                stress: 4.0
+              adherence:
+                workout: 0.60
+                overall: 0.60
+            dataQuality: 0.72
+            lastUpdated: "2024-01-15T09:15:00Z" 

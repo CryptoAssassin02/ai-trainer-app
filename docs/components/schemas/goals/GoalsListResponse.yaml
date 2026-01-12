@@ -1,0 +1,400 @@
+type: object
+description: Response containing a paginated list of goals with filtering, sorting, and comprehensive summary statistics
+required:
+  - status
+  - data
+  - pagination
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    type: array
+    description: Array of goal objects
+    items:
+      $ref: './Goal.yaml'
+    minItems: 0
+    maxItems: 100
+  pagination:
+    type: object
+    description: Pagination information for the goals list
+    required:
+      - currentPage
+      - totalPages
+      - totalItems
+      - itemsPerPage
+    properties:
+      currentPage:
+        type: integer
+        minimum: 1
+        description: Current page number
+        example: 1
+      totalPages:
+        type: integer
+        minimum: 0
+        description: Total number of pages available
+        example: 2
+      totalItems:
+        type: integer
+        minimum: 0
+        description: Total number of goals matching the query
+        example: 12
+      itemsPerPage:
+        type: integer
+        minimum: 1
+        maximum: 100
+        description: Number of items per page
+        example: 10
+      hasNextPage:
+        type: boolean
+        description: Whether there are more pages after the current one
+        example: true
+      hasPreviousPage:
+        type: boolean
+        description: Whether there are pages before the current one
+        example: false
+      nextPageUrl:
+        type: string
+        format: uri
+        description: URL to fetch the next page
+        example: "/v1/goals?page=2&limit=10"
+      previousPageUrl:
+        type: string
+        format: uri
+        description: URL to fetch the previous page
+        example: null
+  metadata:
+    type: object
+    description: Response metadata including filters, sorting, and comprehensive goal statistics
+    required:
+      - timestamp
+      - appliedFilters
+      - sortOrder
+      - summary
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      appliedFilters:
+        type: object
+        description: Filters that were applied to this query
+        properties:
+          status:
+            type: array
+            items:
+              type: string
+              enum: [draft, active, paused, completed, cancelled, failed]
+            example: ["active", "completed"]
+          category:
+            type: array
+            items:
+              type: string
+              enum: [weight_loss, weight_gain, muscle_gain, strength, endurance, flexibility, body_composition, performance, habit_formation, rehabilitation]
+            example: ["weight_loss", "strength"]
+          priority:
+            type: array
+            items:
+              type: string
+              enum: [low, medium, high, critical]
+            example: ["high", "critical"]
+          dateRange:
+            type: object
+            properties:
+              from:
+                type: string
+                format: date-time
+                example: "2024-01-01T00:00:00Z"
+              to:
+                type: string
+                format: date-time
+                example: "2024-12-31T23:59:59Z"
+          tags:
+            type: array
+            items:
+              type: string
+            example: ["health", "2024-goals"]
+          onTrack:
+            type: boolean
+            description: Filter for goals that are on track
+            example: true
+          hasAccountabilityPartner:
+            type: boolean
+            description: Filter for goals with accountability partners
+            example: true
+      sortOrder:
+        type: object
+        description: Applied sorting configuration
+        properties:
+          field:
+            type: string
+            enum: [createdAt, updatedAt, targetDate, progress, priority, title]
+            description: Field used for sorting
+            example: targetDate
+          direction:
+            type: string
+            enum: [asc, desc]
+            description: Sort direction
+            example: asc
+      summary:
+        type: object
+        description: Comprehensive summary statistics for the filtered goals
+        required:
+          - totalGoals
+          - statusBreakdown
+          - categoryBreakdown
+          - priorityBreakdown
+          - progressOverview
+        properties:
+          totalGoals:
+            type: integer
+            description: Total number of goals in the filtered set
+            example: 12
+          statusBreakdown:
+            type: object
+            description: Goals count by status
+            properties:
+              draft:
+                type: integer
+                example: 1
+              active:
+                type: integer
+                example: 7
+              paused:
+                type: integer
+                example: 1
+              completed:
+                type: integer
+                example: 2
+              cancelled:
+                type: integer
+                example: 1
+              failed:
+                type: integer
+                example: 0
+          categoryBreakdown:
+            type: object
+            description: Goals count by category
+            properties:
+              weight_loss:
+                type: integer
+                example: 3
+              muscle_gain:
+                type: integer
+                example: 2
+              strength:
+                type: integer
+                example: 4
+              endurance:
+                type: integer
+                example: 2
+              flexibility:
+                type: integer
+                example: 1
+          priorityBreakdown:
+            type: object
+            description: Goals count by priority
+            properties:
+              low:
+                type: integer
+                example: 2
+              medium:
+                type: integer
+                example: 5
+              high:
+                type: integer
+                example: 4
+              critical:
+                type: integer
+                example: 1
+          progressOverview:
+            type: object
+            description: Overall progress statistics
+            properties:
+              averageProgress:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: Average progress across all goals (0-1)
+                example: 0.47
+              onTrackGoals:
+                type: integer
+                description: Number of goals currently on track
+                example: 8
+              overdueMilestones:
+                type: integer
+                description: Number of overdue milestones across all goals
+                example: 2
+              upcomingDeadlines:
+                type: integer
+                description: Number of goals with deadlines in the next 30 days
+                example: 3
+              completionRate:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 1
+                description: Historical completion rate for user's goals
+                example: 0.73
+          timelineAnalysis:
+            type: object
+            description: Timeline analysis of goals
+            properties:
+              averageDuration:
+                type: integer
+                description: Average goal duration in days
+                example: 89
+              shortTermGoals:
+                type: integer
+                description: Goals with target date within 3 months
+                example: 4
+              longTermGoals:
+                type: integer
+                description: Goals with target date beyond 6 months
+                example: 2
+              pastDueGoals:
+                type: integer
+                description: Goals that are past their target date
+                example: 1
+          motivationFactors:
+            type: object
+            description: Analysis of motivation and support factors
+            properties:
+              goalsWithRewards:
+                type: integer
+                description: Goals that have reward systems set up
+                example: 6
+              goalsWithAccountability:
+                type: integer
+                description: Goals with accountability partners
+                example: 4
+              averageBarriersPerGoal:
+                type: number
+                format: float
+                description: Average number of barriers identified per goal
+                example: 2.1
+          successPredictors:
+            type: object
+            description: Factors that predict goal success
+            properties:
+              highConfidenceGoals:
+                type: integer
+                description: Goals with high confidence score (>0.8)
+                example: 5
+              lowRiskGoals:
+                type: integer
+                description: Goals with low risk assessment
+                example: 7
+              wellResourcedGoals:
+                type: integer
+                description: Goals with adequate resources and support
+                example: 8
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 127.3
+examples:
+  - status: success
+    data:
+      - goalId: "456e7890-f12a-34b5-c678-def012345678"
+        userId: "123e4567-e89b-12d3-a456-426614174000"
+        title: "Lose 10kg"
+        category: weight_loss
+        status: active
+        priority: high
+        target:
+          value: 65.0
+          unit: kg
+          metric: weight
+        currentValue: 72.5
+        progress:
+          percentage: 0.25
+          onTrack: true
+        targetDate: "2024-04-15T00:00:00Z"
+        createdAt: "2024-01-01T10:00:00Z"
+      - goalId: "789def01-234a-56b7-c890-123456789def"
+        userId: "123e4567-e89b-12d3-a456-426614174000"
+        title: "Bench Press 100kg"
+        category: strength
+        status: active
+        priority: medium
+        target:
+          value: 100.0
+          unit: kg
+          metric: bench_press_1rm
+        currentValue: 87.5
+        progress:
+          percentage: 0.75
+          onTrack: true
+        targetDate: "2024-03-01T00:00:00Z"
+        createdAt: "2023-12-01T10:00:00Z"
+    pagination:
+      currentPage: 1
+      totalPages: 2
+      totalItems: 12
+      itemsPerPage: 10
+      hasNextPage: true
+      hasPreviousPage: false
+      nextPageUrl: "/v1/goals?page=2&limit=10"
+      previousPageUrl: null
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      appliedFilters:
+        status: ["active", "completed"]
+        category: ["weight_loss", "strength"]
+        priority: ["high", "critical"]
+        dateRange:
+          from: "2024-01-01T00:00:00Z"
+          to: "2024-12-31T23:59:59Z"
+        tags: ["health", "2024-goals"]
+        onTrack: true
+        hasAccountabilityPartner: true
+      sortOrder:
+        field: targetDate
+        direction: asc
+      summary:
+        totalGoals: 12
+        statusBreakdown:
+          draft: 1
+          active: 7
+          paused: 1
+          completed: 2
+          cancelled: 1
+          failed: 0
+        categoryBreakdown:
+          weight_loss: 3
+          muscle_gain: 2
+          strength: 4
+          endurance: 2
+          flexibility: 1
+        priorityBreakdown:
+          low: 2
+          medium: 5
+          high: 4
+          critical: 1
+        progressOverview:
+          averageProgress: 0.47
+          onTrackGoals: 8
+          overdueMilestones: 2
+          upcomingDeadlines: 3
+          completionRate: 0.73
+        timelineAnalysis:
+          averageDuration: 89
+          shortTermGoals: 4
+          longTermGoals: 2
+          pastDueGoals: 1
+        motivationFactors:
+          goalsWithRewards: 6
+          goalsWithAccountability: 4
+          averageBarriersPerGoal: 2.1
+        successPredictors:
+          highConfidenceGoals: 5
+          lowRiskGoals: 7
+          wellResourcedGoals: 8
+      processingTime: 127.3 

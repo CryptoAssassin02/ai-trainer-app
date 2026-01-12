@@ -1,0 +1,323 @@
+type: object
+description: Response containing calculated fitness metrics with detailed processing information and analysis metadata
+required:
+  - status
+  - data
+  - metadata
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+    example: success
+  data:
+    type: object
+    description: Calculated metrics organized by category
+    required:
+      - userId
+      - calculationDate
+      - metrics
+    properties:
+      userId:
+        type: string
+        format: uuid
+        description: Unique identifier for the user
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      calculationDate:
+        type: string
+        format: date-time
+        description: Date and time when metrics were calculated
+        example: "2024-01-15T10:30:00Z"
+      metrics:
+        type: object
+        description: Calculated fitness metrics organized by category
+        required:
+          - progressMetrics
+          - wellnessMetrics
+          - bodyComposition
+        properties:
+          progressMetrics:
+            $ref: './ProgressMetrics.yaml'
+          wellnessMetrics:
+            $ref: './WellnessMetrics.yaml'
+          bodyComposition:
+            type: object
+            description: Calculated body composition metrics
+            required:
+              - bodyFatPercentage
+              - leanBodyMass
+              - bmi
+            properties:
+              bodyFatPercentage:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 100
+                description: Calculated body fat percentage
+                example: 18.5
+              leanBodyMass:
+                type: number
+                format: float
+                minimum: 0
+                description: Calculated lean body mass in kg
+                example: 61.3
+              bmi:
+                type: number
+                format: float
+                minimum: 0
+                description: Body Mass Index calculation
+                example: 24.4
+              bmr:
+                type: number
+                format: float
+                minimum: 0
+                description: Basal Metabolic Rate in calories/day
+                example: 1847.2
+              tdee:
+                type: number
+                format: float
+                minimum: 0
+                description: Total Daily Energy Expenditure in calories/day
+                example: 2587.1
+              bodyFatMass:
+                type: number
+                format: float
+                minimum: 0
+                description: Total body fat mass in kg
+                example: 13.9
+              muscleMassPercentage:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 100
+                description: Percentage of total body weight that is muscle
+                example: 81.5
+          performanceMetrics:
+            type: object
+            description: Calculated performance improvement metrics
+            properties:
+              strengthProgression:
+                type: object
+                properties:
+                  overallImprovement:
+                    type: number
+                    format: float
+                    description: Overall strength improvement percentage
+                    example: 0.18
+                  benchPress1RM:
+                    type: number
+                    format: float
+                    description: Calculated 1RM for bench press in kg
+                    example: 92.5
+                  squat1RM:
+                    type: number
+                    format: float
+                    description: Calculated 1RM for squat in kg
+                    example: 115.0
+                  deadlift1RM:
+                    type: number
+                    format: float
+                    description: Calculated 1RM for deadlift in kg
+                    example: 140.0
+              enduranceProgression:
+                type: object
+                properties:
+                  cardiovascularFitness:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 100
+                    description: Cardiovascular fitness score (0-100)
+                    example: 78.5
+                  vo2MaxEstimate:
+                    type: number
+                    format: float
+                    description: Estimated VO2 Max in ml/kg/min
+                    example: 45.2
+          trends:
+            type: object
+            description: Calculated trend analysis
+            properties:
+              weightTrend:
+                type: object
+                properties:
+                  direction:
+                    type: string
+                    enum: [increasing, decreasing, stable]
+                    example: decreasing
+                  rate:
+                    type: number
+                    format: float
+                    description: Rate of change per week
+                    example: -0.3
+                  confidence:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                    example: 0.87
+              strengthTrend:
+                type: object
+                properties:
+                  direction:
+                    type: string
+                    enum: [improving, declining, plateauing]
+                    example: improving
+                  rate:
+                    type: number
+                    format: float
+                    description: Rate of improvement percentage per week
+                    example: 0.025
+                  confidence:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                    example: 0.92
+  metadata:
+    type: object
+    description: Response metadata including calculation parameters and processing information
+    required:
+      - timestamp
+      - calculationMethod
+      - dataRange
+      - processingTime
+    properties:
+      timestamp:
+        type: string
+        format: date-time
+        description: Response generation timestamp
+        example: "2024-01-15T10:30:00Z"
+      calculationMethod:
+        type: object
+        description: Methods used for various calculations
+        properties:
+          bodyFat:
+            type: string
+            enum: [navy_method, dexa_scan, bioimpedance, skinfold]
+            description: Method used for body fat calculation
+            example: navy_method
+          bmr:
+            type: string
+            enum: [harris_benedict, mifflin_st_jeor, katch_mcardle]
+            description: Formula used for BMR calculation
+            example: mifflin_st_jeor
+          oneRepMax:
+            type: string
+            enum: [brzycki, epley, lombardi, mayhew]
+            description: Formula used for 1RM calculations
+            example: brzycki
+      dataRange:
+        type: object
+        description: Range of data used for calculations
+        required:
+          - startDate
+          - endDate
+        properties:
+          startDate:
+            type: string
+            format: date-time
+            description: Start date of data range used
+            example: "2024-01-01T00:00:00Z"
+          endDate:
+            type: string
+            format: date-time
+            description: End date of data range used
+            example: "2024-01-15T23:59:59Z"
+          dataPointsUsed:
+            type: integer
+            minimum: 0
+            description: Number of data points used in calculations
+            example: 15
+      processingTime:
+        type: number
+        format: float
+        description: Response processing time in milliseconds
+        example: 156.7
+      dataQuality:
+        type: object
+        description: Assessment of data quality used for calculations
+        properties:
+          score:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Overall data quality score (0-1)
+            example: 0.89
+          issues:
+            type: array
+            description: Data quality issues identified
+            items:
+              type: string
+            example: ["Missing body fat data for 2 measurements"]
+          completeness:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+            description: Data completeness percentage (0-1)
+            example: 0.93
+examples:
+  - status: success
+    data:
+      userId: "123e4567-e89b-12d3-a456-426614174000"
+      calculationDate: "2024-01-15T10:30:00Z"
+      metrics:
+        progressMetrics:
+          workoutFrequency: 5
+          adherenceScore: 0.87
+          strengthImprovement: 0.18
+          enduranceImprovement: 0.12
+          flexibilityScore: 7
+          balanceScore: 8
+          functionalMovementScore: 8
+        wellnessMetrics:
+          energyLevel: 8
+          mood: 7
+          sleepQuality: 8
+          sleepDuration: 7.5
+          stressLevel: 4
+          motivation: 9
+          overallWellness: 8
+        bodyComposition:
+          bodyFatPercentage: 18.5
+          leanBodyMass: 61.3
+          bmi: 24.4
+          bmr: 1847.2
+          tdee: 2587.1
+          bodyFatMass: 13.9
+          muscleMassPercentage: 81.5
+        performanceMetrics:
+          strengthProgression:
+            overallImprovement: 0.18
+            benchPress1RM: 92.5
+            squat1RM: 115.0
+            deadlift1RM: 140.0
+          enduranceProgression:
+            cardiovascularFitness: 78.5
+            vo2MaxEstimate: 45.2
+        trends:
+          weightTrend:
+            direction: decreasing
+            rate: -0.3
+            confidence: 0.87
+          strengthTrend:
+            direction: improving
+            rate: 0.025
+            confidence: 0.92
+    metadata:
+      timestamp: "2024-01-15T10:30:00Z"
+      calculationMethod:
+        bodyFat: navy_method
+        bmr: mifflin_st_jeor
+        oneRepMax: brzycki
+      dataRange:
+        startDate: "2024-01-01T00:00:00Z"
+        endDate: "2024-01-15T23:59:59Z"
+        dataPointsUsed: 15
+      processingTime: 156.7
+      dataQuality:
+        score: 0.89
+        issues: ["Missing body fat data for 2 measurements"]
+        completeness: 0.93 

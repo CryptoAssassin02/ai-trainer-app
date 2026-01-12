@@ -1,0 +1,32 @@
+description: Rate limit exceeded for macro operations
+headers:
+  X-Request-ID:
+    $ref: '../../headers/X-Request-ID.yaml'
+  X-RateLimit-Limit:
+    $ref: '../../headers/X-RateLimit-Limit.yaml'
+  X-RateLimit-Remaining:
+    $ref: '../../headers/X-RateLimit-Remaining.yaml'
+  X-RateLimit-Reset:
+    $ref: '../../headers/X-RateLimit-Reset.yaml'
+  Retry-After:
+    description: Seconds to wait before retrying
+    schema:
+      type: integer
+      example: 900
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/nutritionMacros/MacroRateLimitError.yaml'
+    examples:
+      standard_rate_limit:
+        summary: Standard macro operations rate limit
+        description: Too many macro requests within time window
+        value:
+          status: "error"
+          error: "MACRO_RATE_LIMIT_EXCEEDED"
+          message: "Too many macro requests. Please try again later."
+          details:
+            limit: 20
+            window: "15 minutes"
+            retryAfter: 900
+          timestamp: "2024-01-15T10:30:00Z" 

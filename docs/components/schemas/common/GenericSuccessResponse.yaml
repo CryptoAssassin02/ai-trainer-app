@@ -1,0 +1,13 @@
+type: object
+required: [status, message]
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status indicator
+  message:
+    type: string
+    description: Human-readable success message
+example:
+  status: success
+  message: Operation completed successfully 

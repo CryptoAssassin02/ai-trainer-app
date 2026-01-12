@@ -1,0 +1,139 @@
+type: object
+description: Stored macro plan with targets and metadata
+required:
+  - id
+  - userId
+  - calories
+  - macros
+  - status
+  - createdAt
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Unique identifier for the macro plan
+    example: "550e8400-e29b-41d4-a716-446655440000"
+  
+  userId:
+    type: string
+    format: uuid
+    description: ID of the user this plan belongs to
+    example: "123e4567-e89b-12d3-a456-426614174000"
+  
+  calories:
+    type: number
+    minimum: 800
+    maximum: 6000
+    description: Total daily calorie target
+    example: 2300
+  
+  macros:
+    $ref: './MacroBreakdown.yaml'
+  
+  bmr:
+    type: number
+    minimum: 800
+    maximum: 4000
+    description: Basal Metabolic Rate in calories
+    example: 1680
+  
+  tdee:
+    type: number
+    minimum: 1000
+    maximum: 6000
+    description: Total Daily Energy Expenditure in calories
+    example: 2604
+  
+  goalType:
+    type: string
+    enum:
+      - weight_loss
+      - maintenance
+      - muscle_gain
+      - performance
+      - custom
+    description: Goal associated with this macro plan
+    example: "muscle_gain"
+  
+  calorieAdjustment:
+    type: integer
+    minimum: -1000
+    maximum: 1000
+    description: Calorie adjustment from maintenance level
+    example: 300
+  
+  status:
+    type: string
+    enum:
+      - active
+      - inactive
+      - archived
+    description: Current status of the macro plan
+    example: "active"
+  
+  percentages:
+    type: object
+    properties:
+      protein:
+        type: integer
+        minimum: 10
+        maximum: 50
+        description: Protein percentage of total calories
+        example: 25
+      
+      carbs:
+        type: integer
+        minimum: 20
+        maximum: 70
+        description: Carbohydrate percentage of total calories
+        example: 45
+      
+      fat:
+        type: integer
+        minimum: 15
+        maximum: 50
+        description: Fat percentage of total calories
+        example: 30
+    additionalProperties: false
+    description: Macronutrient distribution as percentages
+  
+  notes:
+    type: string
+    maxLength: 500
+    description: Optional notes about this macro plan
+    example: "Optimized for lean muscle gain"
+  
+  source:
+    type: string
+    enum:
+      - calculated
+      - custom
+      - imported
+    description: How this macro plan was created
+    example: "calculated"
+  
+  version:
+    type: integer
+    minimum: 1
+    description: Version number for optimistic concurrency control
+    example: 2
+  
+  lastUsed:
+    type: string
+    format: date-time
+    description: When this plan was last actively used
+    example: "2024-01-15T14:30:00Z"
+  
+  createdAt:
+    type: string
+    format: date-time
+    description: When the macro plan was created
+    example: "2024-01-15T10:30:00Z"
+  
+  updatedAt:
+    type: string
+    format: date-time
+    description: When the macro plan was last updated
+    example: "2024-01-15T12:15:00Z"
+
+additionalProperties: false 

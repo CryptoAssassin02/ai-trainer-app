@@ -1,0 +1,123 @@
+type: object
+description: Response containing calculated macronutrient targets
+required:
+  - status
+  - message
+  - data
+properties:
+  status:
+    type: string
+    enum: [success]
+    description: Response status
+    example: "success"
+  
+  message:
+    type: string
+    description: Response message
+    example: "Macros calculated and stored successfully"
+  
+  data:
+    type: object
+    required:
+      - id
+      - calories
+      - macros
+      - bmr
+      - tdee
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: ID of the stored macro plan
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      
+      calories:
+        type: number
+        minimum: 800
+        maximum: 6000
+        description: Total daily calorie target
+        example: 2300
+      
+      macros:
+        $ref: './MacroBreakdown.yaml'
+      
+      bmr:
+        type: number
+        minimum: 800
+        maximum: 4000
+        description: Basal Metabolic Rate in calories
+        example: 1680
+      
+      tdee:
+        type: number
+        minimum: 1000
+        maximum: 6000
+        description: Total Daily Energy Expenditure in calories
+        example: 2604
+      
+      goalType:
+        type: string
+        enum:
+          - weight_loss
+          - maintenance
+          - muscle_gain
+          - performance
+        description: Goal this calculation was based on
+        example: "muscle_gain"
+      
+      calorieAdjustment:
+        type: integer
+        minimum: -1000
+        maximum: 1000
+        description: Calorie adjustment from maintenance level
+        example: 300
+      
+      percentages:
+        type: object
+        properties:
+          protein:
+            type: integer
+            minimum: 10
+            maximum: 50
+            description: Protein percentage of total calories
+            example: 25
+          
+          carbs:
+            type: integer
+            minimum: 20
+            maximum: 70
+            description: Carbohydrate percentage of total calories
+            example: 45
+          
+          fat:
+            type: integer
+            minimum: 15
+            maximum: 50
+            description: Fat percentage of total calories
+            example: 30
+        additionalProperties: false
+        description: Macronutrient distribution as percentages
+    additionalProperties: false
+    description: Calculated macro targets and metadata
+
+additionalProperties: false
+
+example:
+  status: "success"
+  message: "Macros calculated and stored successfully"
+  data:
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    calories: 2300
+    macros:
+      protein_g: 144
+      carbs_g: 259
+      fat_g: 77
+      calories: 2300
+    bmr: 1680
+    tdee: 2604
+    goalType: "muscle_gain"
+    calorieAdjustment: 300
+    percentages:
+      protein: 25
+      carbs: 45
+      fat: 30 

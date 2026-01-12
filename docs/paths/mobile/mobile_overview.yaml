@@ -1,0 +1,125 @@
+get:
+  tags:
+    - Mobile Analytics
+  summary: Get mobile-optimized analytics overview with payload limits
+  description: |
+    Retrieve a comprehensive yet mobile-optimized analytics overview designed for mobile applications with strict payload size limits and network considerations.
+    
+    **Mobile Optimization Features:**
+    - Payload size guaranteed under 50KB with compression
+    - Network-adaptive content based on connection type
+    - Essential metrics prioritization for small screens
+    - Cached responses to reduce data usage
+    - Progressive loading support for slower connections
+    
+    **Overview Content:**
+    - Key performance indicators and trends
+    - Essential workout and progress metrics
+    - Compressed wellness summary
+    - Goal progress highlights
+    - Quick insights and notifications
+    
+    **Network Awareness:**
+    - Automatic compression for 2G/3G connections
+    - Progressive detail levels based on connection speed
+    - Cached data indicators and freshness timestamps
+    - Offline capability indicators
+    - Data usage optimization features
+    
+    **Mobile-Specific Enhancements:**
+    - Touch-friendly data structures
+    - Chart data optimized for small screens
+    - Priority-based metric loading
+    - Battery usage optimization
+    - Background sync preparation
+  operationId: getMobileAnalyticsOverview
+  security:
+    - SupabaseJWT: []
+  parameters:
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/timeRange'
+    
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/connectionType'
+    
+    - $ref: '../../components/parameters/MobileOptimization.yaml#/compressionLevel'
+    
+    - name: priorityMetrics
+      in: query
+      description: Prioritized metrics for limited display (comma-separated)
+      schema:
+        type: string
+        example: "weight,workouts,goals"
+    
+    - name: includeCharts
+      in: query
+      description: Include chart data (increases payload size)
+      schema:
+        type: boolean
+        default: true
+        example: false
+    
+    - name: detailLevel
+      in: query
+      description: Level of detail for mobile display
+      schema:
+        type: string
+        enum: [minimal, standard, detailed]
+        default: "standard"
+        example: "minimal"
+    
+    - name: cachePreference
+      in: query
+      description: Cache preference for data freshness vs speed
+      schema:
+        type: string
+        enum: [fresh, balanced, cached]
+        default: "balanced"
+        example: "cached"
+    
+    - name: batteryOptimized
+      in: query
+      description: Enable battery optimization features
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: offlineReady
+      in: query
+      description: Prepare data for offline availability
+      schema:
+        type: boolean
+        default: false
+        example: true
+    
+    - name: deviceType
+      in: query
+      description: Device type for optimization
+      schema:
+        type: string
+        enum: [phone, tablet, watch, unknown]
+        default: "phone"
+        example: "phone"
+  responses:
+    '200':
+      $ref: '../../components/responses/mobile/MobileOverviewRetrieved.yaml'
+    
+    '400':
+      $ref: '../../components/responses/common/ValidationError.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/common/NotFound.yaml'
+    
+    '413':
+      $ref: '../../components/responses/mobile/MobilePayloadExceeded.yaml'
+    
+    '429':
+      $ref: '../../components/responses/common/RateLimitExceeded.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+    
+    '503':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

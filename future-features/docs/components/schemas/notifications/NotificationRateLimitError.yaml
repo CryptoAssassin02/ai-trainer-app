@@ -1,0 +1,13 @@
+description: >
+  Defines the error response for when the notification endpoint rate limit is exceeded.
+type: object
+required:
+  - status
+  - message
+properties:
+  status:
+    type: string
+    enum: [error]
+  message:
+    type: string
+    example: "Too many requests. Please try again later." 

@@ -1,0 +1,153 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [ANALYTICS_DATABASE_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      databaseOperation:
+        type: string
+        enum: [select, insert, update, delete, aggregate, join, transaction, procedure]
+        description: Database operation that failed
+      errorType:
+        type: string
+        enum: [connection_timeout, query_timeout, deadlock, constraint_violation, data_corruption, insufficient_permissions, table_not_found, index_corruption]
+        description: Type of database error
+      affectedTables:
+        type: array
+        items:
+          type: string
+          enum: [user_analytics_aggregates, workout_logs, user_check_ins, user_goals, analytics_refresh_queue]
+        description: Database tables affected by the error
+      queryInfo:
+        type: object
+        properties:
+          sqlState:
+            type: string
+            description: SQL state code
+          errorCode:
+            type: integer
+            description: Database-specific error code
+          executionTime:
+            type: number
+            description: Query execution time before failure (seconds)
+          affectedRows:
+            type: integer
+            description: Number of rows affected before failure
+          queryComplexity:
+            type: string
+            enum: [simple, moderate, complex, very_complex]
+            description: Complexity of the failed query
+        description: Information about the failed query
+      dataIntegrity:
+        type: object
+        properties:
+          corrupted:
+            type: boolean
+            description: Whether data corruption was detected
+          inconsistent:
+            type: boolean
+            description: Whether data inconsistency was found
+          recoverable:
+            type: boolean
+            description: Whether data is recoverable
+          backupRequired:
+            type: boolean
+            description: Whether backup restoration is needed
+        description: Data integrity status
+      performance:
+        type: object
+        properties:
+          connectionPool:
+            type: object
+            properties:
+              active:
+                type: integer
+              idle:
+                type: integer
+              max:
+                type: integer
+          responseTime:
+            type: number
+            description: Database response time (ms)
+          throughput:
+            type: number
+            description: Current throughput (queries/second)
+          lockWaitTime:
+            type: number
+            description: Time spent waiting for locks (ms)
+        description: Database performance metrics
+      recovery:
+        type: object
+        properties:
+          automatic:
+            type: boolean
+            description: Whether automatic recovery is possible
+          retryable:
+            type: boolean
+            description: Whether the operation can be retried
+          estimatedRecoveryTime:
+            type: string
+            description: Estimated time for recovery
+          recommendedActions:
+            type: array
+            items:
+              type: string
+            description: Recommended recovery actions
+        description: Recovery information
+      aggregationImpact:
+        type: object
+        properties:
+          affectedMetrics:
+            type: array
+            items:
+              type: string
+              enum: [workout_consistency, strength_progress, adherence_rate, goal_progress, trend_analysis]
+            description: Analytics metrics affected
+          staleData:
+            type: boolean
+            description: Whether analytics data is stale
+          lastSuccessfulRefresh:
+            type: string
+            format: date-time
+            description: Last successful data refresh
+          fallbackAvailable:
+            type: boolean
+            description: Whether fallback data is available
+        description: Impact on analytics aggregation
+      monitoring:
+        type: object
+        properties:
+          alertTriggered:
+            type: boolean
+            description: Whether monitoring alert was triggered
+          healthCheck:
+            type: string
+            enum: [healthy, degraded, critical, down]
+            description: Database health status
+          replicationStatus:
+            type: string
+            enum: [healthy, lagging, broken, unknown]
+            description: Database replication status
+          maintenanceMode:
+            type: boolean
+            description: Whether database is in maintenance mode
+        description: Database monitoring information
+    description: Detailed analytics database error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

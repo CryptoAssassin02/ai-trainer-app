@@ -1,0 +1,5 @@
+description: Authentication required or token invalid
+content:
+  application/json:
+    schema:
+      $ref: '../../schemas/auth/AuthenticationError.yaml' 

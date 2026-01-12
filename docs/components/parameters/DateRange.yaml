@@ -1,0 +1,26 @@
+# Date Range Parameters - Combined startDate and endDate
+startDate:
+  name: startDate
+  in: query
+  description: Start date for filtering results (YYYY-MM-DD format)
+  schema:
+    type: string
+    format: date
+    pattern: '^\d{4}-\d{2}-\d{2}$'
+    example: '2024-01-01'
+  required: false
+  style: form
+  explode: false
+
+endDate:
+  name: endDate
+  in: query
+  description: End date for filtering results (YYYY-MM-DD format)
+  schema:
+    type: string
+    format: date
+    pattern: '^\d{4}-\d{2}-\d{2}$'
+    example: '2024-12-31'
+  required: false
+  style: form
+  explode: false 

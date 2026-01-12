@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Backend Jest Tests",
+      "type": "node",
+      "request": "launch",
+      // Use the full path to jest executable within node_modules
+      "runtimeExecutable": "${workspaceFolder}/backend/node_modules/.bin/jest",
+      "args": [
+        // Specify the test file to debug - update this path as needed
+        "${workspaceFolder}/backend/tests/services/profile-service-implementation.test.js",
+        "--runInBand", // Crucial: runs tests serially in one process
+        "--no-cache"   // Optional: disable cache just in case
+        // Add any other Jest arguments needed, but avoid reporters that suppress output
+      ],
+      "cwd": "${workspaceFolder}/backend", // Set CWD to backend directory
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "windows": { // Windows-specific path if needed
+        "runtimeExecutable": "${workspaceFolder}\\backend\\node_modules\\jest\\bin\\jest.js"
+      }
+    }
+    // Add other configurations if needed
+  ]
+} 

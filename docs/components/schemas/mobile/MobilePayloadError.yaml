@@ -1,0 +1,195 @@
+type: object
+required: [status, error, message]
+properties:
+  status:
+    type: string
+    enum: [error]
+    description: Response status
+  error:
+    type: string
+    enum: [MOBILE_PAYLOAD_ERROR]
+    description: Error code
+  message:
+    type: string
+    description: Human-readable error message
+  details:
+    type: object
+    properties:
+      payloadSize:
+        type: integer
+        description: Actual payload size in bytes
+      maxPayloadSize:
+        type: integer
+        description: Maximum allowed payload size in bytes
+      compressionRatio:
+        type: number
+        description: Current compression ratio achieved
+      exceedsBy:
+        type: integer
+        description: Bytes by which payload exceeds limit
+      payloadType:
+        type: string
+        enum: [analytics_data, sync_data, media_content, bulk_operations, comprehensive_response]
+        description: Type of payload that exceeded limits
+      mobileOptimization:
+        type: object
+        properties:
+          compressionApplied:
+            type: boolean
+            description: Whether compression was applied
+          dataFiltering:
+            type: boolean
+            description: Whether data filtering was applied
+          fieldReduction:
+            type: boolean
+            description: Whether non-essential fields were removed
+          batchingApplied:
+            type: boolean
+            description: Whether batching optimization was applied
+          imageOptimization:
+            type: boolean
+            description: Whether image optimization was applied
+        description: Mobile optimization techniques attempted
+      contentBreakdown:
+        type: object
+        properties:
+          analyticsData:
+            type: integer
+            description: Size of analytics data in bytes
+          mediaContent:
+            type: integer
+            description: Size of media content in bytes
+          textData:
+            type: integer
+            description: Size of text data in bytes
+          metadataOverhead:
+            type: integer
+            description: Size of metadata overhead in bytes
+          largestComponent:
+            type: string
+            description: Largest component contributing to size
+        description: Breakdown of payload content sizes
+      optimizationSuggestions:
+        type: object
+        properties:
+          enableCompression:
+            type: boolean
+            description: Whether to enable additional compression
+          reduceDataRange:
+            type: boolean
+            description: Whether to reduce date range for data
+          removeNonEssential:
+            type: boolean
+            description: Whether to remove non-essential fields
+          paginateResults:
+            type: boolean
+            description: Whether to paginate large result sets
+          optimizeImages:
+            type: boolean
+            description: Whether to further optimize images
+          useStreaming:
+            type: boolean
+            description: Whether to use streaming for large data
+        description: Optimization suggestions to reduce payload size
+      alternatives:
+        type: object
+        properties:
+          paginatedResponse:
+            type: boolean
+            description: Whether paginated response is available
+          summaryOnly:
+            type: boolean
+            description: Whether summary-only response is available
+          incrementalSync:
+            type: boolean
+            description: Whether incremental sync is available
+          streamingMode:
+            type: boolean
+            description: Whether streaming mode is available
+          backgroundDownload:
+            type: boolean
+            description: Whether background download is available
+        description: Alternative delivery methods
+      networkConsiderations:
+        type: object
+        properties:
+          connectionType:
+            type: string
+            enum: [wifi, cellular_5g, cellular_4g, cellular_3g, low_bandwidth]
+            description: User's connection type
+          estimatedTransferTime:
+            type: integer
+            description: Estimated transfer time in seconds
+          dataCostImpact:
+            type: string
+            enum: [low, moderate, high, very_high]
+            description: Impact on user's data costs
+          batteryImpact:
+            type: string
+            enum: [low, moderate, high, very_high]
+            description: Impact on device battery
+        description: Network and resource considerations
+      deviceCapability:
+        type: object
+        properties:
+          memoryAvailable:
+            type: integer
+            description: Available device memory in MB
+          storageAvailable:
+            type: integer
+            description: Available device storage in MB
+          processingPower:
+            type: string
+            enum: [low, moderate, high, very_high]
+            description: Device processing capability
+          supportedCompression:
+            type: array
+            items:
+              type: string
+              enum: [gzip, brotli, deflate, custom]
+            description: Compression formats supported by device
+        description: Device capability information
+      adaptiveOptions:
+        type: object
+        properties:
+          qualityReduction:
+            type: object
+            properties:
+              available:
+                type: boolean
+              levels:
+                type: array
+                items:
+                  type: string
+                  enum: [high, medium, low, minimal]
+            description: Quality reduction options
+          dataFiltering:
+            type: object
+            properties:
+              available:
+                type: boolean
+              filters:
+                type: array
+                items:
+                  type: string
+                  enum: [recent_only, essential_only, summary_only, metadata_only]
+            description: Data filtering options
+          progressiveLoading:
+            type: object
+            properties:
+              available:
+                type: boolean
+              stages:
+                type: array
+                items:
+                  type: string
+            description: Progressive loading options
+        description: Adaptive delivery options
+    description: Detailed mobile payload error information
+  timestamp:
+    type: string
+    format: date-time
+    description: Error timestamp
+  requestId:
+    type: string
+    description: Unique request identifier for support 

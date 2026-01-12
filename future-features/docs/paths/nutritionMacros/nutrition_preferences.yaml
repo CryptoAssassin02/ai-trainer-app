@@ -1,0 +1,69 @@
+get:
+  tags:
+    - Nutrition & Macros
+  summary: Get user's dietary preferences
+  description: |
+    Retrieve the user's dietary preferences including diet type, restrictions, allergies, and meal timing preferences.
+  operationId: getDietaryPreferences
+  security:
+    - SupabaseJWT: []
+  responses:
+    '200':
+      $ref: '../../components/responses/nutritionMacros/DietaryPreferencesRetrieved.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '404':
+      $ref: '../../components/responses/nutritionMacros/NutritionNotFound.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml'
+
+post:
+  tags:
+    - Nutrition & Macros
+  summary: Update user's dietary preferences
+  description: |
+    Create or update the user's dietary preferences. All fields are optional - only provided fields will be updated.
+  operationId: updateDietaryPreferences
+  security:
+    - SupabaseJWT: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/schemas/nutritionMacros/DietaryPreferencesRequest.yaml'
+        examples:
+          vegetarian_preferences:
+            summary: Vegetarian preferences update
+            description: Update to vegetarian diet with specific restrictions
+            value:
+              dietType: "vegetarian"
+              mealFrequency: 4
+              restrictions: ["dairy-free"]
+              allergies: ["shellfish"]
+              preferredCuisine: "Mediterranean"
+          
+          keto_preferences:
+            summary: Keto diet preferences
+            description: Switch to ketogenic diet preferences
+            value:
+              dietType: "keto"
+              mealFrequency: 3
+              mealTimingPrefs: "Intermittent fasting 16:8"
+              restrictions: ["low-carb", "high-fat"]
+              performanceGoals: "Weight loss and mental clarity"
+  responses:
+    '200':
+      $ref: '../../components/responses/nutritionMacros/DietaryPreferencesUpdated.yaml'
+    
+    '400':
+      $ref: '../../components/responses/nutritionMacros/NutritionValidationFailed.yaml'
+    
+    '401':
+      $ref: '../../components/responses/common/Unauthorized.yaml'
+    
+    '500':
+      $ref: '../../components/responses/common/InternalServerError.yaml' 

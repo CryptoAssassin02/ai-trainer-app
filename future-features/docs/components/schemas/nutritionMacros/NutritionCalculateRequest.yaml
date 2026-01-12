@@ -1,0 +1,44 @@
+type: object
+description: Request body for calculating macros and generating a nutrition plan using AI
+required:
+  - goals
+  - activityLevel
+properties:
+  goals:
+    type: array
+    items:
+      type: string
+      enum:
+        - weight_loss
+        - muscle_gain
+        - maintenance
+        - performance
+        - general_health
+        - endurance
+    minItems: 1
+    description: Array of fitness goals to guide nutrition plan generation
+    example: ["weight_loss", "muscle_gain"]
+  
+  activityLevel:
+    type: string
+    enum:
+      - sedentary
+      - light
+      - moderate
+      - active
+      - very_active
+    description: User's activity level for TDEE calculation
+    example: "moderate"
+  
+  additionalNotes:
+    type: string
+    maxLength: 500
+    description: Optional additional preferences or notes for the nutrition plan
+    example: "Prefer vegetarian options, avoid dairy"
+
+additionalProperties: false
+
+example:
+  goals: ["weight_loss"]
+  activityLevel: "moderate"
+  additionalNotes: "Focus on high protein, low carb options" 
